@@ -6,8 +6,8 @@
 // ============================================
 function createEncounter(db, encounterData) {
   const stmt = db.prepare(`
-    INSERT INTO encounters (campaign_id, name, description, difficulty, monsters, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO encounters (campaign_id, name, description, difficulty, location, monsters, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -16,7 +16,9 @@ function createEncounter(db, encounterData) {
     encounterData.name,
     encounterData.description || null,
     encounterData.difficulty || null,
+    encounterData.location || null,
     encounterData.monsters ? JSON.stringify(encounterData.monsters) : null,
+    now,
     now
   );
 
@@ -65,7 +67,7 @@ function updateEncounter(db, id, encounterData) {
   const stmt = db.prepare(`
     UPDATE encounters 
     SET campaign_id = ?, name = ?, description = ?, difficulty = ?, 
-        monsters = ?, updated_at = ?
+        location = ?, monsters = ?, updated_at = ?
     WHERE id = ?
   `);
 
@@ -75,6 +77,7 @@ function updateEncounter(db, id, encounterData) {
     encounterData.name,
     encounterData.description || null,
     encounterData.difficulty || null,
+    encounterData.location || null,
     encounterData.monsters ? JSON.stringify(encounterData.monsters) : null,
     now,
     id

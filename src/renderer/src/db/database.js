@@ -76,9 +76,19 @@ class DatabaseService {
     return await window.dmCopilot.db.characters.create(data);
   }
 
+  async getAllCharacters() {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.getAll();
+  }
+
+  async getCharactersBySystem(system) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.getBySystem(system);
+  }
+
   async getCharactersByCampaign(campaignId) {
     if (!this.isReady()) throw new Error("Database not initialized");
-    return await window.dmCopilot.db.characters.getAll(campaignId);
+    return await window.dmCopilot.db.characters.getByCampaign(campaignId);
   }
 
   async getCharacterById(id) {
@@ -94,6 +104,26 @@ class DatabaseService {
   async deleteCharacter(id) {
     if (!this.isReady()) throw new Error("Database not initialized");
     return await window.dmCopilot.db.characters.delete(id);
+  }
+
+  async linkCharacterToCampaign(charId, campId) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.linkToCampaign(charId, campId);
+  }
+
+  async unlinkCharacterFromCampaign(charId, campId) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.unlinkFromCampaign(charId, campId);
+  }
+
+  async getAvailableCharactersForCampaign(campId, system) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.getAvailableForCampaign(campId, system);
+  }
+
+  async saveCharacterImage(imageData) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.saveImage(imageData);
   }
 
   // ============================================

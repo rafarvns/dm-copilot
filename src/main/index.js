@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, dialog, protocol } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
@@ -334,6 +334,28 @@ ipcMain.handle("get-app-version", () => {
   return app.getVersion();
 });
 
+ipcMain.handle("app-save-character-image", async (_event, imageData) => {
+  try {
+    const userDataPath = app.getPath("userData");
+    const imagesDir = path.join(userDataPath, "images", "characters");
+
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    const fileName = `char_${Date.now()}.webp`;
+    const filePath = path.join(imagesDir, fileName);
+
+    // imageData chega como Buffer ou Uint8Array
+    fs.writeFileSync(filePath, Buffer.from(imageData));
+    
+    return `characters/${fileName}`;
+  } catch (error) {
+    console.error("Erro ao salvar imagem:", error);
+    throw error;
+  }
+});
+
 // ============================================
 // IPC Handlers - Database
 // ============================================
@@ -393,7 +415,19 @@ ipcMain.handle("db-characters-create", (_event, characterData) => {
   return createCharacter(db, characterData);
 });
 
-ipcMain.handle("db-characters-read-all", (_event, campaignId) => {
+ipcMain.handle("db-characters-read-all", () => {
+  const db = databaseManager.getConnection();
+  const { getAllCharacters } = require("./database/queries/characters");
+  return getAllCharacters(db);
+});
+
+ipcMain.handle("db-characters-read-system", (_event, system) => {
+  const db = databaseManager.getConnection();
+  const { getCharactersBySystem } = require("./database/queries/characters");
+  return getCharactersBySystem(db, system);
+});
+
+ipcMain.handle("db-characters-read-campaign", (_event, campaignId) => {
   const db = databaseManager.getConnection();
   const { getCharactersByCampaign } = require("./database/queries/characters");
   return getCharactersByCampaign(db, campaignId);
@@ -415,6 +449,24 @@ ipcMain.handle("db-characters-delete", (_event, id) => {
   const db = databaseManager.getConnection();
   const { deleteCharacter } = require("./database/queries/characters");
   return deleteCharacter(db, id);
+});
+
+ipcMain.handle("db-characters-link-campaign", (_event, characterId, campaignId) => {
+  const db = databaseManager.getConnection();
+  const { linkToCampaign } = require("./database/queries/characters");
+  return linkToCampaign(db, characterId, campaignId);
+});
+
+ipcMain.handle("db-characters-unlink-campaign", (_event, characterId, campaignId) => {
+  const db = databaseManager.getConnection();
+  const { unlinkFromCampaign } = require("./database/queries/characters");
+  return unlinkFromCampaign(db, characterId, campaignId);
+});
+
+ipcMain.handle("db-characters-available-campaign", (_event, campaignId, system) => {
+  const db = databaseManager.getConnection();
+  const { getAvailableCharactersForCampaign } = require("./database/queries/characters");
+  return getAvailableCharactersForCampaign(db, campaignId, system);
 });
 
 // ============================================
@@ -590,6 +642,19 @@ ipcMain.on("window-close", () => {
 // App Lifecycle
 // ============================================
 app.whenReady().then(() => {
+  // Registrar protocolo para imagens locais
+  protocol.registerFileProtocol('local-image', (request, callback) => {
+    const url = request.url.replace('local-image://', '');
+    try {
+      const decodedUrl = decodeURI(url);
+      const fullPath = path.join(app.getPath('userData'), 'images', decodedUrl);
+      return callback(fullPath);
+    } catch (error) {
+      console.error('Erro no protocolo local-image:', error);
+      return callback({ error: -6 }); // NET_ERROR(FILE_NOT_FOUND, -6)
+    }
+  });
+
   // Initialize database
   try {
     databaseManager.init();

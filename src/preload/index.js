@@ -27,10 +27,16 @@ contextBridge.exposeInMainWorld("dmCopilot", {
     // Characters
     characters: {
       create: (data) => ipcRenderer.invoke("db-characters-create", data),
-      getAll: (campaignId) => ipcRenderer.invoke("db-characters-read-all", campaignId),
+      getAll: () => ipcRenderer.invoke("db-characters-read-all"),
+      getBySystem: (system) => ipcRenderer.invoke("db-characters-read-system", system),
+      getByCampaign: (campaignId) => ipcRenderer.invoke("db-characters-read-campaign", campaignId),
       getById: (id) => ipcRenderer.invoke("db-characters-read-id", id),
       update: (id, data) => ipcRenderer.invoke("db-characters-update", id, data),
       delete: (id) => ipcRenderer.invoke("db-characters-delete", id),
+      linkToCampaign: (charId, campId) => ipcRenderer.invoke("db-characters-link-campaign", charId, campId),
+      unlinkFromCampaign: (charId, campId) => ipcRenderer.invoke("db-characters-unlink-campaign", charId, campId),
+      getAvailableForCampaign: (campId, system) => ipcRenderer.invoke("db-characters-available-campaign", campId, system),
+      saveImage: (data) => ipcRenderer.invoke("app-save-character-image", data),
     },
     
     // Encounters

@@ -8,7 +8,8 @@ import "./assets/main.css";
 import databaseService from "./db/database.js";
 
 // Views
-import { CampaignsView, showToast } from "./views/database-views.js";
+import { CampaignsView, EncountersView, showToast } from "./views/database-views.js";
+import charactersView from "./views/characters-view.js";
 
 // ============================================
 // DOM Element References
@@ -35,9 +36,10 @@ const state = {
 };
 
 // ============================================
-// View Instances (lazy initialization)
+// View Instances
 // ============================================
-let campaignsView = null;
+window.campaignsView = new CampaignsView();
+window.encountersView = new EncountersView();
 
 // ============================================
 // Navigation
@@ -69,20 +71,12 @@ function navigateTo(viewName) {
 
   state.currentView = viewName;
 
-  // Lazy-mount views when navigated to
+  // Mount views when navigated to
   if (viewName === "campaigns") {
-    mountCampaignsView();
+    window.campaignsView.mount();
+  } else if (viewName === "characters") {
+    charactersView.mount();
   }
-}
-
-// ============================================
-// Lazy View Mounting
-// ============================================
-async function mountCampaignsView() {
-  if (!campaignsView) {
-    campaignsView = new CampaignsView();
-  }
-  await campaignsView.mount();
 }
 
 // ============================================
@@ -94,7 +88,6 @@ function handleAction(action) {
     "new-character": "characters",
     "open-campaigns": "campaigns",
     "open-characters": "characters",
-    "open-encounters": "encounters",
     "open-dice": "dice",
     "open-notes": "notes",
     "open-settings": "settings",
@@ -105,9 +98,10 @@ function handleAction(action) {
     navigateTo(targetView);
 
     // Special actions after navigation
-    if (action === "new-campaign" && campaignsView) {
-      // Wait a tick for the view to mount, then open form
-      setTimeout(() => campaignsView.openForm(), 100);
+    if (action === "new-campaign") {
+      setTimeout(() => window.campaignsView.openForm(), 100);
+    } else if (action === "new-character") {
+      setTimeout(() => charactersView.openForm(), 100);
     }
   }
 }
@@ -145,8 +139,8 @@ function setupMenuActions() {
       switch (action) {
         case "new-campaign":
           navigateTo("campaigns");
-          if (campaignsView) {
-            setTimeout(() => campaignsView.openForm(), 100);
+          if (window.campaignsView) {
+            setTimeout(() => window.campaignsView.openForm(), 100);
           }
           break;
         case "open-campaign":

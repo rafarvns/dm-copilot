@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' http://localhost:5173; script-src 'self' 'unsafe-inline' http://localhost:5173; style-src 'self' 'unsafe-inline' http://localhost:5173; connect-src 'self' http://localhost:5173 ws://localhost:5173;"
+      content="default-src 'self' http://localhost:5173; script-src 'self' 'unsafe-inline' http://localhost:5173; style-src 'self' 'unsafe-inline' http://localhost:5173; connect-src 'self' http://localhost:5173 ws://localhost:5173 https://www.dnd5eapi.co; img-src 'self' data: http://localhost:5173 local-image:;"
     />
     <link rel="icon" href="./assets/icon.png" />
     <title>DM Copilot</title>
@@ -37,10 +37,6 @@
               <a class="sidebar__link" data-view="characters" href="#">
                 <span class="sidebar__link-icon">🧙</span>
                 <span class="sidebar__link-text">Personagens</span>
-              </a>
-              <a class="sidebar__link" data-view="encounters" href="#">
-                <span class="sidebar__link-icon">⚔️</span>
-                <span class="sidebar__link-text">Encontros</span>
               </a>
             </div>
 
@@ -209,16 +205,82 @@
                 </button>
               </div>
               <div class="campaign-detail__sections">
-                <p class="text-muted">Personagens, encontros e notas serão exibidos aqui em breve.</p>
+                <div class="section-header">
+                  <h2 class="section-title">Personagens da Campanha</h2>
+                  <div class="section-actions">
+                    <span id="detail-char-count" class="badge badge--muted">0</span>
+                    <button class="btn btn--secondary btn--sm" id="btn-add-char-to-campaign">
+                      <span class="btn__icon">+</span> Adicionar
+                    </button>
+                  </div>
+                </div>
+                <div id="detail-characters-list" class="characters-grid mt-4">
+                  <!-- Characters will be listed here -->
+                </div>
+                <div id="detail-characters-empty" class="text-center py-6 mt-4">
+                  <p class="text-muted">Nenhum personagem vinculado a esta campanha.</p>
+                </div>
+
+                <div class="section-header mt-8">
+                  <h2 class="section-title">Encontros</h2>
+                  <div class="section-actions">
+                    <span id="detail-encounter-count" class="badge badge--muted">0</span>
+                    <button class="btn btn--secondary btn--sm" id="btn-add-encounter">
+                      <span class="btn__icon">+</span> Novo Encontro
+                    </button>
+                  </div>
+                </div>
+                <div id="detail-encounters-list" class="encounters-grid mt-4">
+                  <!-- Encounters will be listed here -->
+                </div>
+                <div id="detail-encounters-empty" class="text-center py-6 mt-4">
+                  <p class="text-muted">Nenhum encontro criado para esta campanha.</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="welcome hidden" id="view-characters">
-            <div class="welcome__emblem">🧙</div>
-            <h1 class="welcome__title">Personagens</h1>
-            <p class="welcome__subtitle">Gerencie NPCs, monstros e personagens jogadores.</p>
-            <p class="text-muted mt-4">Funcionalidade em desenvolvimento...</p>
+          <!-- Characters View -->
+          <div class="view hidden" id="view-characters">
+            <div id="characters-list-view" class="campaigns-view">
+              <div class="campaigns-header">
+                <div class="campaigns-header__title">
+                  <span class="campaigns-header__icon">🧙</span>
+                  <h1 class="campaigns-header__text">Personagens</h1>
+                  <span id="characters-count" class="badge badge--muted">0 personagens</span>
+                </div>
+                <button class="btn btn--primary" id="btn-new-character">
+                  <span class="btn__icon">+</span> Novo Personagem
+                </button>
+              </div>
+
+              <div class="campaigns-toolbar">
+                <div class="campaigns-search">
+                  <span class="campaigns-search__icon">🔍</span>
+                  <input type="text" id="character-search" class="campaigns-search__input" placeholder="Buscar personagens pelo nome..." />
+                </div>
+                <select id="character-filter-system" class="campaigns-filter">
+                  <option value="">Todos os sistemas</option>
+                  <option value="D&D 5e">D&D 5e</option>
+                  <option value="Pathfinder">Pathfinder</option>
+                  <option value="Tormenta">Tormenta</option>
+                  <option value="GURPS">GURPS</option>
+                  <option value="Vampiro">Vampiro: A Máscara</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+
+              <div id="characters-list" class="campaigns-grid"></div>
+
+              <div id="characters-empty" class="empty-state hidden">
+                <div class="empty-state__icon">🧙</div>
+                <h2 class="empty-state__title">Nenhum personagem encontrado</h2>
+                <p class="empty-state__text">Crie seu primeiro personagem para começar a gerenciar sua biblioteca.</p>
+                <button class="btn btn--primary btn--lg" id="btn-char-empty-new">
+                  <span class="btn__icon">+</span> Criar Primeiro Personagem
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="welcome hidden" id="view-encounters">
@@ -324,6 +386,259 @@
           <button class="btn btn--danger" id="btn-confirm-ok">
             <span class="btn__icon">🗑️</span> Excluir
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Character Form Modal -->
+    <div id="character-modal" class="modal hidden">
+      <div class="modal__overlay" id="character-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 id="char-modal-title" class="modal__title">Novo Personagem</h2>
+          <button class="modal__close" id="btn-close-char-modal">&times;</button>
+        </div>
+        <form id="character-form" class="campaign-form" novalidate>
+          <input type="hidden" id="character-id" />
+          
+          <div class="character-image-upload">
+            <div class="character-image-preview" id="char-image-preview">
+              <span class="image-placeholder" id="char-image-placeholder">👤</span>
+              <img id="char-image-display" src="" alt="" class="hidden" />
+              <div class="image-overlay">
+                <span class="overlay-icon">📷</span>
+              </div>
+            </div>
+            <input type="file" id="character-image-input" class="hidden" accept="image/*" />
+          </div>
+
+          <div class="form-group">
+            <label for="character-name" class="form-label">Nome do Personagem <span class="form-required">*</span></label>
+            <input type="text" id="character-name" class="form-input" required placeholder="Ex: Grog, o Bárbaro" autocomplete="off" />
+            <span class="form-error" id="error-char-name"></span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="character-system" class="form-label">Sistema <span class="form-required">*</span></label>
+              <select id="character-system" class="form-select" required>
+                <option value="">Selecione...</option>
+                <option value="D&D 5e">D&D 5e</option>
+                <option value="Pathfinder">Pathfinder</option>
+                <option value="Tormenta">Tormenta</option>
+                <option value="GURPS">GURPS</option>
+                <option value="Vampiro">Vampiro: A Máscara</option>
+                <option value="Outro">Outro</option>
+              </select>
+              <span class="form-error" id="error-char-system"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="character-hp" class="form-label">HP</label>
+              <input type="number" id="character-hp" class="form-input" placeholder="0" />
+            </div>
+
+            <div class="form-group">
+              <label for="character-ac" class="form-label">AC</label>
+              <input type="number" id="character-ac" class="form-input" placeholder="10" />
+            </div>
+
+            <div class="form-group">
+              <label for="character-ini" class="form-label">Ini</label>
+              <input type="number" id="character-ini" class="form-input" placeholder="0" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="character-description" class="form-label">Descrição / Bio</label>
+            <textarea id="character-description" class="form-textarea" rows="4" placeholder="Descreva o personagem, personalidade, equipamentos..."></textarea>
+          </div>
+
+          <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" id="btn-cancel-char-form">Cancelar</button>
+            <button type="submit" class="btn btn--primary" id="btn-save-char-form">
+              <span class="btn__icon">💾</span> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Link Character Modal -->
+    <div id="link-character-modal" class="modal hidden">
+      <div class="modal__overlay" id="link-char-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title">Adicionar Personagem à Campanha</h2>
+          <button class="modal__close" id="btn-close-link-char-modal">&times;</button>
+        </div>
+        <div class="link-char-list-container">
+          <p class="mb-3">Selecione personagens do sistema <strong id="link-char-system-name">...</strong> para adicionar:</p>
+          <div id="available-chars-list" class="available-chars-list">
+            <!-- Available characters will be listed here -->
+          </div>
+          <div id="available-chars-empty" class="text-center py-4 hidden">
+            <p class="text-muted">Nenhum personagem disponível para este sistema.</p>
+          </div>
+        </div>
+        <div class="modal__footer mt-4">
+          <button class="btn btn--secondary" id="btn-close-link-char">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Encounter Form Modal -->
+    <div id="encounter-modal" class="modal hidden">
+      <div class="modal__overlay" id="encounter-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title" id="encounter-modal-title">Novo Encontro</h2>
+          <button class="modal__close" id="btn-close-encounter-modal">&times;</button>
+        </div>
+        <form id="encounter-form">
+          <input type="hidden" id="encounter-id" />
+          
+          <div class="form-group">
+            <label for="encounter-name" class="form-label">Nome do Encontro <span class="form-required">*</span></label>
+            <input type="text" id="encounter-name" class="form-input" required placeholder="Ex: Emboscada na Floresta" autocomplete="off" />
+            <span class="form-error" id="error-encounter-name"></span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="encounter-difficulty" class="form-label">Dificuldade</label>
+              <select id="encounter-difficulty" class="form-select">
+                <option value="Fácil">Fácil</option>
+                <option value="Médio" selected>Médio</option>
+                <option value="Difícil">Difícil</option>
+                <option value="Mortal">Mortal</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="encounter-location" class="form-label">Local do Encontro</label>
+            <textarea id="encounter-location" class="form-textarea" rows="2" placeholder="Ex: Clareira próxima à estrada leste"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="encounter-description" class="form-label">Notas Adicionais</label>
+            <textarea id="encounter-description" class="form-textarea" rows="3" placeholder="Informações táticas, tesouros, etc."></textarea>
+          </div>
+
+          <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">Cancelar</button>
+            <button type="submit" class="btn btn--primary" id="btn-save-encounter-form">
+              <span class="btn__icon">💾</span> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Encounter Detail View (Manager) -->
+    <div id="encounter-detail-view" class="overlay-view hidden">
+      <div class="overlay-view__header">
+        <div class="overlay-view__title-group">
+          <button class="btn-icon" id="btn-close-encounter-detail" title="Voltar">⬅️</button>
+          <div>
+            <h2 id="view-encounter-name">Nome do Encontro</h2>
+            <div class="overlay-view__meta">
+              <span id="view-encounter-difficulty" class="badge badge--gold">Médio</span>
+              <span id="view-encounter-location" class="text-secondary text-xs">Local</span>
+            </div>
+          </div>
+        </div>
+        <div class="overlay-view__actions">
+          <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
+            <span class="btn__icon">✏️</span> Editar Encontro
+          </button>
+        </div>
+      </div>
+
+      <div class="encounter-manager">
+        <!-- Allies Section (Green) -->
+        <div class="encounter-section encounter-section--allies" id="section-allies">
+          <div class="encounter-section__header">
+            <h3 class="encounter-section__title">Aliados</h3>
+            <button class="btn-icon btn-icon--sm" data-action="add-participant" data-affinity="ally" title="Adicionar Aliado">➕</button>
+          </div>
+          <div class="encounter-section__list" id="list-allies"></div>
+        </div>
+
+        <!-- Neutrals Section (Yellow) -->
+        <div class="encounter-section encounter-section--neutrals" id="section-neutrals">
+          <div class="encounter-section__header">
+            <h3 class="encounter-section__title">Neutros</h3>
+            <button class="btn-icon btn-icon--sm" data-action="add-participant" data-affinity="neutral" title="Adicionar Neutro">➕</button>
+          </div>
+          <div class="encounter-section__list" id="list-neutrals"></div>
+        </div>
+
+        <!-- Enemies Section (Red) -->
+        <div class="encounter-section encounter-section--enemies" id="section-enemies">
+          <div class="encounter-section__header">
+            <h3 class="encounter-section__title">Inimigos</h3>
+            <button class="btn-icon btn-icon--sm" data-action="add-participant" data-affinity="enemy" title="Adicionar Inimigo">➕</button>
+          </div>
+          <div class="encounter-section__list" id="list-enemies"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Participant Modal -->
+    <div id="add-participant-modal" class="modal hidden">
+      <div class="modal__overlay" id="add-participant-modal-overlay"></div>
+      <div class="modal__content modal__content--wide">
+        <div class="modal__header">
+          <h2 class="modal__title">Adicionar Participante</h2>
+          <button class="modal__close" id="btn-close-participant-modal">&times;</button>
+        </div>
+        
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tab-db-chars">Personagens</button>
+          <button class="tab-btn" data-tab="tab-quick-add">Rápido</button>
+          <button class="tab-btn" data-tab="tab-dnd-api">D&D API</button>
+        </div>
+
+        <div class="tab-content" id="tab-db-chars">
+          <div class="search-box mb-3">
+            <input type="text" id="db-char-search" class="form-input" placeholder="Buscar personagem..." />
+          </div>
+          <div id="db-participant-list" class="participant-selection-list"></div>
+        </div>
+
+        <div class="tab-content hidden" id="tab-quick-add">
+          <form id="quick-add-form" class="mt-3">
+            <div class="form-group">
+              <label class="form-label">Nome <span class="form-required">*</span></label>
+              <input type="text" id="quick-name" class="form-input" required placeholder="Ex: Orc Comum" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">HP</label>
+                <input type="number" id="quick-hp" class="form-input" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">AC</label>
+                <input type="number" id="quick-ac" class="form-input" placeholder="10" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ini</label>
+                <input type="number" id="quick-ini" class="form-input" placeholder="0" />
+              </div>
+            </div>
+            <button type="submit" class="btn btn--primary mt-3 w-100">Adicionar ao Encontro</button>
+          </form>
+        </div>
+
+        <div class="tab-content hidden" id="tab-dnd-api">
+          <div class="search-box mb-3">
+            <input type="text" id="api-monster-search" class="form-input" placeholder="Buscar monstro (em inglês)..." />
+          </div>
+          <div id="api-monster-list" class="participant-selection-list">
+            <p class="text-center text-muted p-4">Digite o nome do monstro para buscar na API...</p>
+          </div>
         </div>
       </div>
     </div>
