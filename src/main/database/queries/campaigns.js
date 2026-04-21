@@ -4,7 +4,7 @@
 // ============================================
 // CREATE
 // ============================================
-export function createCampaign(db, campaignData) {
+function createCampaign(db, campaignData) {
   const stmt = db.prepare(`
     INSERT INTO campaigns (name, description, system, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?)
@@ -30,22 +30,22 @@ export function createCampaign(db, campaignData) {
 // ============================================
 // READ
 // ============================================
-export function getCampaignById(db, id) {
+function getCampaignById(db, id) {
   return db.prepare(`SELECT * FROM campaigns WHERE id = ?`).get(id);
 }
 
-export function getAllCampaigns(db) {
+function getAllCampaigns(db) {
   return db.prepare(`SELECT * FROM campaigns ORDER BY updated_at DESC`).all();
 }
 
-export function getCampaignsBySystem(db, system) {
+function getCampaignsBySystem(db, system) {
   return db.prepare(`SELECT * FROM campaigns WHERE system = ? ORDER BY name`).all(system);
 }
 
 // ============================================
 // UPDATE
 // ============================================
-export function updateCampaign(db, id, campaignData) {
+function updateCampaign(db, id, campaignData) {
   const stmt = db.prepare(`
     UPDATE campaigns 
     SET name = ?, description = ?, system = ?, updated_at = ?
@@ -67,7 +67,7 @@ export function updateCampaign(db, id, campaignData) {
 // ============================================
 // DELETE
 // ============================================
-export function deleteCampaign(db, id) {
+function deleteCampaign(db, id) {
   const result = db.prepare(`DELETE FROM campaigns WHERE id = ?`).run(id);
   return result.changes > 0;
 }
@@ -75,7 +75,7 @@ export function deleteCampaign(db, id) {
 // ============================================
 // COUNT
 // ============================================
-export function countCampaigns(db) {
+function countCampaigns(db) {
   const row = db.prepare(`SELECT COUNT(*) as count FROM campaigns`).get();
   return row.count;
 }
@@ -83,7 +83,18 @@ export function countCampaigns(db) {
 // ============================================
 // EXISTS
 // ============================================
-export function campaignExists(db, id) {
+function campaignExists(db, id) {
   const row = db.prepare(`SELECT EXISTS(SELECT 1 FROM campaigns WHERE id = ?) as exists`).get(id);
   return row.exists === 1;
 }
+
+module.exports = {
+  createCampaign,
+  getCampaignById,
+  getAllCampaigns,
+  getCampaignsBySystem,
+  updateCampaign,
+  deleteCampaign,
+  countCampaigns,
+  campaignExists
+};

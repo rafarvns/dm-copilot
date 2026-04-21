@@ -92,7 +92,6 @@
                 <div class="card__description">
                   Crie e gerencie mundos, arcos narrativos e sessões de jogo.
                 </div>
-                <span class="feature-card__tag">Em breve</span>
               </div>
 
               <div class="card feature-card" data-action="open-characters">
@@ -140,12 +139,79 @@
             </div>
           </div>
 
-          <!-- Placeholder views (hidden by default) -->
-          <div class="welcome hidden" id="view-campaigns">
-            <div class="welcome__emblem">📜</div>
-            <h1 class="welcome__title">Campanhas</h1>
-            <p class="welcome__subtitle">Crie e gerencie suas campanhas de RPG de mesa.</p>
-            <p class="text-muted mt-4">Funcionalidade em desenvolvimento...</p>
+          <!-- Campaigns View -->
+          <div class="view hidden" id="view-campaigns">
+            <!-- Campaigns List -->
+            <div id="campaigns-list-view" class="campaigns-view">
+              <div class="campaigns-header">
+                <div class="campaigns-header__title">
+                  <span class="campaigns-header__icon">📜</span>
+                  <h1 class="campaigns-header__text">Campanhas</h1>
+                  <span id="campaigns-count" class="badge badge--muted">0 campanhas</span>
+                </div>
+                <button class="btn btn--primary" id="btn-new-campaign">
+                  <span class="btn__icon">+</span> Nova Campanha
+                </button>
+              </div>
+
+              <div class="campaigns-toolbar">
+                <div class="campaigns-search">
+                  <span class="campaigns-search__icon">🔍</span>
+                  <input type="text" id="campaign-search" class="campaigns-search__input" placeholder="Buscar campanhas pelo nome..." />
+                </div>
+                <select id="campaign-filter-system" class="campaigns-filter">
+                  <option value="">Todos os sistemas</option>
+                  <option value="D&D 5e">D&D 5e</option>
+                  <option value="Pathfinder">Pathfinder</option>
+                  <option value="Tormenta">Tormenta</option>
+                  <option value="GURPS">GURPS</option>
+                  <option value="Vampiro">Vampiro: A Máscara</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+
+              <div id="campaigns-list" class="campaigns-grid"></div>
+
+              <div id="campaigns-empty" class="empty-state hidden">
+                <div class="empty-state__icon">📜</div>
+                <h2 class="empty-state__title">Nenhuma campanha encontrada</h2>
+                <p class="empty-state__text">Crie sua primeira campanha para começar a organizar suas aventuras.</p>
+                <button class="btn btn--primary btn--lg" id="btn-empty-new">
+                  <span class="btn__icon">+</span> Criar Primeira Campanha
+                </button>
+              </div>
+            </div>
+
+            <!-- Campaign Detail -->
+            <div id="campaign-detail" class="campaign-detail hidden">
+              <button class="btn btn--ghost" id="btn-back-to-list">
+                <span class="btn__icon">←</span> Voltar para Campanhas
+              </button>
+              <div class="campaign-detail__header">
+                <h1 id="detail-name" class="campaign-detail__name"></h1>
+                <span id="detail-system" class="badge"></span>
+              </div>
+              <p id="detail-description" class="campaign-detail__desc"></p>
+              <div class="campaign-detail__meta">
+                <span id="detail-created" class="campaign-detail__meta-item">
+                  <span class="campaign-detail__meta-icon">📅</span> Criada em: —
+                </span>
+                <span id="detail-updated" class="campaign-detail__meta-item">
+                  <span class="campaign-detail__meta-icon">🔄</span> Atualizada em: —
+                </span>
+              </div>
+              <div class="campaign-detail__actions">
+                <button class="btn btn--primary" id="btn-edit-campaign">
+                  <span class="btn__icon">✏️</span> Editar
+                </button>
+                <button class="btn btn--danger" id="btn-delete-campaign">
+                  <span class="btn__icon">🗑️</span> Excluir
+                </button>
+              </div>
+              <div class="campaign-detail__sections">
+                <p class="text-muted">Personagens, encontros e notas serão exibidos aqui em breve.</p>
+              </div>
+            </div>
           </div>
 
           <div class="welcome hidden" id="view-characters">
@@ -196,6 +262,74 @@
         </div>
       </div>
     </div>
+
+    <!-- Campaign Form Modal -->
+    <div id="campaign-modal" class="modal hidden">
+      <div class="modal__overlay" id="campaign-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 id="modal-title" class="modal__title">Nova Campanha</h2>
+          <button class="modal__close" id="btn-close-modal">&times;</button>
+        </div>
+        <form id="campaign-form" class="campaign-form" novalidate>
+          <input type="hidden" id="campaign-id" />
+
+          <div class="form-group">
+            <label for="campaign-name" class="form-label">Nome da Campanha <span class="form-required">*</span></label>
+            <input type="text" id="campaign-name" class="form-input" required placeholder="Ex: A Mina do Rei Anão" autocomplete="off" />
+            <span class="form-error" id="error-name"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="campaign-system" class="form-label">Sistema de RPG</label>
+            <select id="campaign-system" class="form-select">
+              <option value="">Selecione um sistema...</option>
+              <option value="D&D 5e">D&D 5e</option>
+              <option value="Pathfinder">Pathfinder</option>
+              <option value="Tormenta">Tormenta</option>
+              <option value="GURPS">GURPS</option>
+              <option value="Vampiro">Vampiro: A Máscara</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="campaign-description" class="form-label">Descrição</label>
+            <textarea id="campaign-description" class="form-textarea" rows="4" placeholder="Descreva a premissa, cenário e o tom da campanha..."></textarea>
+          </div>
+
+          <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" id="btn-cancel-form">Cancelar</button>
+            <button type="submit" class="btn btn--primary" id="btn-save-form">
+              <span class="btn__icon">💾</span> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="confirm-modal" class="modal hidden">
+      <div class="modal__overlay" id="confirm-modal-overlay"></div>
+      <div class="modal__content modal__content--sm">
+        <div class="modal__header">
+          <h2 class="modal__title">Confirmar Exclusão</h2>
+          <button class="modal__close" id="btn-close-confirm">&times;</button>
+        </div>
+        <p id="confirm-message" class="confirm-message">
+          Tem certeza que deseja excluir esta campanha? Todos os personagens, encontros e notas vinculados também serão excluídos. Esta ação não pode ser desfeita.
+        </p>
+        <div class="modal__footer">
+          <button class="btn btn--secondary" id="btn-confirm-cancel">Cancelar</button>
+          <button class="btn btn--danger" id="btn-confirm-ok">
+            <span class="btn__icon">🗑️</span> Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
     <script type="module" src="./src/main.js"></script>
   </body>

@@ -4,7 +4,7 @@
 // ============================================
 // CREATE
 // ============================================
-export function createCharacter(db, characterData) {
+function createCharacter(db, characterData) {
   const stmt = db.prepare(`
     INSERT INTO characters (campaign_id, name, class, level, race, hp, max_hp, attributes, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -33,7 +33,7 @@ export function createCharacter(db, characterData) {
 // ============================================
 // READ
 // ============================================
-export function getCharacterById(db, id) {
+function getCharacterById(db, id) {
   const row = db.prepare(`SELECT * FROM characters WHERE id = ?`).get(id);
   if (row && row.attributes) {
     row.attributes = JSON.parse(row.attributes);
@@ -41,7 +41,7 @@ export function getCharacterById(db, id) {
   return row;
 }
 
-export function getCharactersByCampaign(db, campaignId) {
+function getCharactersByCampaign(db, campaignId) {
   const rows = db.prepare(`SELECT * FROM characters WHERE campaign_id = ? ORDER BY name`).all(campaignId);
   return rows.map(char => {
     if (char.attributes) {
@@ -51,7 +51,7 @@ export function getCharactersByCampaign(db, campaignId) {
   });
 }
 
-export function getAllCharacters(db) {
+function getAllCharacters(db) {
   const rows = db.prepare(`SELECT * FROM characters ORDER BY name`).all();
   return rows.map(char => {
     if (char.attributes) {
@@ -64,7 +64,7 @@ export function getAllCharacters(db) {
 // ============================================
 // UPDATE
 // ============================================
-export function updateCharacter(db, id, characterData) {
+function updateCharacter(db, id, characterData) {
   const stmt = db.prepare(`
     UPDATE characters 
     SET campaign_id = ?, name = ?, class = ?, level = ?, race = ?, 
@@ -92,7 +92,7 @@ export function updateCharacter(db, id, characterData) {
 // ============================================
 // DELETE
 // ============================================
-export function deleteCharacter(db, id) {
+function deleteCharacter(db, id) {
   const result = db.prepare(`DELETE FROM characters WHERE id = ?`).run(id);
   return result.changes > 0;
 }
@@ -100,7 +100,17 @@ export function deleteCharacter(db, id) {
 // ============================================
 // COUNT
 // ============================================
-export function countCharactersByCampaign(db, campaignId) {
+function countCharactersByCampaign(db, campaignId) {
   const row = db.prepare(`SELECT COUNT(*) as count FROM characters WHERE campaign_id = ?`).get(campaignId);
   return row.count;
 }
+
+module.exports = {
+  createCharacter,
+  getCharacterById,
+  getCharactersByCampaign,
+  getAllCharacters,
+  updateCharacter,
+  deleteCharacter,
+  countCharactersByCampaign
+};

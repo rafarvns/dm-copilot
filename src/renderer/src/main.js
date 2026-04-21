@@ -7,6 +7,9 @@ import "./assets/main.css";
 // Database Service
 import databaseService from "./db/database.js";
 
+// Views
+import { CampaignsView, showToast } from "./views/database-views.js";
+
 // ============================================
 // DOM Element References
 // ============================================
@@ -14,8 +17,8 @@ const DOM = {
   // Sidebar
   sidebarLinks: document.querySelectorAll(".sidebar__link[data-view]"),
 
-  // Views
-  views: document.querySelectorAll('.welcome[id^="view-"]'),
+  // Views (includes both .welcome and .view elements)
+  views: document.querySelectorAll('[id^="view-"]'),
 
   // Status bar
   versionInfo: document.getElementById("version-info"),
@@ -30,6 +33,11 @@ const DOM = {
 const state = {
   currentView: "dashboard",
 };
+
+// ============================================
+// View Instances (lazy initialization)
+// ============================================
+let campaignsView = null;
 
 // ============================================
 // Navigation
@@ -60,6 +68,21 @@ function navigateTo(viewName) {
   });
 
   state.currentView = viewName;
+
+  // Lazy-mount views when navigated to
+  if (viewName === "campaigns") {
+    mountCampaignsView();
+  }
+}
+
+// ============================================
+// Lazy View Mounting
+// ============================================
+async function mountCampaignsView() {
+  if (!campaignsView) {
+    campaignsView = new CampaignsView();
+  }
+  await campaignsView.mount();
 }
 
 // ============================================
@@ -80,6 +103,12 @@ function handleAction(action) {
   const targetView = actionViewMap[action];
   if (targetView) {
     navigateTo(targetView);
+
+    // Special actions after navigation
+    if (action === "new-campaign" && campaignsView) {
+      // Wait a tick for the view to mount, then open form
+      setTimeout(() => campaignsView.openForm(), 100);
+    }
   }
 }
 
@@ -116,6 +145,9 @@ function setupMenuActions() {
       switch (action) {
         case "new-campaign":
           navigateTo("campaigns");
+          if (campaignsView) {
+            setTimeout(() => campaignsView.openForm(), 100);
+          }
           break;
         case "open-campaign":
           navigateTo("campaigns");

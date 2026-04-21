@@ -4,7 +4,7 @@
 // ============================================
 // CREATE
 // ============================================
-export function createEncounter(db, encounterData) {
+function createEncounter(db, encounterData) {
   const stmt = db.prepare(`
     INSERT INTO encounters (campaign_id, name, description, difficulty, monsters, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -30,7 +30,7 @@ export function createEncounter(db, encounterData) {
 // ============================================
 // READ
 // ============================================
-export function getEncounterById(db, id) {
+function getEncounterById(db, id) {
   const row = db.prepare(`SELECT * FROM encounters WHERE id = ?`).get(id);
   if (row && row.monsters) {
     row.monsters = JSON.parse(row.monsters);
@@ -38,7 +38,7 @@ export function getEncounterById(db, id) {
   return row;
 }
 
-export function getEncountersByCampaign(db, campaignId) {
+function getEncountersByCampaign(db, campaignId) {
   const rows = db.prepare(`SELECT * FROM encounters WHERE campaign_id = ? ORDER BY created_at DESC`).all(campaignId);
   return rows.map(encounter => {
     if (encounter.monsters) {
@@ -48,7 +48,7 @@ export function getEncountersByCampaign(db, campaignId) {
   });
 }
 
-export function getAllEncounters(db) {
+function getAllEncounters(db) {
   const rows = db.prepare(`SELECT * FROM encounters ORDER BY created_at DESC`).all();
   return rows.map(encounter => {
     if (encounter.monsters) {
@@ -61,7 +61,7 @@ export function getAllEncounters(db) {
 // ============================================
 // UPDATE
 // ============================================
-export function updateEncounter(db, id, encounterData) {
+function updateEncounter(db, id, encounterData) {
   const stmt = db.prepare(`
     UPDATE encounters 
     SET campaign_id = ?, name = ?, description = ?, difficulty = ?, 
@@ -86,7 +86,7 @@ export function updateEncounter(db, id, encounterData) {
 // ============================================
 // DELETE
 // ============================================
-export function deleteEncounter(db, id) {
+function deleteEncounter(db, id) {
   const result = db.prepare(`DELETE FROM encounters WHERE id = ?`).run(id);
   return result.changes > 0;
 }
@@ -94,7 +94,17 @@ export function deleteEncounter(db, id) {
 // ============================================
 // COUNT
 // ============================================
-export function countEncountersByCampaign(db, campaignId) {
+function countEncountersByCampaign(db, campaignId) {
   const row = db.prepare(`SELECT COUNT(*) as count FROM encounters WHERE campaign_id = ?`).get(campaignId);
   return row.count;
 }
+
+module.exports = {
+  createEncounter,
+  getEncounterById,
+  getEncountersByCampaign,
+  getAllEncounters,
+  updateEncounter,
+  deleteEncounter,
+  countEncountersByCampaign
+};
