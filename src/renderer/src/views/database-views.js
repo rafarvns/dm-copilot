@@ -1060,7 +1060,10 @@ class EncountersView {
       listEl.innerHTML = group.map(p => `
         <div class="participant-card" data-index="${p.originalIndex}">
           <div class="participant-card__header">
-            <span class="participant-card__name">${this.escapeHTML(p.name)}</span>
+            <span class="participant-card__name">
+              ${this.escapeHTML(p.name)}
+              ${p.api_url ? `<a href="${p.api_url}" target="_blank" class="participant-card__link" title="Ver na API">🔗</a>` : ''}
+            </span>
             <div class="participant-card__stats">
               <span class="participant-card__stat-item">HP: <b>${p.hp}</b></span>
               <span class="participant-card__stat-item">AC: <b>${p.ac}</b></span>
