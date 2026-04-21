@@ -40,3 +40,15 @@ coverage/
 # Cache
 .cache/
 .eslintcache
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Backup files
+backup-*.db
+
+# User data (descomentar se quiser ignorar tudo)
+# userData/
+# *.dmcopilot

@@ -4,6 +4,9 @@
 // Import styles (Vite handles CSS injection with HMR)
 import "./assets/main.css";
 
+// Database Service
+import databaseService from "./db/database.js";
+
 // ============================================
 // DOM Element References
 // ============================================
@@ -135,6 +138,18 @@ function setupMenuActions() {
 // ============================================
 async function init() {
   try {
+    // Initialize database
+    try {
+      const dbReady = await databaseService.init();
+      if (dbReady) {
+        console.log("Database service initialized");
+      } else {
+        console.warn("Database initialization failed, continuing without database");
+      }
+    } catch (error) {
+      console.warn("Database service not available:", error);
+    }
+
     // Get app version from main process
     if (window.dmCopilot && window.dmCopilot.getAppVersion) {
       const version = await window.dmCopilot.getAppVersion();

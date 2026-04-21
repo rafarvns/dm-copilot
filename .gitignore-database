@@ -1,0 +1,11 @@
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Backup files
+backup-*.db
+
+# User data (opcional - descomentar se quiser ignorar tudo)
+# userData/
+# *.dmcopilot

@@ -9,21 +9,32 @@
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "electron-vite build && node scripts/copy-database.js",
     "preview": "electron-vite preview",
     "lint": "eslint src/",
     "format": "prettier --write src/",
-    "build:win": "electron-vite build && electron-builder --win",
-    "build:linux": "electron-vite build && electron-builder --linux",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "postinstall": "electron-builder install-app-deps"
+    "build:win": "node scripts/copy-database.js && electron-vite build && electron-builder --win",
+    "build:linux": "node scripts/copy-database.js && electron-vite build && electron-builder --linux",
+    "build:mac": "node scripts/copy-database.js && electron-vite build && electron-builder --mac",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^10.0.1",
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
     "electron-vite": "^5.0.0",
     "eslint": "^10.2.1",
     "prettier": "^3.8.3"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild"
+    ]
   }
 }
