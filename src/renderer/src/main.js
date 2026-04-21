@@ -10,6 +10,7 @@ import databaseService from "./db/database.js";
 // Views
 import { CampaignsView, EncountersView, showToast } from "./views/database-views.js";
 import charactersView from "./views/characters-view.js";
+import DiceView from "./views/dice-view.js";
 
 // ============================================
 // DOM Element References
@@ -40,6 +41,7 @@ const state = {
 // ============================================
 window.campaignsView = new CampaignsView();
 window.encountersView = new EncountersView();
+window.diceView = new DiceView();
 
 // ============================================
 // Navigation

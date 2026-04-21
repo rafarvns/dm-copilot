@@ -912,10 +912,56 @@ class EncountersView {
       this.apiSearchTimeout = setTimeout(() => this.searchApiMonsters(e.target.value), 500);
     });
 
-    // Delegation for Participant Cards
+    // Delegation for stat inputs and Actions
     [this.DOM.listAllies, this.DOM.listNeutrals, this.DOM.listEnemies].forEach(list => {
-      list?.addEventListener("click", (e) => this.handleParticipantAction(e));
+      if (!list) return;
+
+      list.addEventListener("change", (e) => {
+        if (e.target.classList.contains('stat-control__input')) {
+          this.handleStatChange(e);
+        }
+      });
+      
+      list.addEventListener("click", (e) => this.handleParticipantAction(e));
+
+      // Drag and Drop Delegation
+      list.addEventListener("dragstart", (e) => {
+        const card = e.target.closest(".participant-card");
+        if (card) {
+          e.dataTransfer.setData("text/plain-id", card.dataset.id);
+          card.classList.add("participant-card--dragging");
+          setTimeout(() => card.classList.add("participant-card--ghost"), 0);
+        }
+      });
+
+      list.addEventListener("dragend", (e) => {
+        const card = e.target.closest(".participant-card");
+        if (card) {
+          card.classList.remove("participant-card--dragging");
+          card.classList.remove("participant-card--ghost");
+        }
+      });
+
+      list.addEventListener("dragover", (e) => this.handleDragOver(e));
+      list.addEventListener("dragleave", (e) => this.handleDragLeave(e));
+      list.addEventListener("drop", (e) => this.handleDrop(e));
     });
+  }
+
+  handleStatChange(e) {
+    const input = e.target;
+    const card = input.closest(".participant-card");
+    const id = card.dataset.id;
+    const field = input.dataset.field;
+    const value = parseInt(input.value, 10);
+
+    if (isNaN(value)) return;
+
+    const index = this.participants.findIndex(p => p.tempId === id);
+    if (index !== -1) {
+      this.participants[index][field] = value;
+      this.saveParticipants(false); // Don't re-render everything to keep focus
+    }
   }
 
   // ============================================
@@ -1041,6 +1087,9 @@ class EncountersView {
   organizeParticipants() {
     this.affinityGroups = { ally: [], neutral: [], enemy: [] };
     this.participants.forEach((p, index) => {
+      // Ensure unique ID for drag and drop tracking
+      if (!p.tempId) p.tempId = `p-${Date.now()}-${Math.random()}`;
+      
       const affinity = p.affinity || 'enemy';
       if (this.affinityGroups[affinity]) {
         this.affinityGroups[affinity].push({ ...p, originalIndex: index });
@@ -1058,24 +1107,49 @@ class EncountersView {
       if (isEmpty) return;
       
       listEl.innerHTML = group.map(p => `
-        <div class="participant-card" data-index="${p.originalIndex}">
-          <div class="participant-card__header">
-            <span class="participant-card__name">
-              ${this.escapeHTML(p.name)}
-              ${p.api_url ? `<a href="${p.api_url}" target="_blank" class="participant-card__link" title="Ver na API">🔗</a>` : ''}
-            </span>
-            <div class="participant-card__stats">
-              <span class="participant-card__stat-item">HP: <b>${p.hp}</b></span>
-              <span class="participant-card__stat-item">AC: <b>${p.ac}</b></span>
-              <span class="participant-card__stat-item">Ini: <b>${p.ini}</b></span>
+        <div class="participant-card ${p.image ? 'participant-card--with-img' : ''}" 
+             data-index="${p.originalIndex}" 
+             data-id="${p.tempId}"
+             draggable="true">
+          ${p.image ? `
+            <div class="participant-card__image-container">
+              <img src="${p.image}" class="participant-card__img" alt="${this.escapeHTML(p.name)}" />
             </div>
-          </div>
-          <div class="participant-card__actions">
-            <button class="btn-icon btn-icon--sm" data-action="duplicate" title="Duplicar">👯</button>
-            <button class="btn-icon btn-icon--sm" data-action="move" data-target="ally" title="Para Aliado">🟢</button>
-            <button class="btn-icon btn-icon--sm" data-action="move" data-target="neutral" title="Para Neutro">🟡</button>
-            <button class="btn-icon btn-icon--sm" data-action="move" data-target="enemy" title="Para Inimigo">🔴</button>
-            <button class="btn-icon btn-icon--sm btn-icon--danger" data-action="remove" title="Remover">🗑️</button>
+          ` : ''}
+          <div class="participant-card__main">
+            <div class="participant-card__header">
+              <span class="participant-card__name">
+                ${this.escapeHTML(p.name)}
+                ${p.api_url ? `<a href="${p.api_url}" target="_blank" class="participant-card__link" title="Ver na API">🔗</a>` : ''}
+              </span>
+              <div class="participant-card__stats">
+                <div class="stat-control">
+                  <span class="stat-control__label">HP</span>
+                  <input type="number" class="stat-control__input stat-control__input--hp" 
+                         value="${p.current_hp !== undefined ? p.current_hp : p.hp}" 
+                         data-field="current_hp" title="HP Atual" />
+                  <span class="stat-control__sep">/</span>
+                  <span class="stat-control__max">${p.hp}</span>
+                </div>
+                <div class="stat-control">
+                  <span class="stat-control__label">AC</span>
+                  <input type="number" class="stat-control__input stat-control__input--ac" 
+                         value="${p.ac}" 
+                         data-field="ac" title="CA" />
+                </div>
+                <div class="stat-control">
+                  <span class="stat-control__label">Ini</span>
+                  <span class="stat-control__value">${p.ini}</span>
+                </div>
+              </div>
+            </div>
+            <div class="participant-card__actions">
+              <button class="btn-icon btn-icon--sm" data-action="duplicate" title="Duplicar">👯</button>
+              <button class="btn-icon btn-icon--sm" data-action="move" data-target="ally" title="Para Aliado">🟢</button>
+              <button class="btn-icon btn-icon--sm" data-action="move" data-target="neutral" title="Para Neutro">🟡</button>
+              <button class="btn-icon btn-icon--sm" data-action="move" data-target="enemy" title="Para Inimigo">🔴</button>
+              <button class="btn-icon btn-icon--sm btn-icon--danger" data-action="remove" title="Remover">🗑️</button>
+            </div>
           </div>
         </div>
       `).join("");
@@ -1113,14 +1187,108 @@ class EncountersView {
     await this.saveParticipants();
   }
 
-  async saveParticipants() {
+  handleDragOver(e) {
+    e.preventDefault();
+    const list = e.currentTarget;
+    list.classList.add("encounter-section__list--drag-over");
+    
+    const afterElement = this.getDragAfterElement(list, e.clientY);
+    
+    // Create or move placeholder
+    let placeholder = list.querySelector(".participant-card--placeholder");
+    if (!placeholder) {
+      placeholder = document.createElement("div");
+      placeholder.classList.add("participant-card--placeholder");
+    }
+    
+    if (afterElement == null) {
+      list.appendChild(placeholder);
+    } else {
+      list.insertBefore(placeholder, afterElement);
+    }
+  }
+
+  handleDragLeave(e) {
+    const list = e.currentTarget;
+    if (!list.contains(e.relatedTarget)) {
+      list.classList.remove("encounter-section__list--drag-over");
+      const placeholder = list.querySelector(".participant-card--placeholder");
+      if (placeholder) placeholder.remove();
+    }
+  }
+
+  getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll(".participant-card:not(.participant-card--ghost):not(.participant-card--placeholder)")];
+    
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  async handleDrop(e) {
+    e.preventDefault();
+    const list = e.currentTarget;
+    list.classList.remove("encounter-section__list--drag-over");
+    
+    const placeholder = list.querySelector(".participant-card--placeholder");
+    if (placeholder) placeholder.remove();
+
+    const draggedTempId = e.dataTransfer.getData("text/plain-id");
+    const targetAffinity = list.dataset.affinity;
+    
+    const draggedIndex = this.participants.findIndex(p => p.tempId === draggedTempId);
+    if (draggedIndex === -1) return;
+
+    const draggedItem = this.participants[draggedIndex];
+    
+    // Remove from current position
+    this.participants.splice(draggedIndex, 1);
+    draggedItem.affinity = targetAffinity;
+
+    // Find insertion point
+    const afterElement = this.getDragAfterElement(list, e.clientY);
+    
+    if (afterElement) {
+      const afterTempId = afterElement.dataset.id;
+      const afterIndex = this.participants.findIndex(p => p.tempId === afterTempId);
+      this.participants.splice(afterIndex, 0, draggedItem);
+    } else {
+      // Append to the end of the affinity group in the global list
+      // We'll find the last item with this affinity
+      const lastIdxOfAffinity = [...this.participants].reverse().findIndex(p => (p.affinity || 'enemy') === targetAffinity);
+      if (lastIdxOfAffinity !== -1) {
+        const absoluteIdx = this.participants.length - lastIdxOfAffinity;
+        this.participants.splice(absoluteIdx, 0, draggedItem);
+      } else {
+        this.participants.push(draggedItem);
+      }
+    }
+
+    await this.saveParticipants();
+    showToast(`Movido para ${this.getAffinityLabel(targetAffinity)}`);
+  }
+
+  getAffinityLabel(affinity) {
+    const labels = { ally: 'Aliados', neutral: 'Neutros', enemy: 'Inimigos' };
+    return labels[affinity] || affinity;
+  }
+
+  async saveParticipants(reRender = true) {
     try {
       await databaseService.updateEncounter(this.currentEncounter.id, {
         ...this.currentEncounter,
         monsters: this.participants
       });
-      this.organizeParticipants();
-      this.renderParticipants();
+      if (reRender) {
+        this.organizeParticipants();
+        this.renderParticipants();
+      }
     } catch (error) {
       showToast("Erro ao salvar alterações", "error");
     }
@@ -1145,15 +1313,27 @@ class EncountersView {
         c.name.toLowerCase().includes(search.toLowerCase())
       );
       
-      this.DOM.dbPartList.innerHTML = filtered.map(c => `
-        <div class="selection-item" data-type="db" data-id="${c.id}">
-          <div class="selection-item__info">
-            <span class="selection-item__name">${this.escapeHTML(c.name)}</span>
-            <span class="selection-item__meta">HP: ${c.hp} | AC: ${c.ac} | Ini: ${c.ini}</span>
+      this.DOM.dbPartList.innerHTML = filtered.map(c => {
+        const imageUrl = c.image_path ? `local-image://${c.image_path}` : null;
+        const count = this.participants.filter(p => p.db_id === c.id).length;
+        const isAdded = count > 0;
+        
+        return `
+          <div class="selection-item ${imageUrl ? 'selection-item--with-img' : ''} ${isAdded ? 'selection-item--added' : ''}" data-type="db" data-id="${c.id}">
+            ${imageUrl ? `
+              <div class="selection-item__image-container">
+                <img src="${imageUrl}" class="selection-item__img" />
+              </div>
+            ` : ''}
+            <div class="selection-item__info">
+              <span class="selection-item__name">${this.escapeHTML(c.name)}</span>
+              <span class="selection-item__meta">HP: ${c.hp} | AC: ${c.ac} | Ini: ${c.ini}</span>
+            </div>
+            ${isAdded ? `<span class="selection-item__count">${count}</span>` : ''}
+            <button class="btn btn--secondary btn--sm">Adicionar</button>
           </div>
-          <button class="btn btn--secondary btn--sm">Adicionar</button>
-        </div>
-      `).join("");
+        `;
+      }).join("");
 
       this.DOM.dbPartList.querySelectorAll('.selection-item').forEach(item => {
         item.addEventListener("click", () => {
@@ -1164,7 +1344,9 @@ class EncountersView {
             hp: char.hp,
             ac: char.ac,
             ini: char.ini,
-            affinity: this.getSelectedAffinity()
+            affinity: this.getSelectedAffinity(),
+            image: char.image_path ? `local-image://${char.image_path}` : null,
+            db_id: char.id
           });
         });
       });
@@ -1204,18 +1386,41 @@ class EncountersView {
         return;
       }
 
-      this.DOM.apiPartList.innerHTML = data.results.map(m => `
-        <div class="selection-item" data-index="${m.index}">
-          <div class="selection-item__info">
-            <span class="selection-item__name">${this.escapeHTML(m.name)}</span>
-            <span class="selection-item__meta">API D&D 5e</span>
+      this.DOM.apiPartList.innerHTML = data.results.map(m => {
+        const imageUrl = `https://www.dnd5eapi.co/api/images/monsters/${m.index}.png`;
+        const apiUrl = `https://www.dnd5eapi.co/api/2014/monsters/${m.index}`;
+        const count = this.participants.filter(p => p.api_url === apiUrl).length;
+        const isAdded = count > 0;
+        
+        return `
+          <div class="selection-item selection-item--with-img ${isAdded ? 'selection-item--added' : ''}" data-index="${m.index}">
+            <div class="selection-item__image-container">
+              <img src="${imageUrl}" class="selection-item__img" onerror="this.parentElement.style.display='none'" />
+            </div>
+            <div class="selection-item__info">
+              <span class="selection-item__name">${this.escapeHTML(m.name)}</span>
+              <span class="selection-item__meta">API D&D 5e</span>
+            </div>
+            ${isAdded ? `<span class="selection-item__count">${count}</span>` : ''}
+            <button class="btn btn--secondary btn--sm">Adicionar</button>
           </div>
-          <button class="btn btn--secondary btn--sm">Adicionar</button>
-        </div>
-      `).join("");
+        `;
+      }).join("");
 
       this.DOM.apiPartList.querySelectorAll('.selection-item').forEach(item => {
-        item.addEventListener("click", () => this.addApiMonster(item.dataset.index));
+        item.addEventListener("click", (e) => {
+          if (e.target.classList.contains('btn')) return; // Allow button click to bubble if needed, but here we handle the whole item
+          this.addApiMonster(item.dataset.index);
+        });
+      });
+      
+      // Also handle the button specifically if click doesn't bubble correctly
+      this.DOM.apiPartList.querySelectorAll('.selection-item button').forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const item = btn.closest('.selection-item');
+          this.addApiMonster(item.dataset.index);
+        });
       });
     } catch (error) {
       this.DOM.apiPartList.innerHTML = '<p class="text-center py-4 text-danger">Erro ao buscar na API.</p>';
@@ -1234,7 +1439,8 @@ class EncountersView {
         ac: monster.armor_class?.[0]?.value || 10,
         ini: 0,
         affinity: this.getSelectedAffinity(),
-        api_url: monster.url ? `https://www.dnd5eapi.co${monster.url}` : null
+        api_url: monster.url ? `https://www.dnd5eapi.co${monster.url}` : null,
+        image: monster.image ? `https://www.dnd5eapi.co${monster.image}` : null
       });
     } catch (error) {
       showToast("Erro ao carregar detalhes do monstro", "error");
@@ -1242,10 +1448,30 @@ class EncountersView {
   }
 
   async addParticipantToList(participant) {
+    if (participant.current_hp === undefined) {
+      participant.current_hp = participant.hp;
+    }
     this.participants.push(participant);
     await this.saveParticipants();
     showToast(`${participant.name} adicionado ao encontro!`);
-    this.closeParticipantModal();
+    
+    // Refresh selection lists to update counts/highlights
+    this.refreshSelectionLists();
+  }
+
+  refreshSelectionLists() {
+    // Re-run the current search/load
+    const searchTerm = this.DOM.partSearch?.value || "";
+    this.loadDBParticipants(searchTerm);
+    
+    // For API, we don't want to re-fetch if there's no query, but if there is one, we could re-render
+    // Actually, it's easier to just re-render the existing data if we had it, 
+    // but for now, let's just re-trigger the search logic if there's a value
+    if (searchTerm.length >= 2) {
+      // To avoid unnecessary fetches, we'd need to cache the last results.
+      // For now, let's just re-fetch as it's simple.
+      this.searchApiMonsters(searchTerm);
+    }
   }
 
   // Helpers

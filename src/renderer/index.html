@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' http://localhost:5173; script-src 'self' 'unsafe-inline' http://localhost:5173; style-src 'self' 'unsafe-inline' http://localhost:5173; connect-src 'self' http://localhost:5173 ws://localhost:5173 https://www.dnd5eapi.co; img-src 'self' data: http://localhost:5173 local-image:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com blob: 'wasm-unsafe-eval' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http://localhost:5173 local-image: https://www.dnd5eapi.co https://unpkg.com; connect-src 'self' http://localhost:5173 ws://localhost:5173 https://www.dnd5eapi.co https://unpkg.com; worker-src 'self' blob: data:;"
     />
     <link rel="icon" href="./assets/icon.png" />
-    <title>DM Copilot</title>
+    <title>DM Copilot - Seu Companheiro de RPG</title>
   </head>
   <body>
     <div id="app">
@@ -541,6 +541,11 @@
       <div class="overlay-view__header">
         <div class="overlay-view__title-group">
           <button class="btn-icon" id="btn-close-encounter-detail" title="Voltar">⬅️</button>
+          <div id="last-roll-display" class="last-roll-display hidden">
+            <span class="last-roll-display__label">Último Resultado:</span>
+            <span class="last-roll-display__value">0</span>
+            <span class="last-roll-display__details">(0)</span>
+          </div>
           <div>
             <h2 id="view-encounter-name">Nome do Encontro</h2>
             <div class="overlay-view__meta">
@@ -549,14 +554,58 @@
             </div>
           </div>
         </div>
-        <div class="overlay-view__actions">
-          <button class="btn btn--primary btn--sm" id="btn-add-participant-main">
-            <span class="btn__icon">➕</span> Adicionar Participante
-          </button>
-          <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
-            <span class="btn__icon">✏️</span> Editar Encontro
-          </button>
-        </div>
+          <div class="overlay-view__actions">
+            <div class="dice-toolbar" id="dice-toolbar">
+              <div class="dice-buttons">
+                <button class="dice-btn" data-dice="d4" title="d4">
+                  <span class="dice-btn__icon">🔺</span>
+                  <span class="dice-btn__pill">0</span>
+                </button>
+                <button class="dice-btn" data-dice="d6" title="d6">
+                  <span class="dice-btn__icon">🎲</span>
+                  <span class="dice-btn__pill">0</span>
+                </button>
+                <button class="dice-btn" data-dice="d8" title="d8">
+                  <span class="dice-btn__icon">💎</span>
+                  <span class="dice-btn__pill">0</span>
+                </button>
+                <button class="dice-btn" data-dice="d10" title="d10">
+                  <span class="dice-btn__icon">🏮</span>
+                  <span class="dice-btn__pill">0</span>
+                </button>
+                <button class="dice-btn" data-dice="d12" title="d12">
+                  <span class="dice-btn__icon">🔮</span>
+                  <span class="dice-btn__pill">0</span>
+                </button>
+                <button class="dice-btn" data-dice="d20" title="d20">
+                  <span class="dice-btn__icon">❄️</span>
+                  <span class="dice-btn__pill">0</span>
+                </button>
+                <button class="dice-btn" data-dice="d100" title="d100">
+                  <span class="dice-btn__icon">💯</span>
+                  <span class="dice-btn__pill">0</span>
+                </button>
+              </div>
+
+              <div class="dice-bonus">
+                <span class="dice-bonus__label">+</span>
+                <input type="number" id="dice-bonus-input" class="dice-bonus__input" value="0" placeholder="0">
+              </div>
+
+              <button class="btn btn--primary btn--roll" id="btn-roll-dice">
+                <span class="btn__icon">💥</span> ROLL
+              </button>
+            </div>
+            
+            <div class="overlay-view__actions-group">
+              <button class="btn btn--primary btn--sm" id="btn-add-participant-main">
+                <span class="btn__icon">➕</span> Adicionar Participante
+              </button>
+              <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
+                <span class="btn__icon">✏️</span> Editar Encontro
+              </button>
+            </div>
+          </div>
       </div>
 
       <div class="encounter-manager">
@@ -565,7 +614,7 @@
           <div class="encounter-section__header">
             <h3 class="encounter-section__title">Aliados</h3>
           </div>
-          <div class="encounter-section__list" id="list-allies"></div>
+          <div class="encounter-section__list" id="list-allies" data-affinity="ally"></div>
         </div>
 
         <!-- Neutrals Section (Yellow) -->
@@ -573,7 +622,7 @@
           <div class="encounter-section__header">
             <h3 class="encounter-section__title">Neutros</h3>
           </div>
-          <div class="encounter-section__list" id="list-neutrals"></div>
+          <div class="encounter-section__list" id="list-neutrals" data-affinity="neutral"></div>
         </div>
 
         <!-- Enemies Section (Red) -->
@@ -581,7 +630,7 @@
           <div class="encounter-section__header">
             <h3 class="encounter-section__title">Inimigos</h3>
           </div>
-          <div class="encounter-section__list" id="list-enemies"></div>
+          <div class="encounter-section__list" id="list-enemies" data-affinity="enemy"></div>
         </div>
       </div>
     </div>
@@ -662,8 +711,17 @@
     </div>
 
     <!-- Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
+    <!-- Dice Box Canvas Container -->
+    <div id="dice-box-overlay" class="dice-overlay">
+      <div id="dice-box"></div>
+      <div id="dice-result" class="dice-result-panel">
+        <div class="dice-result-total">Total: 0</div>
+        <div class="dice-result-details"></div>
+        <button class="btn btn--secondary btn--sm mt-3" id="btn-close-dice-result">Fechar</button>
+      </div>
+    </div>
 
-    <script type="module" src="./src/main.js"></script>
+    <div id="toast-container" class="toast-container"></div>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
