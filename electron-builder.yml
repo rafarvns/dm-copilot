@@ -1,0 +1,20 @@
+appId: com.dmcopilot.app
+productName: DM Copilot
+directories:
+  output: dist
+files:
+  - out/**/*
+  - src/assets/**/*
+win:
+  target:
+    - nsis
+  icon: src/assets/icons/icon.ico
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: src/assets/icons/icon.png
+mac:
+  target:
+    - dmg
+  icon: src/assets/icons/icon.icns

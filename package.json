@@ -1,0 +1,28 @@
+{
+  "name": "dm-copilot",
+  "version": "0.1.0",
+  "description": "Assistente desktop para mestres de RPG de mesa - Crie e gerencie suas campanhas com facilidade",
+  "main": "out/main/index.js",
+  "author": "DM Copilot Team",
+  "license": "MIT",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "lint": "eslint src/",
+    "format": "prettier --write src/",
+    "build:win": "electron-vite build && electron-builder --win",
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-vite": "^5.0.0",
+    "eslint": "^10.2.1",
+    "prettier": "^3.8.3"
+  }
+}
