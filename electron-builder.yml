@@ -8,13 +8,13 @@ files:
 win:
   target:
     - nsis
-  icon: src/assets/icons/icon.ico
+  icon: src/assets/icons/logo_ico.ico
 linux:
   target:
     - AppImage
     - deb
-  icon: src/assets/icons/icon.png
+  icon: src/assets/icons/logo_ico.ico
 mac:
   target:
     - dmg
-  icon: src/assets/icons/icon.icns
+  icon: src/assets/icons/logo_ico.ico

@@ -18,13 +18,16 @@ const store = new Map();
 // Window Creation
 // ============================================
 function createWindow() {
+  const iconPath = path.join(__dirname, "..", "assets", "icons", "logo_ico.ico");
+  console.log("Icon path:", iconPath);
+  
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 900,
     minHeight: 600,
     title: "DM Copilot",
-    icon: path.join(__dirname, "..", "assets", "icons", "icon.png"),
+    icon: iconPath,
     backgroundColor: "#0f0f14",
     show: false, // Show when ready to avoid flash
     webPreferences: {

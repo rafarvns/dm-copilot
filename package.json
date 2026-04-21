@@ -5,6 +5,7 @@
   "main": "out/main/index.js",
   "author": "DM Copilot Team",
   "license": "MIT",
+  "icon": "./src/assets/icons/logo_ico.ico",
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "electron-vite dev",

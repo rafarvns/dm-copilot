@@ -68,7 +68,6 @@
 
   /* Layout */
   --sidebar-width: 260px;
-  --titlebar-height: 38px;
 }
 
 /* --- Reset & Base --- */
@@ -178,56 +177,6 @@ select:focus {
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-}
-
-/* --- Titlebar --- */
-.titlebar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: var(--titlebar-height);
-  background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  padding: 0 var(--space-4);
-  -webkit-app-region: drag;
-  user-select: none;
-}
-
-.titlebar__title {
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  letter-spacing: 0.05em;
-}
-
-.titlebar__controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  -webkit-app-region: no-drag;
-}
-
-.titlebar__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.titlebar__btn:hover {
-  background-color: var(--color-surface-hover);
-  color: var(--color-text);
-}
-
-.titlebar__btn--close:hover {
-  background-color: var(--color-accent-rose);
-  color: white;
 }
 
 /* --- Main Content Area --- */

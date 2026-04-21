@@ -8,11 +8,6 @@ import "./assets/main.css";
 // DOM Element References
 // ============================================
 const DOM = {
-  // Titlebar
-  btnMinimize: document.getElementById("btn-minimize"),
-  btnMaximize: document.getElementById("btn-maximize"),
-  btnClose: document.getElementById("btn-close"),
-
   // Sidebar
   sidebarLinks: document.querySelectorAll(".sidebar__link[data-view]"),
 
@@ -111,33 +106,6 @@ function setupActions() {
   });
 }
 
-function setupTitlebar() {
-  // Titlebar buttons use the contextBridge API exposed by preload.js
-  if (DOM.btnMinimize) {
-    DOM.btnMinimize.addEventListener("click", () => {
-      if (window.dmCopilot && window.dmCopilot.minimize) {
-        window.dmCopilot.minimize();
-      }
-    });
-  }
-
-  if (DOM.btnMaximize) {
-    DOM.btnMaximize.addEventListener("click", () => {
-      if (window.dmCopilot && window.dmCopilot.maximize) {
-        window.dmCopilot.maximize();
-      }
-    });
-  }
-
-  if (DOM.btnClose) {
-    DOM.btnClose.addEventListener("click", () => {
-      if (window.dmCopilot && window.dmCopilot.close) {
-        window.dmCopilot.close();
-      }
-    });
-  }
-}
-
 function setupMenuActions() {
   // Listen for menu actions from the main process
   if (window.dmCopilot && window.dmCopilot.onMenuAction) {
@@ -178,7 +146,6 @@ async function init() {
     // Set up all event listeners
     setupNavigation();
     setupActions();
-    setupTitlebar();
     setupMenuActions();
 
     // Start on dashboard view
