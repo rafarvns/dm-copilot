@@ -550,6 +550,9 @@
           </div>
         </div>
         <div class="overlay-view__actions">
+          <button class="btn btn--primary btn--sm" id="btn-add-participant-main">
+            <span class="btn__icon">➕</span> Adicionar Participante
+          </button>
           <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
             <span class="btn__icon">✏️</span> Editar Encontro
           </button>
@@ -558,28 +561,25 @@
 
       <div class="encounter-manager">
         <!-- Allies Section (Green) -->
-        <div class="encounter-section encounter-section--allies" id="section-allies">
+        <div class="encounter-section encounter-section--allies hidden" id="section-allies">
           <div class="encounter-section__header">
             <h3 class="encounter-section__title">Aliados</h3>
-            <button class="btn-icon btn-icon--sm" data-action="add-participant" data-affinity="ally" title="Adicionar Aliado">➕</button>
           </div>
           <div class="encounter-section__list" id="list-allies"></div>
         </div>
 
         <!-- Neutrals Section (Yellow) -->
-        <div class="encounter-section encounter-section--neutrals" id="section-neutrals">
+        <div class="encounter-section encounter-section--neutrals hidden" id="section-neutrals">
           <div class="encounter-section__header">
             <h3 class="encounter-section__title">Neutros</h3>
-            <button class="btn-icon btn-icon--sm" data-action="add-participant" data-affinity="neutral" title="Adicionar Neutro">➕</button>
           </div>
           <div class="encounter-section__list" id="list-neutrals"></div>
         </div>
 
         <!-- Enemies Section (Red) -->
-        <div class="encounter-section encounter-section--enemies" id="section-enemies">
+        <div class="encounter-section encounter-section--enemies hidden" id="section-enemies">
           <div class="encounter-section__header">
             <h3 class="encounter-section__title">Inimigos</h3>
-            <button class="btn-icon btn-icon--sm" data-action="add-participant" data-affinity="enemy" title="Adicionar Inimigo">➕</button>
           </div>
           <div class="encounter-section__list" id="list-enemies"></div>
         </div>
@@ -593,6 +593,24 @@
         <div class="modal__header">
           <h2 class="modal__title">Adicionar Participante</h2>
           <button class="modal__close" id="btn-close-participant-modal">&times;</button>
+        </div>
+        
+        <div class="participant-affinity-selector mb-3 px-4 pt-3">
+          <label class="form-label mb-2">Afinidade do Participante:</label>
+          <div class="affinity-pills">
+            <label class="affinity-pill affinity-pill--ally">
+              <input type="radio" name="part-affinity" value="ally" checked />
+              <span>Aliado</span>
+            </label>
+            <label class="affinity-pill affinity-pill--neutral">
+              <input type="radio" name="part-affinity" value="neutral" />
+              <span>Neutro</span>
+            </label>
+            <label class="affinity-pill affinity-pill--enemy">
+              <input type="radio" name="part-affinity" value="enemy" />
+              <span>Inimigo</span>
+            </label>
+          </div>
         </div>
         
         <div class="tabs">

@@ -859,6 +859,10 @@ class EncountersView {
       apiMonsterSearch: document.getElementById("api-monster-search"),
       tabs: document.querySelectorAll(".tab-btn"),
       tabContents: document.querySelectorAll(".tab-content"),
+      btnAddPartMain: document.getElementById("btn-add-participant-main"),
+      sectionAllies: document.getElementById("section-allies"),
+      sectionNeutrals: document.getElementById("section-neutrals"),
+      sectionEnemies: document.getElementById("section-enemies"),
     };
   }
 
@@ -898,13 +902,8 @@ class EncountersView {
       this.addQuickParticipant();
     });
 
-    // Affinity Add Buttons (Delegation)
-    document.querySelectorAll('[data-action="add-participant"]').forEach(btn => {
-      btn.addEventListener("click", () => {
-        this.currentAffinity = btn.dataset.affinity;
-        this.openParticipantModal();
-      });
-    });
+    // Main Add Participant Button
+    this.DOM.btnAddPartMain?.addEventListener("click", () => this.openParticipantModal());
 
     // Search Events
     this.DOM.dbCharSearch?.addEventListener("input", (e) => this.loadDBParticipants(e.target.value));
@@ -1050,12 +1049,13 @@ class EncountersView {
   }
 
   renderParticipants() {
-    const renderList = (listEl, group) => {
-      if (!listEl) return;
-      if (group.length === 0) {
-        listEl.innerHTML = '<p class="text-muted text-center py-4 text-xs">Vazio</p>';
-        return;
-      }
+    const renderList = (listEl, sectionEl, group) => {
+      if (!listEl || !sectionEl) return;
+      
+      const isEmpty = group.length === 0;
+      sectionEl.classList.toggle("hidden", isEmpty);
+      
+      if (isEmpty) return;
       
       listEl.innerHTML = group.map(p => `
         <div class="participant-card" data-index="${p.originalIndex}">
@@ -1081,9 +1081,16 @@ class EncountersView {
       `).join("");
     };
 
-    renderList(this.DOM.listAllies, this.affinityGroups.ally);
-    renderList(this.DOM.listNeutrals, this.affinityGroups.neutral);
-    renderList(this.DOM.listEnemies, this.affinityGroups.enemy);
+    renderList(this.DOM.listAllies, this.DOM.sectionAllies, this.affinityGroups.ally);
+    renderList(this.DOM.listNeutrals, this.DOM.sectionNeutrals, this.affinityGroups.neutral);
+    renderList(this.DOM.listEnemies, this.DOM.sectionEnemies, this.affinityGroups.enemy);
+
+    // If all sections are hidden, show a message
+    const allHidden = this.affinityGroups.ally.length === 0 && 
+                      this.affinityGroups.neutral.length === 0 && 
+                      this.affinityGroups.enemy.length === 0;
+    
+    // You could add a placeholder message here if needed
   }
 
   async handleParticipantAction(e) {
@@ -1157,7 +1164,7 @@ class EncountersView {
             hp: char.hp,
             ac: char.ac,
             ini: char.ini,
-            affinity: this.currentAffinity
+            affinity: this.getSelectedAffinity()
           });
         });
       });
@@ -1176,7 +1183,7 @@ class EncountersView {
       hp: parseInt(document.getElementById("quick-hp").value) || 0,
       ac: parseInt(document.getElementById("quick-ac").value) || 10,
       ini: parseInt(document.getElementById("quick-ini").value) || 0,
-      affinity: this.currentAffinity
+      affinity: this.getSelectedAffinity()
     });
     
     this.DOM.quickAddForm.reset();
@@ -1226,7 +1233,7 @@ class EncountersView {
         hp: monster.hit_points || 0,
         ac: monster.armor_class?.[0]?.value || 10,
         ini: 0,
-        affinity: this.currentAffinity,
+        affinity: this.getSelectedAffinity(),
         api_url: monster.url ? `https://www.dnd5eapi.co${monster.url}` : null
       });
     } catch (error) {
@@ -1242,6 +1249,14 @@ class EncountersView {
   }
 
   // Helpers
+  getSelectedAffinity() {
+    const radios = document.getElementsByName("part-affinity");
+    for (const radio of radios) {
+      if (radio.checked) return radio.value;
+    }
+    return "enemy";
+  }
+
   escapeHTML(str) {
     if (!str) return "";
     const div = document.createElement("div");

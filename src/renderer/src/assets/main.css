@@ -1605,6 +1605,58 @@ select:focus {
   opacity: 1;
 }
 
+/* Affinity Pills Selector */
+.affinity-pills {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.affinity-pill {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+}
+
+.affinity-pill input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.affinity-pill span {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  text-align: center;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.affinity-pill--ally input:checked + span {
+  background: rgba(39, 174, 96, 0.2);
+  border-color: var(--success);
+  color: var(--success);
+  box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);
+}
+
+.affinity-pill--neutral input:checked + span {
+  background: rgba(241, 196, 15, 0.2);
+  border-color: var(--warning);
+  color: var(--warning);
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+}
+
+.affinity-pill--enemy input:checked + span {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+}
+
 .participant-card__stats {
   display: flex;
   gap: var(--space-3);

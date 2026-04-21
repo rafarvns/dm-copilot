@@ -29,7 +29,7 @@ class DatabaseManager {
       }
 
       // Criar conexão SQLite (síncrona com better-sqlite3)
-      this.db = new Database(this.dbPath);
+      this.db = new Database(this.dbPath, { verbose: console.log });
 
       // Habilitar foreign keys
       this.db.pragma("foreign_keys = ON");
