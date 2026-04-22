@@ -88,7 +88,6 @@ export default class EncounterCombatView {
         name: current.name,
         description: current.description,
         difficulty: current.difficulty,
-        location: current.location,
         monsters: this.participants, 
         status: 'active',
         current_round: 1,
@@ -111,6 +110,9 @@ export default class EncounterCombatView {
     this.isActive = true;
     this.currentRound = 1;
     this.currentTurnIndex = 0;
+    
+    // Log round 1 start
+    this.logRoundChange(1);
     
     this.DOM.btnStart.classList.add("hidden");
     this.DOM.btnEnd.classList.remove("hidden");
@@ -228,6 +230,7 @@ export default class EncounterCombatView {
       this.currentTurnIndex = 0;
       this.currentRound++;
       this.DOM.roundNumber.textContent = this.currentRound;
+      this.logRoundChange(this.currentRound);
       
       // Reset acted status for new round
       this.participants.forEach(p => p.has_acted = 0);
@@ -315,8 +318,12 @@ export default class EncounterCombatView {
 
   logRoll(data) {
     // data: { characterName, notation, total, details }
+    const participant = this.participants.find(p => p.name === data.characterName);
+    const affinity = participant ? participant.affinity : 'neutral';
+
     this.rollHistory.unshift({
       ...data,
+      affinity,
       timestamp: new Date().toLocaleTimeString()
     });
     
@@ -325,6 +332,21 @@ export default class EncounterCombatView {
       this.rollHistory.pop();
     }
     
+    this.broadcastState();
+  }
+
+  logRoundChange(round) {
+    this.rollHistory.unshift({
+      type: 'round-change',
+      round: round,
+      timestamp: new Date().toLocaleTimeString()
+    });
+
+    // Keep only last 20
+    if (this.rollHistory.length > 20) {
+      this.rollHistory.pop();
+    }
+
     this.broadcastState();
   }
 }

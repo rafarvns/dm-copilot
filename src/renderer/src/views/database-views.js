@@ -1137,7 +1137,6 @@ class EncountersView {
             <div class="participant-card__header">
               <span class="participant-card__name">
                 ${this.escapeHTML(p.name)}
-                ${p.api_url ? `<a href="${p.api_url}" target="_blank" class="participant-card__link" title="Ver na API">🔗</a>` : ''}
               </span>
               <div class="participant-card__stats">
                 <div class="stat-control">
@@ -1195,7 +1194,20 @@ class EncountersView {
     if (action === "remove") {
       this.participants.splice(index, 1);
     } else if (action === "duplicate") {
-      const copy = { ...this.participants[index], id: Date.now() + Math.random() };
+      const original = this.participants[index];
+      const baseName = original.name.replace(/\s\(\d+\)$/, '');
+      
+      const copy = { 
+        ...original, 
+        id: Date.now() + Math.random(),
+        tempId: `p-${Date.now()}-${Math.random()}`,
+        current_hp: original.current_hp !== undefined ? original.current_hp : original.hp
+      };
+      
+      // Calculate next number for this base name
+      const count = this.participants.filter(p => p.name.replace(/\s\(\d+\)$/, '') === baseName).length;
+      copy.name = `${baseName} (${count + 1})`;
+      
       this.participants.push(copy);
     } else if (action === "move") {
       this.participants[index].affinity = btn.dataset.target;
@@ -1415,7 +1427,7 @@ class EncountersView {
               <img src="${imageUrl}" class="selection-item__img" onerror="this.parentElement.style.display='none'" />
             </div>
             <div class="selection-item__info">
-              <span class="selection-item__name">${this.escapeHTML(m.name)}</span>
+              <span class="selection-item__name">${this.escapeHTML(m.name.replace(/🔗/g, ''))}</span>
               <span class="selection-item__meta">API D&D 5e</span>
             </div>
             ${isAdded ? `<span class="selection-item__count">${count}</span>` : ''}
@@ -1465,6 +1477,20 @@ class EncountersView {
   }
 
   async addParticipantToList(participant) {
+    // Clean name from potential link emoji
+    participant.name = participant.name.replace(/🔗/g, '').trim();
+
+    // Check for duplicates and add suffix (2), (3), etc.
+    const baseName = participant.name;
+    const sameBaseParticipants = this.participants.filter(p => {
+      const pBase = p.name.replace(/\s\(\d+\)$/, '');
+      return pBase === baseName;
+    });
+
+    if (sameBaseParticipants.length > 0) {
+      participant.name = `${baseName} (${sameBaseParticipants.length + 1})`;
+    }
+
     if (participant.current_hp === undefined) {
       participant.current_hp = participant.hp;
     }

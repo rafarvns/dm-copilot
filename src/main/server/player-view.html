@@ -101,24 +101,29 @@
 
         .banner {
             width: 160px;
-            height: 280px;
+            height: 300px;
             background: var(--color-surface);
             border-radius: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 15px;
+            padding: 12px;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             border: 2px solid transparent;
         }
 
+        @keyframes active-pulse {
+            0% { transform: scale(1.15) translateZ(60px); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
+            50% { transform: scale(1.18) translateZ(70px); box-shadow: 0 0 50px rgba(124, 58, 237, 0.8); border-color: #fff; }
+            100% { transform: scale(1.15) translateZ(60px); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
+        }
+
         .banner--active {
-            transform: scale(1.2) translateZ(60px);
             border-color: var(--color-primary);
-            box-shadow: 0 0 40px rgba(124, 58, 237, 0.4);
             z-index: 10;
+            animation: active-pulse 1.75s infinite ease-in-out;
         }
 
         .banner--acted {
@@ -131,7 +136,7 @@
             width: 100%;
             height: 6px;
             border-radius: 3px;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
         }
 
         .affinity--ally { background-color: var(--color-ally); }
@@ -140,10 +145,10 @@
 
         .banner__image-container {
             width: 100%;
-            height: 120px;
+            height: 210px;
             border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid var(--color-border);
         }
@@ -155,15 +160,16 @@
         }
 
         .banner__name {
-            font-size: 1.2rem;
-            font-weight: 800;
+            font-size: 0.9rem;
+            font-weight: 700;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 2px;
             word-break: break-word;
+            color: var(--color-text-muted);
         }
 
         .banner__initiative {
-            font-size: 2.2rem;
+            font-size: 1.4rem;
             font-weight: 900;
             color: var(--color-primary);
             margin-top: auto;
@@ -235,6 +241,78 @@
             color: #fff;
         }
 
+        /* Turn Overlay */
+        .turn-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+
+        .turn-overlay.active { opacity: 1; }
+
+        .turn-overlay__content {
+            text-align: center;
+            transform: scale(0.8);
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .turn-overlay.active .turn-overlay__content { transform: scale(1); }
+
+        .turn-overlay__round {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--color-text-muted);
+            margin-bottom: 5px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .turn-overlay__title {
+            font-size: 0.9rem;
+            letter-spacing: 5px;
+            color: var(--color-primary);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .turn-overlay__name {
+            font-size: 4rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(124, 58, 237, 0.6);
+        }
+
+        /* Result Die Icons */
+        .result-die {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 0 2px;
+        }
+
+        .result-die__icon {
+            width: 14px;
+            height: 14px;
+            object-fit: contain;
+        }
+
+        .result-die__value {
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
         /* Roll Log */
         .log-container {
             height: 100%;
@@ -282,6 +360,27 @@
         }
 
         .log-item--roll { border-left-color: var(--color-primary); }
+        .log-item--ally { border-left-color: var(--color-ally); }
+        .log-item--ally .log-item__char { color: var(--color-ally); }
+        .log-item--neutral { border-left-color: var(--color-neutral); }
+        .log-item--neutral .log-item__char { color: var(--color-neutral); }
+        .log-item--enemy { border-left-color: var(--color-enemy); }
+        .log-item--enemy .log-item__char { color: var(--color-enemy); }
+
+        .log-item--round-change {
+            background: rgba(124, 58, 237, 0.1);
+            border: 1px dashed rgba(124, 58, 237, 0.4);
+            justify-content: center;
+            font-weight: 800;
+            color: var(--color-primary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            padding: 6px;
+            margin: 8px 0;
+            border-left: none;
+            width: 100%;
+        }
 
         .log-item__main {
             display: flex;
@@ -319,6 +418,14 @@
     </style>
 </head>
 <body>
+    <div id="turn-overlay" class="turn-overlay">
+        <div class="turn-overlay__content">
+            <div class="turn-overlay__round" id="turn-overlay-round">Rodada 1</div>
+            <div class="turn-overlay__title">Turno de</div>
+            <div class="turn-overlay__name" id="turn-overlay-name">---</div>
+        </div>
+    </div>
+
     <div id="dice-box"></div>
 
     <div class="header">
@@ -364,12 +471,17 @@
         const roundInfo = document.getElementById('round-info');
         const rollLog = document.getElementById('roll-log');
         const lastRollContainer = document.getElementById('last-roll-container');
+        const turnOverlay = document.getElementById('turn-overlay');
+        const turnOverlayRound = document.getElementById('turn-overlay-round');
+        const turnOverlayName = document.getElementById('turn-overlay-name');
         const lastRollName = document.getElementById('last-roll-name');
         const lastRollValue = document.getElementById('last-roll-value');
         const connBadge = document.getElementById('conn-badge');
         const connText = document.getElementById('conn-text');
 
         let lastCombatState = null;
+        let currentRound = null;
+        let currentTurnParticipantId = null;
         let diceBox = null;
         let isDiceReady = false;
 
@@ -422,6 +534,18 @@
         });
 
         socket.on('combat-update', (data) => {
+            // Check for turn or round change
+            if (data && data.status === 'active') {
+                const activeParticipant = data.participants[data.currentTurnIndex];
+                const turnId = activeParticipant ? activeParticipant.id : null;
+                
+                if (turnId !== currentTurnParticipantId || data.currentRound !== currentRound) {
+                    currentTurnParticipantId = turnId;
+                    currentRound = data.currentRound;
+                    showTurnTransition(activeParticipant ? activeParticipant.name : '---', data.currentRound);
+                }
+            }
+
             lastCombatState = data;
             
             if (!data || data.status !== 'active') {
@@ -438,7 +562,6 @@
         socket.on('dice-roll', async (rollData) => {
             console.log("Evento dice-roll recebido:", rollData);
             
-            // Wait for diceBox to be ready if it's not yet
             if (!isDiceReady) {
                 console.warn("DiceBox ainda não está pronto, aguardando...");
                 for(let i=0; i<10; i++) {
@@ -451,7 +574,6 @@
                 try {
                     console.log("Sincronizando rolagem:", rollData.notation);
                     await diceBox.clear();
-                    // Garante que notation seja uma string ou array de strings
                     const notation = Array.isArray(rollData.notation) ? rollData.notation : [rollData.notation];
                     diceBox.roll(notation, {
                         themeColor: rollData.themeColor || "#7c3aed"
@@ -499,8 +621,17 @@
             lastRollValue.textContent = last.total;
             lastRollContainer.style.display = 'flex';
 
-            rollLog.innerHTML = history.map(roll => `
-                <div class="log-item log-item--roll">
+            rollLog.innerHTML = history.map(roll => {
+                if (roll.type === 'round-change') {
+                    return `
+                        <div class="log-item log-item--round-change">
+                            ⚔️ RODADA ${roll.round} INICIADA
+                        </div>
+                    `;
+                }
+                
+                return `
+                <div class="log-item log-item--roll log-item--${roll.affinity || 'neutral'}">
                     <div class="log-item__main">
                         <span class="log-item__char">${roll.characterName || 'Mestre'}</span>
                         <span class="log-item__notation">${roll.notation}</span>
@@ -511,7 +642,18 @@
                         <span class="log-item__time">${roll.timestamp}</span>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+        }
+
+        function showTurnTransition(name, round) {
+            turnOverlayRound.textContent = `Rodada ${round}`;
+            turnOverlayName.textContent = name;
+            turnOverlay.classList.add('active');
+            
+            setTimeout(() => {
+                turnOverlay.classList.remove('active');
+            }, 2100);
         }
     </script>
 </body>

@@ -258,14 +258,19 @@ export default class DiceView {
     const resultsArray = Array.isArray(results) ? results : [results];
 
     resultsArray.forEach(group => {
-      const groupNotation = group.notation || `${group.rolls?.length || 1}${group.die || 'd20'}`;
+      const groupType = group.die || (group.sides ? 'd' + group.sides : (group.rolls && group.rolls[0]?.sides ? 'd' + group.rolls[0].sides : 'd20'));
+      let groupNotation = group.notation || `${group.rolls?.length || 1}${groupType}`;
+      
+      // Limpa nomes entre colchetes da notação para evitar duplicidade no log
+      groupNotation = groupNotation.replace(/\[.*?\]\s*/g, '');
+      
       notationParts.push(groupNotation);
 
       if (group.rolls && Array.isArray(group.rolls)) {
         group.rolls.forEach(die => {
           if (typeof die.value === 'number') {
             diceTotal += die.value;
-            const type = die.die || group.die || "d20";
+            const type = die.die || (die.sides ? 'd' + die.sides : null) || group.die || (group.sides ? 'd' + group.sides : null) || "d20";
             const iconPath = `./src/assets/images/dices/${type === 'd100' ? 'd10' : type}.png`;
             
             individualHTML.push(`
@@ -278,7 +283,7 @@ export default class DiceView {
         });
       } else if (typeof group.value === 'number') {
         diceTotal += group.value;
-        const type = group.die || "d20";
+        const type = group.die || (group.sides ? 'd' + group.sides : null) || "d20";
         const iconPath = `./src/assets/images/dices/${type === 'd100' ? 'd10' : type}.png`;
         individualHTML.push(`
           <span class="result-die">
@@ -326,8 +331,8 @@ export default class DiceView {
     // Log to combat view if active
     if (window.encountersView?.combatView?.isActive) {
       window.encountersView.combatView.logRoll({
-        characterName,
-        notation: fullNotation,
+        characterName: characterName || 'Mestre',
+        notation: baseNotation,
         total: finalTotal,
         details: fullDetailsHTML
       });
