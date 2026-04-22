@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, Menu, dialog, protocol } = require("electro
 const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
+const os = require("os");
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 
 // ============================================
 // Environment
@@ -12,6 +16,136 @@ const isDev = !app.isPackaged;
 // App State
 // ============================================
 let mainWindow;
+
+// ============================================
+// Database Manager (inline para evitar require)
+// ============================================
+// ============================================
+// Network Discovery Utility
+// ============================================
+function getNetworkIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return "localhost";
+}
+
+// ============================================
+// Combat Server Manager
+// ============================================
+class CombatServer {
+  constructor() {
+    this.app = express();
+    this.server = http.createServer(this.app);
+    this.io = new Server(this.server);
+    this.port = 3000;
+    this.isRunning = false;
+
+    this.setupRoutes();
+    this.setupWebSockets();
+  }
+
+  setupRoutes() {
+    this.app.get("/", (req, res) => {
+      const possiblePaths = [
+        path.join(__dirname, "server", "player-view.html"),
+        path.join(__dirname, "..", "..", "src", "main", "server", "player-view.html"),
+        path.join(app.getAppPath(), "src", "main", "server", "player-view.html")
+      ];
+
+      for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+          return res.sendFile(p);
+        }
+      }
+      res.status(404).send("Player view file not found");
+    });
+    
+    // Serve other static files if needed
+    const staticPath = fs.existsSync(path.join(__dirname, "server")) 
+      ? path.join(__dirname, "server")
+      : path.join(__dirname, "..", "..", "src", "main", "server");
+    this.app.use(express.static(staticPath));
+
+    // Serve character images from userData
+    const imagesPath = path.join(app.getPath("userData"), "images", "characters");
+    if (fs.existsSync(imagesPath)) {
+      this.app.use("/images/characters", express.static(imagesPath));
+    }
+
+    // Serve dice-box assets from renderer public
+    const diceAssetsPath = path.join(app.getAppPath(), "src", "renderer", "public", "dice-box");
+    if (fs.existsSync(diceAssetsPath)) {
+      this.app.use("/dice-box", express.static(diceAssetsPath));
+    }
+
+    // Serve dice-box library from node_modules
+    const diceLibPath = path.join(app.getAppPath(), "node_modules", "@3d-dice", "dice-box", "dist");
+    if (fs.existsSync(diceLibPath)) {
+      this.app.use("/dice-box-lib", express.static(diceLibPath));
+    }
+
+    // Serve renderer assets for dice icons etc.
+    const rendererAssetsPath = path.join(app.getAppPath(), "src", "renderer", "src", "assets");
+    if (fs.existsSync(rendererAssetsPath)) {
+      this.app.use("/src/assets", express.static(rendererAssetsPath));
+    }
+  }
+
+  setupWebSockets() {
+    this.io.on("connection", (socket) => {
+      console.log("Player connected to combat view:", socket.id);
+      
+      // Request current state from DM when someone connects
+      if (mainWindow) {
+        mainWindow.webContents.send("player-connected", socket.id);
+      }
+
+      socket.on("disconnect", () => {
+        console.log("Player disconnected");
+      });
+    });
+
+    // Handle dice roll broadcast from DM
+    ipcMain.on("db-dice-broadcast", (event, rollData) => {
+      console.log("Broadcasting dice roll to players:", rollData.notation);
+      if (this.isRunning) {
+        this.io.emit("dice-roll", rollData);
+      }
+    });
+  }
+
+  start() {
+    if (this.isRunning) return;
+    
+    this.server.listen(this.port, () => {
+      this.isRunning = true;
+      console.log(`Combat server running at http://${getNetworkIP()}:${this.port}`);
+    });
+  }
+
+  stop() {
+    if (!this.isRunning) return;
+    
+    this.server.close(() => {
+      this.isRunning = false;
+      console.log("Combat server stopped");
+    });
+  }
+
+  broadcast(event, data) {
+    if (this.isRunning) {
+      this.io.emit(event, data);
+    }
+  }
+}
+
+const combatServer = new CombatServer();
 
 // ============================================
 // Database Manager (inline para evitar require)
@@ -54,7 +188,7 @@ class DatabaseManager {
       this.runMigrations();
 
       this.isInitialized = true;
-      console.log("Database initialized successfully");
+      console.log(`Database initialized successfully [v${app.getVersion()}]`);
       return true;
     } catch (error) {
       console.error("Failed to initialize database:", error);
@@ -636,6 +770,28 @@ ipcMain.handle("dialog-save-file", async (_event, options = {}) => {
   return result.filePath;
 });
 
+ipcMain.handle("combat-server-start", () => {
+  combatServer.start();
+  return { ip: getNetworkIP(), port: combatServer.port };
+});
+
+ipcMain.handle("combat-server-stop", () => {
+  combatServer.stop();
+  return true;
+});
+
+ipcMain.handle("combat-server-get-info", () => {
+  return { 
+    isRunning: combatServer.isRunning, 
+    ip: getNetworkIP(), 
+    port: combatServer.port 
+  };
+});
+
+ipcMain.on("combat-server-broadcast", (_event, { event, data }) => {
+  combatServer.broadcast(event, data);
+});
+
 // ============================================
 // IPC Handlers - Window Controls
 // ============================================
@@ -704,9 +860,10 @@ app.on("window-all-closed", () => {
   }
 });
 
-// Close database on app quit
+// Close database and stop server on app quit
 app.on("before-quit", () => {
   databaseManager.close();
+  combatServer.stop();
 });
 
 // Security: Prevent new window creation

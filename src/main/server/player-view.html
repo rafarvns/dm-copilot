@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM Copilot - Visualização do Jogador</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --color-bg: #0f0f14;
+            --color-surface: #1a1a24;
+            --color-primary: #7c3aed;
+            --color-ally: #10b981;
+            --color-neutral: #f59e0b;
+            --color-enemy: #ef4444;
+            --color-text: #e2e8f0;
+            --color-text-muted: #94a3b8;
+            --color-border: rgba(255,255,255,0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Dice Box Background */
+        #dice-box {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999; /* Garantir que fique por cima de tudo */
+            pointer-events: none;
+        }
+
+        #dice-box canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        /* Layout */
+        .header {
+            width: 100%;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            box-sizing: border-box;
+            background: rgba(15, 15, 20, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--color-border);
+            z-index: 10;
+        }
+
+        .main-content {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            z-index: 5;
+        }
+
+        .footer {
+            width: 100%;
+            height: 250px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--color-border);
+            padding: 20px 40px;
+            box-sizing: border-box;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        /* Banners */
+        .combat-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            padding: 20px;
+            perspective: 1000px;
+            transition: all 0.5s ease;
+        }
+
+        .banner {
+            width: 160px;
+            height: 280px;
+            background: var(--color-surface);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 2px solid transparent;
+        }
+
+        .banner--active {
+            transform: scale(1.2) translateZ(60px);
+            border-color: var(--color-primary);
+            box-shadow: 0 0 40px rgba(124, 58, 237, 0.4);
+            z-index: 10;
+        }
+
+        .banner--acted {
+            opacity: 0.4;
+            filter: grayscale(0.9);
+            transform: scale(0.9);
+        }
+
+        .banner__affinity {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 15px;
+        }
+
+        .affinity--ally { background-color: var(--color-ally); }
+        .affinity--neutral { background-color: var(--color-neutral); }
+        .affinity--enemy { background-color: var(--color-enemy); }
+
+        .banner__image-container {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--color-border);
+        }
+
+        .banner__img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .banner__name {
+            font-size: 1.2rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        .banner__initiative {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--color-primary);
+            margin-top: auto;
+        }
+
+        /* Round & Turn Info */
+        .round-badge {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-text);
+            background: var(--color-primary);
+            padding: 6px 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .connection-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .connection-badge--online .connection-dot {
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+
+        /* Last Roll Panel */
+        .last-roll-panel {
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 12px;
+            padding: 10px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 0.5s ease-out;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .last-roll__label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-text-muted);
+        }
+
+        .last-roll__value {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        /* Roll Log */
+        .log-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-header {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 10px;
+        }
+
+        .log-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .log-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        .log-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 6px;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            border-left: 3px solid transparent;
+        }
+
+        .log-item--roll { border-left-color: var(--color-primary); }
+
+        .log-item__main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-item__char {
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .log-item__notation {
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+        }
+
+        .log-item__total {
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+
+        .log-item__time {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+
+        .status-msg {
+            font-size: 1.5rem;
+            color: var(--color-text-muted);
+            font-weight: 300;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="dice-box"></div>
+
+    <div class="header">
+        <div class="round-badge" id="round-info">Desconectado</div>
+        <div id="last-roll-container" class="last-roll-panel" style="display: none;">
+            <div class="last-roll__label">Última Rolagem</div>
+            <div id="last-roll-name" style="font-weight: 700; color: var(--color-primary);">Mestre</div>
+            <div id="last-roll-value" class="last-roll__value">20</div>
+        </div>
+        <div class="connection-badge" id="conn-badge">
+            <div class="connection-dot"></div>
+            <span id="conn-text">OFFLINE</span>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="combat-container" id="combat-container">
+            <div class="status-msg">Conectando ao Mestre...</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="log-container">
+            <div class="log-header">
+                <span>📜 LOG DE ROLAGENS</span>
+                <div style="flex: 1; height: 1px; background: var(--color-border);"></div>
+            </div>
+            <div class="log-list" id="roll-log">
+                <!-- Logs populated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import DiceBox from '/dice-box-lib/dice-box.es.js';
+
+        const socket = io({
+            reconnectionAttempts: 10,
+            timeout: 10000
+        });
+        
+        const container = document.getElementById('combat-container');
+        const roundInfo = document.getElementById('round-info');
+        const rollLog = document.getElementById('roll-log');
+        const lastRollContainer = document.getElementById('last-roll-container');
+        const lastRollName = document.getElementById('last-roll-name');
+        const lastRollValue = document.getElementById('last-roll-value');
+        const connBadge = document.getElementById('conn-badge');
+        const connText = document.getElementById('conn-text');
+
+        let lastCombatState = null;
+        let diceBox = null;
+        let isDiceReady = false;
+
+        // Initialize DiceBox
+        async function initDice() {
+            try {
+                diceBox = new DiceBox({
+                    container: "#dice-box",
+                    assetPath: "/dice-box/",
+                    origin: window.location.origin,
+                    offscreen: false,
+                    scale: 6,
+                    theme: "default",
+                    themeColor: "#7c3aed",
+                    shadows: true,
+                    gravity: 2,
+                    startingHeight: 12
+                });
+                await diceBox.init();
+                isDiceReady = true;
+                console.log("DiceBox pronto na visão do jogador");
+            } catch (e) {
+                console.error("Erro ao iniciar DiceBox:", e);
+            }
+        }
+
+        initDice();
+
+        socket.on('connect', () => {
+            connBadge.classList.add('connection-badge--online');
+            connText.textContent = 'ONLINE';
+            if (!lastCombatState) {
+                container.innerHTML = '<div class="status-msg">Aguardando início do combate pelo mestre...</div>';
+                roundInfo.textContent = 'Pronto';
+            }
+        });
+
+        socket.on('disconnect', () => {
+            connBadge.classList.remove('connection-badge--online');
+            connText.textContent = 'DESCONECTADO';
+            container.innerHTML = `
+                <div class="status-msg">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">📡</div>
+                    Conexão com o Mestre perdida.<br>
+                    <span style="font-size: 0.9rem; color: var(--color-text-muted);">Tentando reconectar...</span>
+                </div>
+            `;
+            roundInfo.textContent = 'Desconectado';
+            lastRollContainer.style.display = 'none';
+        });
+
+        socket.on('combat-update', (data) => {
+            lastCombatState = data;
+            
+            if (!data || data.status !== 'active') {
+                container.innerHTML = '<div class="status-msg">O mestre finalizou o encontro ou está preparando a cena.</div>';
+                roundInfo.textContent = 'Intervalo';
+                lastRollContainer.style.display = 'none';
+                return;
+            }
+
+            renderCombat(data);
+            renderLog(data.rollHistory);
+        });
+
+        socket.on('dice-roll', async (rollData) => {
+            console.log("Evento dice-roll recebido:", rollData);
+            
+            // Wait for diceBox to be ready if it's not yet
+            if (!isDiceReady) {
+                console.warn("DiceBox ainda não está pronto, aguardando...");
+                for(let i=0; i<10; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    if (isDiceReady) break;
+                }
+            }
+
+            if (diceBox && isDiceReady) {
+                try {
+                    console.log("Sincronizando rolagem:", rollData.notation);
+                    await diceBox.clear();
+                    // Garante que notation seja uma string ou array de strings
+                    const notation = Array.isArray(rollData.notation) ? rollData.notation : [rollData.notation];
+                    diceBox.roll(notation, {
+                        themeColor: rollData.themeColor || "#7c3aed"
+                    });
+                } catch (err) {
+                    console.error("Erro ao executar rolagem no DiceBox:", err);
+                }
+            } else {
+                console.error("DiceBox não disponível para rolagem.");
+            }
+        });
+
+        function renderCombat(data) {
+            roundInfo.textContent = `Rodada ${data.currentRound}`;
+            const sorted = [...data.participants].sort((a, b) => b.initiative - a.initiative);
+            
+            container.innerHTML = sorted.map((p, index) => {
+                const isActive = index === data.currentTurnIndex;
+                const hasActed = p.has_acted && !isActive;
+                
+                return `
+                    <div class="banner ${isActive ? 'banner--active' : ''} ${hasActed ? 'banner--acted' : ''}">
+                        <div class="banner__affinity affinity--${p.affinity}"></div>
+                        ${p.image ? `
+                            <div class="banner__image-container">
+                                <img src="${p.image}" class="banner__img" />
+                            </div>
+                        ` : ''}
+                        <div class="banner__name">${p.name}</div>
+                        <div class="banner__initiative">${p.initiative}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderLog(history) {
+            if (!history || history.length === 0) {
+                rollLog.innerHTML = '<div style="color: var(--color-text-muted); font-size: 0.9rem; font-style: italic;">Nenhuma rolagem ainda.</div>';
+                lastRollContainer.style.display = 'none';
+                return;
+            }
+
+            const last = history[0];
+            lastRollName.textContent = last.characterName || 'Mestre';
+            lastRollValue.textContent = last.total;
+            lastRollContainer.style.display = 'flex';
+
+            rollLog.innerHTML = history.map(roll => `
+                <div class="log-item log-item--roll">
+                    <div class="log-item__main">
+                        <span class="log-item__char">${roll.characterName || 'Mestre'}</span>
+                        <span class="log-item__notation">${roll.notation}</span>
+                        <span class="log-item__details">${roll.details}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="log-item__total">${roll.total}</span>
+                        <span class="log-item__time">${roll.timestamp}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

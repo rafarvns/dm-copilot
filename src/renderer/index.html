@@ -618,6 +618,37 @@
       </div>
 
       <div class="encounter-manager">
+        <div class="combat-controls" id="combat-controls">
+          <div class="combat-controls__status">
+            <button class="btn btn--primary" id="btn-start-combat">
+              <span class="btn__icon">⚔️</span> Iniciar Encontro
+            </button>
+            <button class="btn btn--danger hidden" id="btn-end-combat">
+              <span class="btn__icon">🏳️</span> Finalizar Encontro
+            </button>
+            <div id="combat-server-link" class="combat-server-link hidden">
+              Link para Jogadores: <span id="player-link-text"></span>
+            </div>
+          </div>
+          <div class="combat-controls__round hidden" id="combat-round-display">
+            Rodada <span id="current-round-number">1</span>
+          </div>
+        </div>
+
+        <div id="combat-arena" class="combat-arena hidden">
+          <div class="combat-arena__banners" id="combat-banners">
+            <!-- Banners dynamically added here -->
+          </div>
+          <div class="combat-arena__actions">
+            <button class="btn btn--secondary" id="btn-prev-turn">
+              <span class="btn__icon">⬅️</span> Turno Anterior
+            </button>
+            <button class="btn btn--primary btn--lg" id="btn-next-turn">
+              Próximo Turno <span class="btn__icon">➡️</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Allies Section (Green) -->
         <div class="encounter-section encounter-section--allies hidden" id="section-allies">
           <div class="encounter-section__header">
@@ -730,6 +761,26 @@
             <span class="dice-result-total" id="dice-result-total">0</span>
           </div>
           <div class="dice-result-details" id="dice-result-details"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Initiative Entry Modal -->
+    <div id="modal-initiative" class="modal hidden">
+      <div class="modal__overlay" id="initiative-modal-overlay"></div>
+      <div class="modal__content modal__content--sm">
+        <div class="modal__header">
+          <h2 class="modal__title">Iniciativa</h2>
+          <button class="modal__close" id="btn-close-initiative-modal">&times;</button>
+        </div>
+        <div class="modal__body">
+          <p id="initiative-prompt-text" class="mb-4">Insira a iniciativa para:</p>
+          <div class="form-group">
+            <input type="number" id="input-initiative-value" class="form-input" min="0" max="40" step="1" value="10" />
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--primary" id="btn-confirm-initiative">Confirmar</button>
         </div>
       </div>
     </div>

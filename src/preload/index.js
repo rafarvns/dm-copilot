@@ -91,4 +91,13 @@ contextBridge.exposeInMainWorld("dmCopilot", {
   minimize: () => ipcRenderer.send("window-minimize"),
   maximize: () => ipcRenderer.send("window-maximize"),
   close: () => ipcRenderer.send("window-close"),
+
+  // --- Combat Server ---
+  combat: {
+    startServer: () => ipcRenderer.invoke("combat-server-start"),
+    stopServer: () => ipcRenderer.invoke("combat-server-stop"),
+    getInfo: () => ipcRenderer.invoke("combat-server-get-info"),
+    broadcast: (event, data) => ipcRenderer.send("combat-server-broadcast", { event, data }),
+    onPlayerConnected: (callback) => ipcRenderer.on("player-connected", (event, socketId) => callback(socketId)),
+  },
 });

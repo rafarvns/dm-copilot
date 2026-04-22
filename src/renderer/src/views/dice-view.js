@@ -135,8 +135,22 @@ export default class DiceView {
 
     const bonus = parseInt(this.DOM.bonusInput?.value || 0);
     
+    // Check if combat is active to set character and color
+    let themeColor = "#7c3aed"; // Default purple
+    let characterName = null;
+    
+    if (window.encountersView?.combatView?.isActive) {
+      const activeChar = window.encountersView.combatView.getActiveParticipant();
+      if (activeChar) {
+        characterName = activeChar.name;
+        if (activeChar.affinity === 'ally') themeColor = "#10b981";
+        else if (activeChar.affinity === 'neutral') themeColor = "#f59e0b";
+        else if (activeChar.affinity === 'enemy') themeColor = "#ef4444";
+      }
+    }
+
     // Add to queue
-    this.queue.push({ notation, bonus });
+    this.queue.push({ notation, bonus, themeColor, characterName });
     
     // Reset UI immediately so user can select more
     this.resetCounts();
@@ -185,10 +199,22 @@ export default class DiceView {
       }
 
       console.log("Processing queued roll:", currentRoll.notation);
-      const results = await this.diceBox.roll(currentRoll.notation);
       
-      // Pass the bonus captured when roll was clicked
-      this.displayResults(results, currentRoll.bonus);
+      // Broadcast roll to players
+      if (window.api) {
+        window.api.send("db-dice-broadcast", {
+          notation: currentRoll.notation,
+          themeColor: currentRoll.themeColor,
+          characterName: currentRoll.characterName
+        });
+      }
+
+      const results = await this.diceBox.roll(currentRoll.notation, {
+        themeColor: currentRoll.themeColor
+      });
+      
+      // Pass the bonus and characterName captured when roll was clicked
+      this.displayResults(results, currentRoll.bonus, currentRoll.characterName);
       
       // Wait a bit for the toast to be seen before next roll if queue exists
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -222,7 +248,7 @@ export default class DiceView {
     return diceParts;
   }
 
-  async displayResults(results, bonus = 0) {
+  async displayResults(results, bonus = 0, characterName = null) {
     if (!results) return;
 
     let diceTotal = 0;
@@ -278,13 +304,15 @@ export default class DiceView {
     // Update header display
     if (this.DOM.lastRollDisplay) {
       this.DOM.lastRollDisplay.classList.remove("hidden");
-      this.DOM.lastRollValue.textContent = finalTotal;
+      this.DOM.lastRollValue.textContent = (characterName ? `[${characterName}] ` : '') + finalTotal;
       this.DOM.lastRollDetails.innerHTML = fullDetailsHTML;
     }
 
     // Save to Database
+    const baseNotation = notationParts.join(" + ");
+    const fullNotation = characterName ? `[${characterName}] ${baseNotation}` : baseNotation;
+    
     try {
-      const fullNotation = notationParts.join(" + ");
       await window.dmCopilot.db.diceRolls.save({
         notation: fullNotation,
         total: finalTotal,
@@ -293,6 +321,16 @@ export default class DiceView {
       });
     } catch (err) {
       console.error("Failed to save roll to history:", err);
+    }
+    
+    // Log to combat view if active
+    if (window.encountersView?.combatView?.isActive) {
+      window.encountersView.combatView.logRoll({
+        characterName,
+        notation: fullNotation,
+        total: finalTotal,
+        details: fullDetailsHTML
+      });
     }
   }
 

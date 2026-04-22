@@ -64,24 +64,46 @@ function getAllEncounters(db) {
 // UPDATE
 // ============================================
 function updateEncounter(db, id, encounterData) {
-  const stmt = db.prepare(`
-    UPDATE encounters 
-    SET campaign_id = ?, name = ?, description = ?, difficulty = ?, 
-        location = ?, monsters = ?, updated_at = ?
-    WHERE id = ?
-  `);
+  const fields = [];
+  const values = [];
+
+  // Map of object keys to table columns
+  const columnMap = {
+    campaign_id: 'campaign_id',
+    name: 'name',
+    description: 'description',
+    difficulty: 'difficulty',
+    location: 'location',
+    monsters: 'monsters',
+    status: 'status',
+    current_round: 'current_round',
+    current_turn_index: 'current_turn_index'
+  };
+
+  for (const [key, column] of Object.entries(columnMap)) {
+    if (encounterData[key] !== undefined) {
+      fields.push(`${column} = ?`);
+      let val = encounterData[key];
+      if (key === 'monsters' && val !== null) {
+        val = JSON.stringify(val);
+      }
+      values.push(val);
+    }
+  }
+
+  if (fields.length === 0) return false;
 
   const now = new Date().toISOString();
-  const result = stmt.run(
-    encounterData.campaign_id,
-    encounterData.name,
-    encounterData.description || null,
-    encounterData.difficulty || null,
-    encounterData.location || null,
-    encounterData.monsters ? JSON.stringify(encounterData.monsters) : null,
-    now,
-    id
-  );
+  fields.push("updated_at = ?");
+  values.push(now);
+  values.push(id);
+
+  const sql = `UPDATE encounters SET ${fields.join(", ")} WHERE id = ?`;
+  console.log("SQL Update Encontro:", sql);
+  console.log("Valores:", values);
+  
+  const stmt = db.prepare(sql);
+  const result = stmt.run(...values);
 
   return result.changes > 0;
 }

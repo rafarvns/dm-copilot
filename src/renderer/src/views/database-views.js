@@ -2,6 +2,7 @@
 // Views para gerenciamento de campanhas, personagens, encontros e notas
 
 import databaseService from "../db/database.js";
+import EncounterCombatView from "./encounter-combat-view.js";
 
 // ============================================
 // Toast Notifications
@@ -815,12 +816,14 @@ class EncountersView {
     this.editingEncounterId = null;
     this.participants = []; // Current encounter participants
     this.affinityGroups = { ally: [], neutral: [], enemy: [] };
+    this.combatView = new EncounterCombatView(this);
 
     this.initDOM();
     this.initEvents();
   }
 
   initDOM() {
+    console.log("EncountersView: Initializing DOM references...");
     this.DOM = {
       // Encounter List & Metadata Modal
       modal: document.getElementById("encounter-modal"),
@@ -864,6 +867,13 @@ class EncountersView {
       sectionNeutrals: document.getElementById("section-neutrals"),
       sectionEnemies: document.getElementById("section-enemies"),
     };
+
+    // Verify critical elements
+    Object.entries(this.DOM).forEach(([key, el]) => {
+      if (!el && key !== 'tabs' && key !== 'tabContents') {
+        console.warn(`EncountersView: Element not found: ${key}`);
+      }
+    });
   }
 
   initEvents() {
@@ -890,7 +900,14 @@ class EncountersView {
         this.DOM.tabContents.forEach(c => c.classList.add("hidden"));
         tab.classList.add("active");
         const content = document.getElementById(tab.dataset.tab);
-        content.classList.remove("hidden");
+        if (content) {
+          content.classList.remove("hidden");
+          // Focus the search input in the active tab
+          const searchInput = content.querySelector('input[type="text"]');
+          if (searchInput) {
+            setTimeout(() => searchInput.focus(), 50);
+          }
+        }
         
         if (tab.dataset.tab === "tab-db-chars") this.loadDBParticipants();
       });
@@ -1126,20 +1143,20 @@ class EncountersView {
                 <div class="stat-control">
                   <span class="stat-control__label">HP</span>
                   <input type="number" class="stat-control__input stat-control__input--hp" 
-                         value="${p.current_hp !== undefined ? p.current_hp : p.hp}" 
+                         value="${(p.current_hp !== undefined ? p.current_hp : p.hp) || 0}" 
                          data-field="current_hp" title="HP Atual" />
                   <span class="stat-control__sep">/</span>
-                  <span class="stat-control__max">${p.hp}</span>
+                  <span class="stat-control__max">${p.hp || 0}</span>
                 </div>
                 <div class="stat-control">
                   <span class="stat-control__label">AC</span>
                   <input type="number" class="stat-control__input stat-control__input--ac" 
-                         value="${p.ac}" 
+                         value="${p.ac || 10}" 
                          data-field="ac" title="CA" />
                 </div>
                 <div class="stat-control">
                   <span class="stat-control__label">Ini</span>
-                  <span class="stat-control__value">${p.ini}</span>
+                  <span class="stat-control__value">${p.ini || 0}</span>
                 </div>
               </div>
             </div>
@@ -1435,8 +1452,8 @@ class EncountersView {
       this.addParticipantToList({
         id: Date.now(),
         name: monster.name,
-        hp: monster.hit_points || 0,
-        ac: monster.armor_class?.[0]?.value || 10,
+        hp: parseInt(monster.hit_points) || 0,
+        ac: (Array.isArray(monster.armor_class) ? (monster.armor_class[0]?.value || 10) : (parseInt(monster.armor_class) || 10)),
         ini: 0,
         affinity: this.getSelectedAffinity(),
         api_url: monster.url ? `https://www.dnd5eapi.co${monster.url}` : null,
