@@ -503,6 +503,29 @@ ipcMain.handle("db-encounters-delete", (_event, id) => {
 });
 
 // ============================================
+// IPC Handlers - Dice Rolls
+// ============================================
+ipcMain.handle("db-dice-rolls-save", (_event, rollData) => {
+  const db = databaseManager.getConnection();
+  const { saveDiceRoll } = require("./database/queries/dice-rolls");
+  return saveDiceRoll(db, rollData);
+});
+
+ipcMain.handle("db-dice-rolls-read-all", (_event, options) => {
+  const db = databaseManager.getConnection();
+  const { getDiceHistory, getDiceHistoryCount } = require("./database/queries/dice-rolls");
+  const rolls = getDiceHistory(db, options);
+  const total = getDiceHistoryCount(db);
+  return { rolls, total };
+});
+
+ipcMain.handle("db-dice-rolls-clear", () => {
+  const db = databaseManager.getConnection();
+  const { clearDiceHistory } = require("./database/queries/dice-rolls");
+  return clearDiceHistory(db);
+});
+
+// ============================================
 // IPC Handlers - Notes
 // ============================================
 ipcMain.handle("db-notes-create", (_event, noteData) => {

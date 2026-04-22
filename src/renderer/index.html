@@ -558,31 +558,31 @@
             <div class="dice-toolbar" id="dice-toolbar">
               <div class="dice-buttons">
                 <button class="dice-btn" data-dice="d4" title="d4">
-                  <span class="dice-btn__icon">🔺</span>
+                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d4.png" alt="d4"></span>
                   <span class="dice-btn__pill">0</span>
                 </button>
                 <button class="dice-btn" data-dice="d6" title="d6">
-                  <span class="dice-btn__icon">🎲</span>
+                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d6.png" alt="d6"></span>
                   <span class="dice-btn__pill">0</span>
                 </button>
                 <button class="dice-btn" data-dice="d8" title="d8">
-                  <span class="dice-btn__icon">💎</span>
+                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d8.png" alt="d8"></span>
                   <span class="dice-btn__pill">0</span>
                 </button>
                 <button class="dice-btn" data-dice="d10" title="d10">
-                  <span class="dice-btn__icon">🏮</span>
+                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d10"></span>
                   <span class="dice-btn__pill">0</span>
                 </button>
                 <button class="dice-btn" data-dice="d12" title="d12">
-                  <span class="dice-btn__icon">🔮</span>
+                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d12.png" alt="d12"></span>
                   <span class="dice-btn__pill">0</span>
                 </button>
                 <button class="dice-btn" data-dice="d20" title="d20">
-                  <span class="dice-btn__icon">❄️</span>
+                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d20.png" alt="d20"></span>
                   <span class="dice-btn__pill">0</span>
                 </button>
                 <button class="dice-btn" data-dice="d100" title="d100">
-                  <span class="dice-btn__icon">💯</span>
+                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d100"></span>
                   <span class="dice-btn__pill">0</span>
                 </button>
               </div>
@@ -592,9 +592,18 @@
                 <input type="number" id="dice-bonus-input" class="dice-bonus__input" value="0" placeholder="0">
               </div>
 
-              <button class="btn btn--primary btn--roll" id="btn-roll-dice">
-                <span class="btn__icon">💥</span> ROLL
+              <button class="btn btn--icon-only ml-2" id="btn-dice-history" title="Histórico de Rolagens">
+                <span class="btn__icon">⏳</span>
               </button>
+
+              <div class="dice-roll-container">
+                <button class="btn btn--primary btn--roll" id="btn-roll-dice">
+                  <span class="btn__icon">💥</span> ROLL
+                </button>
+                <div id="dice-roll-queue" class="dice-roll-queue hidden">
+                  <span class="queue-count">0</span> em espera
+                </div>
+              </div>
             </div>
             
             <div class="overlay-view__actions-group">
@@ -715,9 +724,37 @@
     <div id="dice-box-overlay" class="dice-overlay">
       <div id="dice-box"></div>
       <div id="dice-result" class="dice-result-panel">
-        <div class="dice-result-total">Total: 0</div>
-        <div class="dice-result-details"></div>
-        <button class="btn btn--secondary btn--sm mt-3" id="btn-close-dice-result">Fechar</button>
+        <div class="dice-result-content">
+          <div class="dice-result-total-group">
+            <span class="dice-result-label">Resultado:</span>
+            <span class="dice-result-total" id="dice-result-total">0</span>
+          </div>
+          <div class="dice-result-details" id="dice-result-details"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dice History Modal -->
+    <div id="modal-dice-history" class="modal hidden">
+      <div class="modal__overlay" id="dice-history-modal-overlay"></div>
+      <div class="modal__content modal__content--lg">
+        <div class="modal__header">
+          <h2 class="modal__title">Histórico de Rolagens</h2>
+          <button class="modal__close" id="btn-close-dice-history">&times;</button>
+        </div>
+        <div class="modal__body">
+          <div class="dice-history-list" id="dice-history-list">
+            <!-- Populated via JS -->
+            <p class="text-center text-muted p-4">Carregando histórico...</p>
+          </div>
+          <div class="dice-history-pagination" id="dice-history-pagination">
+            <!-- Pagination controls -->
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--secondary" id="btn-clear-dice-history">Limpar Tudo</button>
+          <button class="btn btn--primary" id="btn-close-dice-history-footer">Fechar</button>
+        </div>
       </div>
     </div>
 

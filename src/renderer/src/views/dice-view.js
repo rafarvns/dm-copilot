@@ -12,6 +12,8 @@ export default class DiceView {
     };
     this.diceBox = null;
     this.isRolling = false;
+    this.isProcessingQueue = false;
+    this.queue = [];
 
     this.initDOM();
     this.initDiceBox();
@@ -26,12 +28,21 @@ export default class DiceView {
       bonusInput: document.getElementById("dice-bonus-input"),
       overlay: document.getElementById("dice-box-overlay"),
       resultPanel: document.getElementById("dice-result"),
-      resultTotal: document.querySelector(".dice-result-total"),
-      resultDetails: document.querySelector(".dice-result-details"),
-      btnCloseResult: document.getElementById("btn-close-dice-result"),
+      resultTotal: document.getElementById("dice-result-total"),
+      resultDetails: document.getElementById("dice-result-details"),
       lastRollDisplay: document.getElementById("last-roll-display"),
       lastRollValue: document.querySelector(".last-roll-display__value"),
-      lastRollDetails: document.querySelector(".last-roll-display__details")
+      lastRollDetails: document.querySelector(".last-roll-display__details"),
+      queueIndicator: document.getElementById("dice-roll-queue"),
+      queueCount: document.querySelector(".queue-count"),
+      btnHistory: document.getElementById("btn-dice-history"),
+      modalHistory: document.getElementById("modal-dice-history"),
+      historyList: document.getElementById("dice-history-list"),
+      historyPagination: document.getElementById("dice-history-pagination"),
+      btnClearHistory: document.getElementById("btn-clear-dice-history"),
+      btnCloseHistory: document.getElementById("btn-close-dice-history"),
+      btnCloseHistoryFooter: document.getElementById("btn-close-dice-history-footer"),
+      historyOverlay: document.getElementById("dice-history-modal-overlay")
     };
   }
 
@@ -75,11 +86,22 @@ export default class DiceView {
     // Roll Button
     this.DOM.btnRoll?.addEventListener("click", () => this.roll());
 
-    // Close Result
-    this.DOM.btnCloseResult?.addEventListener("click", () => this.hideOverlay());
-    this.DOM.overlay?.addEventListener("click", (e) => {
-      if (e.target === this.DOM.overlay) this.hideOverlay();
+    // History Button
+    this.DOM.btnHistory?.addEventListener("click", () => this.openHistory());
+    
+    // Modal Close
+    this.DOM.btnCloseHistory?.addEventListener("click", () => this.closeHistory());
+    this.DOM.btnCloseHistoryFooter?.addEventListener("click", () => this.closeHistory());
+    this.DOM.historyOverlay?.addEventListener("click", () => this.closeHistory());
+    this.DOM.modalHistory?.addEventListener("click", (e) => {
+      if (e.target === this.DOM.modalHistory) this.closeHistory();
     });
+    
+    // Clear History
+    this.DOM.btnClearHistory?.addEventListener("click", () => this.clearHistory());
+
+    // Auto-hide toast on click (optional)
+    this.DOM.resultPanel?.addEventListener("click", () => this.hideToast());
   }
 
   incrementDice(type, btn) {
@@ -109,23 +131,82 @@ export default class DiceView {
 
   async roll() {
     const notation = this.getNotation();
-    if (!notation || this.isRolling) return;
+    if (!notation) return;
+
+    const bonus = parseInt(this.DOM.bonusInput?.value || 0);
+    
+    // Add to queue
+    this.queue.push({ notation, bonus });
+    
+    // Reset UI immediately so user can select more
+    this.resetCounts();
+    this.updateQueueUI();
+
+    // Start processing if not already
+    if (!this.isProcessingQueue) {
+      this.processQueue();
+    }
+  }
+
+  updateQueueUI() {
+    if (!this.DOM.queueIndicator) return;
+
+    // We show (total queue - 1) as "pending" because the 0th is current
+    const pending = this.queue.length > (this.isRolling ? 1 : 0) ? this.queue.length - (this.isRolling ? 1 : 0) : 0;
+    
+    if (pending > 0) {
+      this.DOM.queueIndicator.classList.remove("hidden");
+      this.DOM.queueCount.textContent = pending;
+    } else {
+      this.DOM.queueIndicator.classList.add("hidden");
+    }
+  }
+
+  async processQueue() {
+    if (this.queue.length === 0) {
+      this.isProcessingQueue = false;
+      return;
+    }
+
+    this.isProcessingQueue = true;
+    const currentRoll = this.queue[0]; // Peek
 
     this.isRolling = true;
+    this.updateQueueUI();
     this.showOverlay();
 
-    console.log("Full Rolling Notation:", notation);
-
     try {
-      const results = await this.diceBox.roll(notation);
-      console.log("Raw DiceBox Results:", results);
-      this.displayResults(results);
+      if (this.toastTimeout) {
+        clearTimeout(this.toastTimeout);
+      }
+      
+      if (this.diceBox) {
+        await this.diceBox.clear();
+      }
+
+      console.log("Processing queued roll:", currentRoll.notation);
+      const results = await this.diceBox.roll(currentRoll.notation);
+      
+      // Pass the bonus captured when roll was clicked
+      this.displayResults(results, currentRoll.bonus);
+      
+      // Wait a bit for the toast to be seen before next roll if queue exists
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Auto-hide toast after 3 seconds total (unless next roll happens)
+      this.toastTimeout = setTimeout(() => {
+        this.hideToast();
+      }, 3000);
+
     } catch (error) {
-      console.error("Roll failed:", error);
-      this.hideOverlay();
+      console.error("Queue roll failed:", error);
     } finally {
       this.isRolling = false;
-      this.resetCounts();
+      this.queue.shift(); // Remove processed
+      this.updateQueueUI();
+      
+      // Process next in queue
+      this.processQueue();
     }
   }
 
@@ -138,67 +219,149 @@ export default class DiceView {
     }
     
     if (diceParts.length === 0) return null;
-    
-    // Join with " + " to prevent digit merging (like d6 + 2d8 becoming d62)
-    return diceParts.join(" + ");
+    return diceParts;
   }
 
-  displayResults(results) {
-    if (!results) {
-      console.warn("No results received from DiceBox");
-      return;
-    }
+  async displayResults(results, bonus = 0) {
+    if (!results) return;
 
-    console.log("Processing DiceBox Results:", results);
-
-    const bonus = parseInt(this.DOM.bonusInput?.value || 0);
     let diceTotal = 0;
-    const individualValues = [];
+    const individualHTML = [];
+    const notationParts = [];
 
-    // Ensure results is an array
     const resultsArray = Array.isArray(results) ? results : [results];
 
-    resultsArray.forEach(item => {
-      // Handle groups with .rolls (Standard v1.1+)
-      if (item.rolls && Array.isArray(item.rolls)) {
-        item.rolls.forEach(die => {
-          if (die && typeof die.value === 'number') {
+    resultsArray.forEach(group => {
+      const groupNotation = group.notation || `${group.rolls?.length || 1}${group.die || 'd20'}`;
+      notationParts.push(groupNotation);
+
+      if (group.rolls && Array.isArray(group.rolls)) {
+        group.rolls.forEach(die => {
+          if (typeof die.value === 'number') {
             diceTotal += die.value;
-            individualValues.push(die.value);
+            const type = die.die || group.die || "d20";
+            const iconPath = `./src/assets/images/dices/${type === 'd100' ? 'd10' : type}.png`;
+            
+            individualHTML.push(`
+              <span class="result-die">
+                <img src="${iconPath}" class="result-die__icon">
+                <span class="result-die__value">${die.value}</span>
+              </span>
+            `);
           }
         });
-      } 
-      // Handle single objects or flat results
-      else if (typeof item.value === 'number') {
-        diceTotal += item.value;
-        individualValues.push(item.value);
-      }
-      // Handle total if no individual rolls found
-      else if (typeof item.total === 'number' && individualValues.length === 0) {
-        diceTotal += item.total;
-        individualValues.push(item.total);
+      } else if (typeof group.value === 'number') {
+        diceTotal += group.value;
+        const type = group.die || "d20";
+        const iconPath = `./src/assets/images/dices/${type === 'd100' ? 'd10' : type}.png`;
+        individualHTML.push(`
+          <span class="result-die">
+            <img src="${iconPath}" class="result-die__icon">
+            <span>${group.value}</span>
+          </span>
+        `);
       }
     });
 
     const finalTotal = diceTotal + bonus;
-    const diceDetails = individualValues.length > 0 ? individualValues.join(" + ") : "0";
+    const diceDetailsHTML = individualHTML.join('<span class="result-sep">+</span>');
     
-    const fullDetails = bonus !== 0 
-      ? `(${diceDetails}) ${bonus >= 0 ? "+" : "-"} ${Math.abs(bonus)}`
-      : `(${diceDetails})`;
+    const fullDetailsHTML = bonus !== 0 
+      ? `<span class="result-group">[ ${diceDetailsHTML} ]</span> <span class="result-modifier">${bonus >= 0 ? "+" : "-"} ${Math.abs(bonus)}</span>`
+      : `<span class="result-group">[ ${diceDetailsHTML} ]</span>`;
 
-    console.log(`Roll Summary: Total=${finalTotal}, Dice=${diceTotal}, Bonus=${bonus}`);
-
-    // Update overlay panel
-    this.DOM.resultTotal.textContent = `Total: ${finalTotal}`;
-    this.DOM.resultDetails.textContent = fullDetails;
+    // Update overlay panel (Toast)
+    this.DOM.resultTotal.textContent = `${finalTotal}`;
+    this.DOM.resultDetails.innerHTML = fullDetailsHTML;
     this.DOM.resultPanel.classList.add("visible");
 
     // Update header display
     if (this.DOM.lastRollDisplay) {
       this.DOM.lastRollDisplay.classList.remove("hidden");
       this.DOM.lastRollValue.textContent = finalTotal;
-      this.DOM.lastRollDetails.textContent = fullDetails;
+      this.DOM.lastRollDetails.innerHTML = fullDetailsHTML;
+    }
+
+    // Save to Database
+    try {
+      const fullNotation = notationParts.join(" + ");
+      await window.dmCopilot.db.diceRolls.save({
+        notation: fullNotation,
+        total: finalTotal,
+        details: fullDetailsHTML,
+        bonus: bonus
+      });
+    } catch (err) {
+      console.error("Failed to save roll to history:", err);
+    }
+  }
+
+  // --- History Management ---
+
+  async openHistory(page = 1) {
+    this.DOM.modalHistory.classList.remove("hidden");
+    this.loadHistory(page);
+  }
+
+  closeHistory() {
+    this.DOM.modalHistory.classList.add("hidden");
+  }
+
+  async loadHistory(page = 1) {
+    const limit = 10;
+    const offset = (page - 1) * limit;
+    
+    try {
+      const { rolls, total } = await window.dmCopilot.db.diceRolls.getAll({ limit, offset });
+      
+      if (rolls.length === 0) {
+        this.DOM.historyList.innerHTML = '<p class="text-center text-muted p-4">Nenhuma rolagem encontrada.</p>';
+        this.DOM.historyPagination.innerHTML = '';
+        return;
+      }
+
+      this.DOM.historyList.innerHTML = rolls.map(roll => `
+        <div class="dice-history-item">
+          <div class="history-item__total">${roll.total}</div>
+          <div class="history-item__content">
+            <div class="history-item__meta">
+              <span class="history-item__notation">${roll.notation}</span>
+              <span class="history-item__date">${new Date(roll.created_at).toLocaleString()}</span>
+            </div>
+            <div class="history-item__details">${roll.details}</div>
+          </div>
+        </div>
+      `).join('');
+
+      // Pagination
+      const totalPages = Math.ceil(total / limit);
+      this.renderPagination(page, totalPages);
+
+    } catch (err) {
+      console.error("Failed to load history:", err);
+      this.DOM.historyList.innerHTML = '<p class="text-center text-danger p-4">Erro ao carregar histórico.</p>';
+    }
+  }
+
+  renderPagination(currentPage, totalPages) {
+    if (totalPages <= 1) {
+      this.DOM.historyPagination.innerHTML = '';
+      return;
+    }
+
+    let html = `
+      <button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="window.diceView.loadHistory(${currentPage - 1})">Anterior</button>
+      <span class="pagination-info">Página ${currentPage} de ${totalPages}</span>
+      <button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.diceView.loadHistory(${currentPage + 1})">Próxima</button>
+    `;
+    
+    this.DOM.historyPagination.innerHTML = html;
+  }
+
+  async clearHistory() {
+    if (confirm("Tem certeza que deseja apagar todo o histórico de rolagens?")) {
+      await window.dmCopilot.db.diceRolls.clear();
+      this.loadHistory(1);
     }
   }
 
@@ -209,9 +372,13 @@ export default class DiceView {
 
   hideOverlay() {
     this.DOM.overlay.classList.remove("visible");
-    this.DOM.resultPanel.classList.remove("visible");
+    this.hideToast();
+  }
+
+  hideToast() {
+    this.DOM.resultPanel?.classList.remove("visible");
     
-    // Clear dice from canvas if possible
+    // Clear dice from screen when toast hides
     if (this.diceBox) {
       this.diceBox.clear();
     }

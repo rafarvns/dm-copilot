@@ -56,6 +56,13 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       update: (id, data) => ipcRenderer.invoke("db-notes-update", id, data),
       delete: (id) => ipcRenderer.invoke("db-notes-delete", id),
     },
+
+    // Dice Rolls
+    diceRolls: {
+      save: (data) => ipcRenderer.invoke("db-dice-rolls-save", data),
+      getAll: (options) => ipcRenderer.invoke("db-dice-rolls-read-all", options),
+      clear: () => ipcRenderer.invoke("db-dice-rolls-clear"),
+    },
     
     // Backup
     backup: (path) => ipcRenderer.invoke("db-backup", path),
