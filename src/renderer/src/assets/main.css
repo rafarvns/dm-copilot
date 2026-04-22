@@ -2810,16 +2810,19 @@ select:focus {
 
 .combat-arena__banners {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-4);
   min-height: 350px;
   width: 100%;
+  padding: var(--space-4);
+  overflow-y: auto;
 }
 
 .combat-banner {
-  width: 160px;
-  height: 280px;
+  flex: 0 0 160px;
+  height: 300px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -2830,6 +2833,38 @@ select:focus {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.combat-banner__remove {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  color: white;
+  border: 2px solid var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.combat-banner:hover .combat-banner__remove {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.combat-banner__remove:hover {
+  background: #ff4d4d;
+  transform: scale(1.1) !important;
 }
 
 .combat-banner--active {
@@ -2886,6 +2921,31 @@ select:focus {
   text-align: center;
   margin-bottom: var(--space-2);
   word-break: break-word;
+}
+
+.combat-banner__actions {
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+.damage-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.damage-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: rgba(124, 58, 237, 0.1);
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.2);
 }
 
 .combat-banner__initiative {

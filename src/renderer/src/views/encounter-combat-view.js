@@ -147,6 +147,7 @@ export default class EncounterCombatView {
       
       cards.forEach(card => {
         const imgEl = card.querySelector(".participant-card__img");
+        
         participants.push({
           id: card.dataset.id,
           name: card.querySelector(".participant-card__name").textContent.trim(),
@@ -258,6 +259,7 @@ export default class EncounterCombatView {
       
       return `
         <div class="combat-banner ${isActive ? 'combat-banner--active' : ''} ${hasActed ? 'combat-banner--acted' : ''}" data-id="${p.id}">
+          <button class="combat-banner__remove" data-id="${p.id}" title="Remover da luta">×</button>
           <div class="combat-banner__affinity combat-banner__affinity--${p.affinity}"></div>
           ${p.image ? `
             <div class="combat-banner__image-container">
@@ -265,12 +267,92 @@ export default class EncounterCombatView {
             </div>
           ` : ''}
           <div class="combat-banner__name">${p.name}</div>
+          <div class="combat-banner__actions">
+            <input type="text" class="damage-input" placeholder="Dano" data-id="${p.id}" />
+          </div>
           <div class="combat-banner__initiative">${p.initiative}</div>
         </div>
       `;
     }).join('');
 
-    // Ensure the active banner is centered or visible (optional refinement)
+    // Bind damage inputs
+    this.DOM.banners.querySelectorAll('.damage-input').forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const rawValue = input.value.trim();
+          if (!rawValue) return;
+
+          let type = 'damage';
+          let amount = 0;
+
+          if (rawValue.startsWith('+')) {
+            type = 'heal';
+            amount = parseInt(rawValue.substring(1));
+          } else if (rawValue.startsWith('-')) {
+            type = 'damage';
+            amount = parseInt(rawValue.substring(1));
+          } else {
+            type = 'damage';
+            amount = parseInt(rawValue);
+          }
+
+          if (!isNaN(amount)) {
+            this.triggerDamageEffect(input.dataset.id, amount, type);
+            input.value = '';
+          }
+        }
+      });
+    });
+
+    // Bind remove buttons
+    this.DOM.banners.querySelectorAll('.combat-banner__remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.removeParticipantFromCombat(btn.dataset.id);
+      });
+    });
+  }
+
+  removeParticipantFromCombat(id) {
+    const index = this.participants.findIndex(p => p.id === id);
+    if (index === -1) return;
+
+    if (!confirm(`Remover ${this.participants[index].name} desta luta?`)) return;
+
+    // Adjust currentTurnIndex if necessary
+    if (index < this.currentTurnIndex) {
+      // Removing someone before current turn, shift index back
+      this.currentTurnIndex--;
+    } else if (index === this.currentTurnIndex) {
+      // Removing current turn person
+      if (this.currentTurnIndex >= this.participants.length - 1) {
+        // They were the last ones, go to start
+        this.currentTurnIndex = 0;
+      }
+      // If we are at the end, maybe we need to handle round change? 
+      // For now, let's just keep the index and the next person in list will be active.
+    }
+
+    this.participants.splice(index, 1);
+
+    if (this.participants.length === 0) {
+      this.endCombat();
+      return;
+    }
+
+    this.renderBanners();
+    this.broadcastState();
+    this.updateDB();
+  }
+
+  triggerDamageEffect(id, amount, type) {
+    console.log(`Disparando efeito de ${type} (${amount}) para: ${id}`);
+    // Broadcast action for animation only
+    window.dmCopilot.combat.broadcast('combat-action', {
+      type: type,
+      targetId: id,
+      amount: amount
+    });
   }
 
   nextTurn() {
