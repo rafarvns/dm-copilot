@@ -606,14 +606,6 @@
               </div>
             </div>
             
-            <div class="overlay-view__actions-group">
-              <button class="btn btn--primary btn--sm" id="btn-add-participant-main">
-                <span class="btn__icon">➕</span> Adicionar Participante
-              </button>
-              <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
-                <span class="btn__icon">✏️</span> Editar Encontro
-              </button>
-            </div>
           </div>
       </div>
 
@@ -626,8 +618,14 @@
             <button class="btn btn--danger hidden" id="btn-end-combat">
               <span class="btn__icon">🏳️</span> Finalizar Encontro
             </button>
-            <div id="combat-server-link" class="combat-server-link hidden">
-              Link para Jogadores: <span id="player-link-text"></span>
+            <button class="btn btn--secondary btn--sm" id="btn-add-participant-main">
+              <span class="btn__icon">➕</span> Add
+            </button>
+            <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
+              <span class="btn__icon">✏️</span> Editar
+            </button>
+            <div id="combat-server-link" class="combat-server-link hidden" title="Clique para copiar">
+              Link: <span id="player-link-text" class="player-link-copyable"></span>
             </div>
           </div>
           <div class="combat-controls__round hidden" id="combat-round-display">
@@ -649,28 +647,30 @@
           </div>
         </div>
 
-        <!-- Allies Section (Green) -->
-        <div class="encounter-section encounter-section--allies hidden" id="section-allies">
-          <div class="encounter-section__header">
-            <h3 class="encounter-section__title">Aliados</h3>
+        <div class="encounter-columns">
+          <!-- Allies Section (Green) -->
+          <div class="encounter-section encounter-section--allies hidden" id="section-allies">
+            <div class="encounter-section__header">
+              <h3 class="encounter-section__title">Aliados</h3>
+            </div>
+            <div class="encounter-section__list" id="list-allies" data-affinity="ally"></div>
           </div>
-          <div class="encounter-section__list" id="list-allies" data-affinity="ally"></div>
-        </div>
 
-        <!-- Neutrals Section (Yellow) -->
-        <div class="encounter-section encounter-section--neutrals hidden" id="section-neutrals">
-          <div class="encounter-section__header">
-            <h3 class="encounter-section__title">Neutros</h3>
+          <!-- Neutrals Section (Yellow) -->
+          <div class="encounter-section encounter-section--neutrals hidden" id="section-neutrals">
+            <div class="encounter-section__header">
+              <h3 class="encounter-section__title">Neutros</h3>
+            </div>
+            <div class="encounter-section__list" id="list-neutrals" data-affinity="neutral"></div>
           </div>
-          <div class="encounter-section__list" id="list-neutrals" data-affinity="neutral"></div>
-        </div>
 
-        <!-- Enemies Section (Red) -->
-        <div class="encounter-section encounter-section--enemies hidden" id="section-enemies">
-          <div class="encounter-section__header">
-            <h3 class="encounter-section__title">Inimigos</h3>
+          <!-- Enemies Section (Red) -->
+          <div class="encounter-section encounter-section--enemies hidden" id="section-enemies">
+            <div class="encounter-section__header">
+              <h3 class="encounter-section__title">Inimigos</h3>
+            </div>
+            <div class="encounter-section__list" id="list-enemies" data-affinity="enemy"></div>
           </div>
-          <div class="encounter-section__list" id="list-enemies" data-affinity="enemy"></div>
         </div>
       </div>
     </div>
@@ -780,6 +780,7 @@
           </div>
         </div>
         <div class="modal__footer">
+          <button class="btn btn--secondary" id="btn-roll-initiative">Rolar (d20)</button>
           <button class="btn btn--primary" id="btn-confirm-initiative">Confirmar</button>
         </div>
       </div>

@@ -1776,6 +1776,13 @@ select:focus {
 /* --- Encounter Manager Layout --- */
 .encounter-manager {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  flex: 1;
+}
+
+.encounter-columns {
+  display: flex;
   gap: var(--space-6);
   flex: 1;
 }
@@ -2690,7 +2697,8 @@ select:focus {
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
-  .encounter-manager {
+  .encounter-manager,
+  .encounter-columns {
     flex-direction: column;
   }
 }
@@ -2767,6 +2775,20 @@ select:focus {
   color: var(--color-primary-light);
   font-weight: 700;
   text-decoration: underline;
+}
+
+.player-link-copyable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.player-link-copyable:hover {
+  color: var(--color-text) !important;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.combat-server-link:active {
+  transform: scale(0.98);
 }
 
 .combat-controls__round {

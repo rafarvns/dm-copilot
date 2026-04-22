@@ -36,6 +36,7 @@ export default class EncounterCombatView {
       initPrompt: document.getElementById("initiative-prompt-text"),
       initInput: document.getElementById("input-initiative-value"),
       btnConfirmInit: document.getElementById("btn-confirm-initiative"),
+      btnRollInit: document.getElementById("btn-roll-initiative"),
       btnCloseInit: document.getElementById("btn-close-initiative-modal"),
       
       // Sections
@@ -64,6 +65,16 @@ export default class EncounterCombatView {
         }
       });
     }
+
+    // Click to copy link
+    this.DOM.linkText?.addEventListener("click", () => {
+      const text = this.DOM.linkText.textContent;
+      if (text) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast("Link copiado para o clipboard!");
+        });
+      }
+    });
   }
 
   async startCombat() {
@@ -181,20 +192,63 @@ export default class EncounterCombatView {
         resolve(10); // Default fallback
       };
       
+      const onRoll = () => {
+        const roll = Math.floor(Math.random() * 20) + 1;
+        this.DOM.initInput.value = roll;
+        onConfirm(); // Auto-confirm after roll
+      };
+      
       const cleanup = () => {
         this.DOM.btnConfirmInit.removeEventListener("click", onConfirm);
+        this.DOM.btnRollInit.removeEventListener("click", onRoll);
         this.DOM.btnCloseInit.removeEventListener("click", onCancel);
         this.DOM.initModal.classList.add("hidden");
         this.cancelInitiative = null;
       };
       
       this.DOM.btnConfirmInit.addEventListener("click", onConfirm);
+      this.DOM.btnRollInit.addEventListener("click", onRoll);
       this.DOM.btnCloseInit.addEventListener("click", onCancel);
       this.cancelInitiative = onCancel;
       
       this.DOM.initInput.focus();
       this.DOM.initInput.select();
     });
+  }
+
+  async handleNewParticipant(participant) {
+    if (!this.isActive) return;
+
+    // Prompt for initiative
+    const initiative = await this.requestInitiative(participant.name);
+    
+    // Transform to combat participant format
+    const combatParticipant = {
+      id: participant.tempId || participant.id,
+      name: participant.name,
+      image: participant.image,
+      affinity: participant.affinity,
+      initiative: initiative,
+      has_acted: 0
+    };
+
+    // Add to list
+    const currentActiveId = this.participants[this.currentTurnIndex]?.id;
+    this.participants.push(combatParticipant);
+    
+    // Re-sort
+    this.participants.sort((a, b) => b.initiative - a.initiative);
+    
+    // Find new currentTurnIndex for the same character to maintain focus
+    if (currentActiveId) {
+      this.currentTurnIndex = this.participants.findIndex(p => p.id === currentActiveId);
+    }
+
+    this.renderBanners();
+    this.broadcastState();
+    this.updateDB();
+    
+    showToast(`${combatParticipant.name} entrou na luta!`);
   }
 
   renderBanners() {

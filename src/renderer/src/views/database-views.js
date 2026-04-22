@@ -1204,7 +1204,6 @@ class EncountersView {
         current_hp: original.current_hp !== undefined ? original.current_hp : original.hp
       };
       
-      // Calculate next number for this base name
       const count = this.participants.filter(p => p.name.replace(/\s\(\d+\)$/, '') === baseName).length;
       copy.name = `${baseName} (${count + 1})`;
       
@@ -1213,6 +1212,8 @@ class EncountersView {
       this.participants[index].affinity = btn.dataset.target;
     }
 
+    // Force update of originalIndex for next render
+    this.organizeParticipants();
     await this.saveParticipants();
   }
 
@@ -1309,16 +1310,39 @@ class EncountersView {
   }
 
   async saveParticipants(reRender = true) {
+    if (!this.currentEncounter) return;
+
     try {
-      await databaseService.updateEncounter(this.currentEncounter.id, {
-        ...this.currentEncounter,
-        monsters: this.participants
-      });
+      // Sync local encounter object
+      this.currentEncounter.monsters = [...this.participants];
+
+      // Prepare data for DB
+      const updateData = {
+        name: this.currentEncounter.name,
+        description: this.currentEncounter.description,
+        difficulty: this.currentEncounter.difficulty,
+        location: this.currentEncounter.location,
+        monsters: this.participants,
+        status: this.currentEncounter.status || 'inactive'
+      };
+
+      await databaseService.updateEncounter(this.currentEncounter.id, updateData);
+      
+      if (this.combatView && this.combatView.isActive) {
+        this.combatView.participants = this.participants.map(p => ({
+          ...p,
+          id: p.tempId,
+          image: p.image
+        }));
+        this.combatView.broadcastState();
+      }
+
       if (reRender) {
         this.organizeParticipants();
         this.renderParticipants();
       }
     } catch (error) {
+      console.error("Save participants failed:", error);
       showToast("Erro ao salvar alterações", "error");
     }
   }
@@ -1494,12 +1518,22 @@ class EncountersView {
     if (participant.current_hp === undefined) {
       participant.current_hp = participant.hp;
     }
+    
+    // Add to local list
     this.participants.push(participant);
+    
+    // Save to DB
     await this.saveParticipants();
-    showToast(`${participant.name} adicionado ao encontro!`);
     
     // Refresh selection lists to update counts/highlights
     this.refreshSelectionLists();
+
+    // If combat is active, notify combat view to handle initiative and sorting
+    if (this.combatView && this.combatView.isActive) {
+      await this.combatView.handleNewParticipant(participant);
+    } else {
+      showToast(`${participant.name} adicionado ao encontro!`);
+    }
   }
 
   refreshSelectionLists() {
