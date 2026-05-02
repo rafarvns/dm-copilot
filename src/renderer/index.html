@@ -12,531 +12,21 @@
   </head>
   <body>
     <div id="app">
-      <!-- Main Content Area -->
       <div class="app-content">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-          <div class="sidebar__header">
-            <div class="sidebar__logo">
-              <div class="sidebar__logo-icon">⚔️</div>
-              <span class="sidebar__logo-text">DM Copilot</span>
-            </div>
-          </div>
+        <!-- Sidebar — conteúdo injetado por shared/sidebar/sidebar.js -->
+        <aside class="sidebar" id="app-sidebar"></aside>
 
-          <nav class="sidebar__nav">
-            <div class="sidebar__section">
-              <div class="sidebar__section-title">Geral</div>
-              <a class="sidebar__link sidebar__link--active" data-view="dashboard" href="#">
-                <span class="sidebar__link-icon">🏠</span>
-                <span class="sidebar__link-text">Início</span>
-              </a>
-              <a class="sidebar__link" data-view="campaigns" href="#">
-                <span class="sidebar__link-icon">📜</span>
-                <span class="sidebar__link-text">Campanhas</span>
-              </a>
-              <a class="sidebar__link" data-view="characters" href="#">
-                <span class="sidebar__link-icon">🧙</span>
-                <span class="sidebar__link-text">Personagens</span>
-              </a>
-            </div>
-
-            <div class="sidebar__section">
-              <div class="sidebar__section-title">Ferramentas</div>
-              <a class="sidebar__link" data-view="dice" href="#">
-                <span class="sidebar__link-icon">🎲</span>
-                <span class="sidebar__link-text">Dados</span>
-              </a>
-              <a class="sidebar__link" data-view="notes" href="#">
-                <span class="sidebar__link-icon">📝</span>
-                <span class="sidebar__link-text">Notas</span>
-              </a>
-            </div>
-
-            <div class="sidebar__section">
-              <div class="sidebar__section-title">Sistema</div>
-              <a class="sidebar__link" data-view="settings" href="#">
-                <span class="sidebar__link-icon">⚙️</span>
-                <span class="sidebar__link-text">Configurações</span>
-              </a>
-            </div>
-          </nav>
-        </aside>
-
-        <!-- Main View -->
-        <main class="main-view">
-          <!-- Welcome / Dashboard View -->
-          <div class="welcome animate-fade-in" id="view-dashboard">
-            <div class="welcome__emblem">⚔️</div>
-            <h1 class="welcome__title">DM Copilot</h1>
-            <p class="welcome__subtitle">
-              Seu assistente para criar e gerenciar campanhas de RPG de mesa.
-            </p>
-
-            <div class="welcome__actions">
-              <button class="btn btn--primary btn--lg" data-action="new-campaign">
-                <span class="btn__icon">📜</span> Nova Campanha
-              </button>
-              <button class="btn btn--secondary btn--lg" data-action="new-character">
-                <span class="btn__icon">🧙</span> Novo Personagem
-              </button>
-            </div>
-
-            <div class="features-grid">
-              <div class="card feature-card" data-action="open-campaigns">
-                <div class="feature-card__icon">🗺️</div>
-                <div class="card__title">Campanhas</div>
-                <div class="card__description">
-                  Crie e gerencie mundos, arcos narrativos e sessões de jogo.
-                </div>
-              </div>
-
-              <div class="card feature-card" data-action="open-characters">
-                <div class="feature-card__icon">🧙</div>
-                <div class="card__title">Personagens</div>
-                <div class="card__description">
-                  Fichas de NPCs, monstros e jogadores com detalhes completos.
-                </div>
-                <span class="feature-card__tag">Em breve</span>
-              </div>
-
-              <div class="card feature-card" data-action="open-encounters">
-                <div class="feature-card__icon">⚔️</div>
-                <div class="card__title">Encontros</div>
-                <div class="card__description">
-                  Monte encontros combativos com iniciativa e controle de HP.
-                </div>
-                <span class="feature-card__tag">Em breve</span>
-              </div>
-
-              <div class="card feature-card" data-action="open-dice">
-                <div class="feature-card__icon">🎲</div>
-                <div class="card__title">Dados</div>
-                <div class="card__description">
-                  Role dados de qualquer tipo com modificadores e histórico.
-                </div>
-                <span class="feature-card__tag">Em breve</span>
-              </div>
-
-              <div class="card feature-card" data-action="open-notes">
-                <div class="feature-card__icon">📝</div>
-                <div class="card__title">Notas</div>
-                <div class="card__description">
-                  Anote ideias, descrições de locais, lore e muito mais.
-                </div>
-                <span class="feature-card__tag">Em breve</span>
-              </div>
-
-              <div class="card feature-card" data-action="open-settings">
-                <div class="feature-card__icon">⚙️</div>
-                <div class="card__title">Configurações</div>
-                <div class="card__description">Personalize o DM Copilot do seu jeito.</div>
-                <span class="feature-card__tag">Em breve</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Campaigns View -->
-          <div class="view hidden" id="view-campaigns">
-            <!-- Campaigns List -->
-            <div id="campaigns-list-view" class="campaigns-view">
-              <div class="campaigns-header">
-                <div class="campaigns-header__title">
-                  <span class="campaigns-header__icon">📜</span>
-                  <h1 class="campaigns-header__text">Campanhas</h1>
-                  <span id="campaigns-count" class="badge badge--muted">0 campanhas</span>
-                </div>
-                <button class="btn btn--primary" id="btn-new-campaign">
-                  <span class="btn__icon">+</span> Nova Campanha
-                </button>
-              </div>
-
-              <div class="campaigns-toolbar">
-                <div class="campaigns-search">
-                  <span class="campaigns-search__icon">🔍</span>
-                  <input type="text" id="campaign-search" class="campaigns-search__input" placeholder="Buscar campanhas pelo nome..." />
-                </div>
-                <select id="campaign-filter-system" class="campaigns-filter">
-                  <option value="">Todos os sistemas</option>
-                  <option value="D&D 5e">D&D 5e</option>
-                  <option value="Pathfinder">Pathfinder</option>
-                  <option value="Tormenta">Tormenta</option>
-                  <option value="GURPS">GURPS</option>
-                  <option value="Vampiro">Vampiro: A Máscara</option>
-                  <option value="Outro">Outro</option>
-                </select>
-              </div>
-
-              <div id="campaigns-list" class="campaigns-grid"></div>
-
-              <div id="campaigns-empty" class="empty-state hidden">
-                <div class="empty-state__icon">📜</div>
-                <h2 class="empty-state__title">Nenhuma campanha encontrada</h2>
-                <p class="empty-state__text">Crie sua primeira campanha para começar a organizar suas aventuras.</p>
-                <button class="btn btn--primary btn--lg" id="btn-empty-new">
-                  <span class="btn__icon">+</span> Criar Primeira Campanha
-                </button>
-              </div>
-            </div>
-
-            <!-- Campaign Detail -->
-            <div id="campaign-detail" class="campaign-detail hidden">
-              <button class="btn btn--ghost" id="btn-back-to-list">
-                <span class="btn__icon">←</span> Voltar para Campanhas
-              </button>
-              <div class="campaign-detail__header">
-                <h1 id="detail-name" class="campaign-detail__name"></h1>
-                <span id="detail-system" class="badge"></span>
-              </div>
-              <p id="detail-description" class="campaign-detail__desc"></p>
-              <div class="campaign-detail__meta">
-                <span id="detail-created" class="campaign-detail__meta-item">
-                  <span class="campaign-detail__meta-icon">📅</span> Criada em: —
-                </span>
-                <span id="detail-updated" class="campaign-detail__meta-item">
-                  <span class="campaign-detail__meta-icon">🔄</span> Atualizada em: —
-                </span>
-              </div>
-              <div class="campaign-detail__actions">
-                <button class="btn btn--primary" id="btn-edit-campaign">
-                  <span class="btn__icon">✏️</span> Editar
-                </button>
-                <button class="btn btn--danger" id="btn-delete-campaign">
-                  <span class="btn__icon">🗑️</span> Excluir
-                </button>
-              </div>
-              <div class="campaign-detail__sections">
-                <div class="section-header">
-                  <h2 class="section-title">Personagens da Campanha</h2>
-                  <div class="section-actions">
-                    <span id="detail-char-count" class="badge badge--muted">0</span>
-                    <button class="btn btn--secondary btn--sm" id="btn-add-char-to-campaign">
-                      <span class="btn__icon">+</span> Adicionar
-                    </button>
-                  </div>
-                </div>
-                <div id="detail-characters-list" class="characters-grid mt-4">
-                  <!-- Characters will be listed here -->
-                </div>
-                <div id="detail-characters-empty" class="text-center py-6 mt-4">
-                  <p class="text-muted">Nenhum personagem vinculado a esta campanha.</p>
-                </div>
-
-                <div class="section-header mt-8">
-                  <h2 class="section-title">Encontros</h2>
-                  <div class="section-actions">
-                    <span id="detail-encounter-count" class="badge badge--muted">0</span>
-                    <button class="btn btn--secondary btn--sm" id="btn-add-encounter">
-                      <span class="btn__icon">+</span> Novo Encontro
-                    </button>
-                  </div>
-                </div>
-                <div id="detail-encounters-list" class="encounters-grid mt-4">
-                  <!-- Encounters will be listed here -->
-                </div>
-                <div id="detail-encounters-empty" class="text-center py-6 mt-4">
-                  <p class="text-muted">Nenhum encontro criado para esta campanha.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Characters View -->
-          <div class="view hidden" id="view-characters">
-            <div id="characters-list-view" class="campaigns-view">
-              <div class="campaigns-header">
-                <div class="campaigns-header__title">
-                  <span class="campaigns-header__icon">🧙</span>
-                  <h1 class="campaigns-header__text">Personagens</h1>
-                  <span id="characters-count" class="badge badge--muted">0 personagens</span>
-                </div>
-                <button class="btn btn--primary" id="btn-new-character">
-                  <span class="btn__icon">+</span> Novo Personagem
-                </button>
-              </div>
-
-              <div class="campaigns-toolbar">
-                <div class="campaigns-search">
-                  <span class="campaigns-search__icon">🔍</span>
-                  <input type="text" id="character-search" class="campaigns-search__input" placeholder="Buscar personagens pelo nome..." />
-                </div>
-                <select id="character-filter-system" class="campaigns-filter">
-                  <option value="">Todos os sistemas</option>
-                  <option value="D&D 5e">D&D 5e</option>
-                  <option value="Pathfinder">Pathfinder</option>
-                  <option value="Tormenta">Tormenta</option>
-                  <option value="GURPS">GURPS</option>
-                  <option value="Vampiro">Vampiro: A Máscara</option>
-                  <option value="Outro">Outro</option>
-                </select>
-              </div>
-
-              <div id="characters-list" class="campaigns-grid"></div>
-
-              <div id="characters-empty" class="empty-state hidden">
-                <div class="empty-state__icon">🧙</div>
-                <h2 class="empty-state__title">Nenhum personagem encontrado</h2>
-                <p class="empty-state__text">Crie seu primeiro personagem para começar a gerenciar sua biblioteca.</p>
-                <button class="btn btn--primary btn--lg" id="btn-char-empty-new">
-                  <span class="btn__icon">+</span> Criar Primeiro Personagem
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="welcome hidden" id="view-encounters">
-            <div class="welcome__emblem">⚔️</div>
-            <h1 class="welcome__title">Encontros</h1>
-            <p class="welcome__subtitle">Monte e execute encontros combativos épicos.</p>
-            <p class="text-muted mt-4">Funcionalidade em desenvolvimento...</p>
-          </div>
-
-          <div class="welcome hidden" id="view-dice">
-            <div class="welcome__emblem">🎲</div>
-            <h1 class="welcome__title">Rolagem de Dados</h1>
-            <p class="welcome__subtitle">Role dados de qualquer tipo com modificadores.</p>
-            <p class="text-muted mt-4">Funcionalidade em desenvolvimento...</p>
-          </div>
-
-          <div class="welcome hidden" id="view-notes">
-            <div class="welcome__emblem">📝</div>
-            <h1 class="welcome__title">Notas</h1>
-            <p class="welcome__subtitle">Organize suas anotações, ideias e lore do mundo.</p>
-            <p class="text-muted mt-4">Funcionalidade em desenvolvimento...</p>
-          </div>
-
-          <div class="welcome hidden" id="view-settings">
-            <div class="welcome__emblem">⚙️</div>
-            <h1 class="welcome__title">Configurações</h1>
-            <p class="welcome__subtitle">Personalize o DM Copilot.</p>
-            <p class="text-muted mt-4">Funcionalidade em desenvolvimento...</p>
-          </div>
-        </main>
+        <!-- View outlet — conteúdo gerenciado pelo router (core/router.js) -->
+        <main class="main-view" id="view-outlet"></main>
       </div>
 
-      <!-- Status Bar -->
-      <div class="statusbar">
-        <div class="statusbar__item">
-          <span class="statusbar__dot"></span>
-          <span>Pronto</span>
-        </div>
-        <div class="statusbar__item">
-          <span id="version-info">v0.1.0</span>
-        </div>
-      </div>
+      <!-- Status bar — conteúdo injetado por shared/status-bar/status-bar.js -->
+      <div class="statusbar" id="app-statusbar"></div>
     </div>
 
-    <!-- Campaign Form Modal -->
-    <div id="campaign-modal" class="modal hidden">
-      <div class="modal__overlay" id="campaign-modal-overlay"></div>
-      <div class="modal__content">
-        <div class="modal__header">
-          <h2 id="modal-title" class="modal__title">Nova Campanha</h2>
-          <button class="modal__close" id="btn-close-modal">&times;</button>
-        </div>
-        <form id="campaign-form" class="campaign-form" novalidate>
-          <input type="hidden" id="campaign-id" />
+    <!-- Overlays globais (sempre no DOM, independentes do router) -->
 
-          <div class="form-group">
-            <label for="campaign-name" class="form-label">Nome da Campanha <span class="form-required">*</span></label>
-            <input type="text" id="campaign-name" class="form-input" required placeholder="Ex: A Mina do Rei Anão" autocomplete="off" />
-            <span class="form-error" id="error-name"></span>
-          </div>
-
-          <div class="form-group">
-            <label for="campaign-system" class="form-label">Sistema de RPG</label>
-            <select id="campaign-system" class="form-select">
-              <option value="">Selecione um sistema...</option>
-              <option value="D&D 5e">D&D 5e</option>
-              <option value="Pathfinder">Pathfinder</option>
-              <option value="Tormenta">Tormenta</option>
-              <option value="GURPS">GURPS</option>
-              <option value="Vampiro">Vampiro: A Máscara</option>
-              <option value="Outro">Outro</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="campaign-description" class="form-label">Descrição</label>
-            <textarea id="campaign-description" class="form-textarea" rows="4" placeholder="Descreva a premissa, cenário e o tom da campanha..."></textarea>
-          </div>
-
-          <div class="modal__footer">
-            <button type="button" class="btn btn--secondary" id="btn-cancel-form">Cancelar</button>
-            <button type="submit" class="btn btn--primary" id="btn-save-form">
-              <span class="btn__icon">💾</span> Salvar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Confirm Delete Modal -->
-    <div id="confirm-modal" class="modal hidden">
-      <div class="modal__overlay" id="confirm-modal-overlay"></div>
-      <div class="modal__content modal__content--sm">
-        <div class="modal__header">
-          <h2 class="modal__title">Confirmar Exclusão</h2>
-          <button class="modal__close" id="btn-close-confirm">&times;</button>
-        </div>
-        <p id="confirm-message" class="confirm-message">
-          Tem certeza que deseja excluir esta campanha? Todos os personagens, encontros e notas vinculados também serão excluídos. Esta ação não pode ser desfeita.
-        </p>
-        <div class="modal__footer">
-          <button class="btn btn--secondary" id="btn-confirm-cancel">Cancelar</button>
-          <button class="btn btn--danger" id="btn-confirm-ok">
-            <span class="btn__icon">🗑️</span> Excluir
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Character Form Modal -->
-    <div id="character-modal" class="modal hidden">
-      <div class="modal__overlay" id="character-modal-overlay"></div>
-      <div class="modal__content">
-        <div class="modal__header">
-          <h2 id="char-modal-title" class="modal__title">Novo Personagem</h2>
-          <button class="modal__close" id="btn-close-char-modal">&times;</button>
-        </div>
-        <form id="character-form" class="campaign-form" novalidate>
-          <input type="hidden" id="character-id" />
-          
-          <div class="character-image-upload">
-            <div class="character-image-preview" id="char-image-preview">
-              <span class="image-placeholder" id="char-image-placeholder">👤</span>
-              <img id="char-image-display" src="" alt="" class="hidden" />
-              <div class="image-overlay">
-                <span class="overlay-icon">📷</span>
-              </div>
-            </div>
-            <input type="file" id="character-image-input" class="hidden" accept="image/*" />
-          </div>
-
-          <div class="form-group">
-            <label for="character-name" class="form-label">Nome do Personagem <span class="form-required">*</span></label>
-            <input type="text" id="character-name" class="form-input" required placeholder="Ex: Grog, o Bárbaro" autocomplete="off" />
-            <span class="form-error" id="error-char-name"></span>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="character-system" class="form-label">Sistema <span class="form-required">*</span></label>
-              <select id="character-system" class="form-select" required>
-                <option value="">Selecione...</option>
-                <option value="D&D 5e">D&D 5e</option>
-                <option value="Pathfinder">Pathfinder</option>
-                <option value="Tormenta">Tormenta</option>
-                <option value="GURPS">GURPS</option>
-                <option value="Vampiro">Vampiro: A Máscara</option>
-                <option value="Outro">Outro</option>
-              </select>
-              <span class="form-error" id="error-char-system"></span>
-            </div>
-
-            <div class="form-group">
-              <label for="character-hp" class="form-label">HP</label>
-              <input type="number" id="character-hp" class="form-input" placeholder="0" />
-            </div>
-
-            <div class="form-group">
-              <label for="character-ac" class="form-label">AC</label>
-              <input type="number" id="character-ac" class="form-input" placeholder="10" />
-            </div>
-
-            <div class="form-group">
-              <label for="character-ini" class="form-label">Ini</label>
-              <input type="number" id="character-ini" class="form-input" placeholder="0" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="character-description" class="form-label">Descrição / Bio</label>
-            <textarea id="character-description" class="form-textarea" rows="4" placeholder="Descreva o personagem, personalidade, equipamentos..."></textarea>
-          </div>
-
-          <div class="modal__footer">
-            <button type="button" class="btn btn--secondary" id="btn-cancel-char-form">Cancelar</button>
-            <button type="submit" class="btn btn--primary" id="btn-save-char-form">
-              <span class="btn__icon">💾</span> Salvar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Link Character Modal -->
-    <div id="link-character-modal" class="modal hidden">
-      <div class="modal__overlay" id="link-char-modal-overlay"></div>
-      <div class="modal__content">
-        <div class="modal__header">
-          <h2 class="modal__title">Adicionar Personagem à Campanha</h2>
-          <button class="modal__close" id="btn-close-link-char-modal">&times;</button>
-        </div>
-        <div class="link-char-list-container">
-          <p class="mb-3">Selecione personagens do sistema <strong id="link-char-system-name">...</strong> para adicionar:</p>
-          <div id="available-chars-list" class="available-chars-list">
-            <!-- Available characters will be listed here -->
-          </div>
-          <div id="available-chars-empty" class="text-center py-4 hidden">
-            <p class="text-muted">Nenhum personagem disponível para este sistema.</p>
-          </div>
-        </div>
-        <div class="modal__footer mt-4">
-          <button class="btn btn--secondary" id="btn-close-link-char">Fechar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Encounter Form Modal -->
-    <div id="encounter-modal" class="modal hidden">
-      <div class="modal__overlay" id="encounter-modal-overlay"></div>
-      <div class="modal__content">
-        <div class="modal__header">
-          <h2 class="modal__title" id="encounter-modal-title">Novo Encontro</h2>
-          <button class="modal__close" id="btn-close-encounter-modal">&times;</button>
-        </div>
-        <form id="encounter-form">
-          <input type="hidden" id="encounter-id" />
-          
-          <div class="form-group">
-            <label for="encounter-name" class="form-label">Nome do Encontro <span class="form-required">*</span></label>
-            <input type="text" id="encounter-name" class="form-input" required placeholder="Ex: Emboscada na Floresta" autocomplete="off" />
-            <span class="form-error" id="error-encounter-name"></span>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="encounter-difficulty" class="form-label">Dificuldade</label>
-              <select id="encounter-difficulty" class="form-select">
-                <option value="Fácil">Fácil</option>
-                <option value="Médio" selected>Médio</option>
-                <option value="Difícil">Difícil</option>
-                <option value="Mortal">Mortal</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="encounter-location" class="form-label">Local do Encontro</label>
-            <textarea id="encounter-location" class="form-textarea" rows="2" placeholder="Ex: Clareira próxima à estrada leste"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="encounter-description" class="form-label">Notas Adicionais</label>
-            <textarea id="encounter-description" class="form-textarea" rows="3" placeholder="Informações táticas, tesouros, etc."></textarea>
-          </div>
-
-          <div class="modal__footer">
-            <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">Cancelar</button>
-            <button type="submit" class="btn btn--primary" id="btn-save-encounter-form">
-              <span class="btn__icon">💾</span> Salvar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Encounter Detail View (Manager) -->
+    <!-- Encounter Detail View (Manager) — usado pela feature Campaigns -->
     <div id="encounter-detail-view" class="overlay-view hidden">
       <div class="overlay-view__header">
         <div class="overlay-view__title-group">
@@ -554,59 +44,58 @@
             </div>
           </div>
         </div>
-          <div class="overlay-view__actions">
-            <div class="dice-toolbar" id="dice-toolbar">
-              <div class="dice-buttons">
-                <button class="dice-btn" data-dice="d4" title="d4">
-                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d4.png" alt="d4"></span>
-                  <span class="dice-btn__pill">0</span>
-                </button>
-                <button class="dice-btn" data-dice="d6" title="d6">
-                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d6.png" alt="d6"></span>
-                  <span class="dice-btn__pill">0</span>
-                </button>
-                <button class="dice-btn" data-dice="d8" title="d8">
-                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d8.png" alt="d8"></span>
-                  <span class="dice-btn__pill">0</span>
-                </button>
-                <button class="dice-btn" data-dice="d10" title="d10">
-                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d10"></span>
-                  <span class="dice-btn__pill">0</span>
-                </button>
-                <button class="dice-btn" data-dice="d12" title="d12">
-                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d12.png" alt="d12"></span>
-                  <span class="dice-btn__pill">0</span>
-                </button>
-                <button class="dice-btn" data-dice="d20" title="d20">
-                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d20.png" alt="d20"></span>
-                  <span class="dice-btn__pill">0</span>
-                </button>
-                <button class="dice-btn" data-dice="d100" title="d100">
-                  <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d100"></span>
-                  <span class="dice-btn__pill">0</span>
-                </button>
-              </div>
-
-              <div class="dice-bonus">
-                <span class="dice-bonus__label">+</span>
-                <input type="number" id="dice-bonus-input" class="dice-bonus__input" value="0" placeholder="0">
-              </div>
-
-              <button class="btn btn--icon-only ml-2" id="btn-dice-history" title="Histórico de Rolagens">
-                <span class="btn__icon">⏳</span>
+        <div class="overlay-view__actions">
+          <div class="dice-toolbar" id="dice-toolbar">
+            <div class="dice-buttons">
+              <button class="dice-btn" data-dice="d4" title="d4">
+                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d4.png" alt="d4"></span>
+                <span class="dice-btn__pill">0</span>
               </button>
+              <button class="dice-btn" data-dice="d6" title="d6">
+                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d6.png" alt="d6"></span>
+                <span class="dice-btn__pill">0</span>
+              </button>
+              <button class="dice-btn" data-dice="d8" title="d8">
+                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d8.png" alt="d8"></span>
+                <span class="dice-btn__pill">0</span>
+              </button>
+              <button class="dice-btn" data-dice="d10" title="d10">
+                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d10"></span>
+                <span class="dice-btn__pill">0</span>
+              </button>
+              <button class="dice-btn" data-dice="d12" title="d12">
+                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d12.png" alt="d12"></span>
+                <span class="dice-btn__pill">0</span>
+              </button>
+              <button class="dice-btn" data-dice="d20" title="d20">
+                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d20.png" alt="d20"></span>
+                <span class="dice-btn__pill">0</span>
+              </button>
+              <button class="dice-btn" data-dice="d100" title="d100">
+                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d100"></span>
+                <span class="dice-btn__pill">0</span>
+              </button>
+            </div>
 
-              <div class="dice-roll-container">
-                <button class="btn btn--primary btn--roll" id="btn-roll-dice">
-                  <span class="btn__icon">💥</span> ROLL
-                </button>
-                <div id="dice-roll-queue" class="dice-roll-queue hidden">
-                  <span class="queue-count">0</span> em espera
-                </div>
+            <div class="dice-bonus">
+              <span class="dice-bonus__label">+</span>
+              <input type="number" id="dice-bonus-input" class="dice-bonus__input" value="0" placeholder="0">
+            </div>
+
+            <button class="btn btn--icon-only ml-2" id="btn-dice-history" title="Histórico de Rolagens">
+              <span class="btn__icon">⏳</span>
+            </button>
+
+            <div class="dice-roll-container">
+              <button class="btn btn--primary btn--roll" id="btn-roll-dice">
+                <span class="btn__icon">💥</span> ROLL
+              </button>
+              <div id="dice-roll-queue" class="dice-roll-queue hidden">
+                <span class="queue-count">0</span> em espera
               </div>
             </div>
-            
           </div>
+        </div>
       </div>
 
       <div class="encounter-manager">
@@ -634,9 +123,7 @@
         </div>
 
         <div id="combat-arena" class="combat-arena hidden">
-          <div class="combat-arena__banners" id="combat-banners">
-            <!-- Banners dynamically added here -->
-          </div>
+          <div class="combat-arena__banners" id="combat-banners"></div>
           <div class="combat-arena__actions">
             <button class="btn btn--secondary" id="btn-prev-turn">
               <span class="btn__icon">⬅️</span> Turno Anterior
@@ -648,7 +135,6 @@
         </div>
 
         <div class="encounter-columns">
-          <!-- Allies Section (Green) -->
           <div class="encounter-section encounter-section--allies hidden" id="section-allies">
             <div class="encounter-section__header">
               <h3 class="encounter-section__title">Aliados</h3>
@@ -656,7 +142,6 @@
             <div class="encounter-section__list" id="list-allies" data-affinity="ally"></div>
           </div>
 
-          <!-- Neutrals Section (Yellow) -->
           <div class="encounter-section encounter-section--neutrals hidden" id="section-neutrals">
             <div class="encounter-section__header">
               <h3 class="encounter-section__title">Neutros</h3>
@@ -664,7 +149,6 @@
             <div class="encounter-section__list" id="list-neutrals" data-affinity="neutral"></div>
           </div>
 
-          <!-- Enemies Section (Red) -->
           <div class="encounter-section encounter-section--enemies hidden" id="section-enemies">
             <div class="encounter-section__header">
               <h3 class="encounter-section__title">Inimigos</h3>
@@ -672,6 +156,198 @@
             <div class="encounter-section__list" id="list-enemies" data-affinity="enemy"></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Campaign Form Modal -->
+    <div id="campaign-modal" class="modal hidden">
+      <div class="modal__overlay" id="campaign-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 id="modal-title" class="modal__title">Nova Campanha</h2>
+          <button class="modal__close" id="btn-close-modal">&times;</button>
+        </div>
+        <form id="campaign-form" class="campaign-form" novalidate>
+          <input type="hidden" id="campaign-id" />
+          <div class="form-group">
+            <label for="campaign-name" class="form-label">Nome da Campanha <span class="form-required">*</span></label>
+            <input type="text" id="campaign-name" class="form-input" required placeholder="Ex: A Mina do Rei Anão" autocomplete="off" />
+            <span class="form-error" id="error-name"></span>
+          </div>
+          <div class="form-group">
+            <label for="campaign-system" class="form-label">Sistema de RPG</label>
+            <select id="campaign-system" class="form-select">
+              <option value="">Selecione um sistema...</option>
+              <option value="D&D 5e">D&D 5e</option>
+              <option value="Pathfinder">Pathfinder</option>
+              <option value="Tormenta">Tormenta</option>
+              <option value="GURPS">GURPS</option>
+              <option value="Vampiro">Vampiro: A Máscara</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="campaign-description" class="form-label">Descrição</label>
+            <textarea id="campaign-description" class="form-textarea" rows="4" placeholder="Descreva a premissa, cenário e o tom da campanha..."></textarea>
+          </div>
+          <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" id="btn-cancel-form">Cancelar</button>
+            <button type="submit" class="btn btn--primary" id="btn-save-form">
+              <span class="btn__icon">💾</span> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="confirm-modal" class="modal hidden">
+      <div class="modal__overlay" id="confirm-modal-overlay"></div>
+      <div class="modal__content modal__content--sm">
+        <div class="modal__header">
+          <h2 class="modal__title">Confirmar Exclusão</h2>
+          <button class="modal__close" id="btn-close-confirm">&times;</button>
+        </div>
+        <p id="confirm-message" class="confirm-message">
+          Tem certeza que deseja excluir? Esta ação não pode ser desfeita.
+        </p>
+        <div class="modal__footer">
+          <button class="btn btn--secondary" id="btn-confirm-cancel">Cancelar</button>
+          <button class="btn btn--danger" id="btn-confirm-ok">
+            <span class="btn__icon">🗑️</span> Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Character Form Modal -->
+    <div id="character-modal" class="modal hidden">
+      <div class="modal__overlay" id="character-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 id="char-modal-title" class="modal__title">Novo Personagem</h2>
+          <button class="modal__close" id="btn-close-char-modal">&times;</button>
+        </div>
+        <form id="character-form" class="campaign-form" novalidate>
+          <input type="hidden" id="character-id" />
+          <div class="character-image-upload">
+            <div class="character-image-preview" id="char-image-preview">
+              <span class="image-placeholder" id="char-image-placeholder">👤</span>
+              <img id="char-image-display" src="" alt="" class="hidden" />
+              <div class="image-overlay">
+                <span class="overlay-icon">📷</span>
+              </div>
+            </div>
+            <input type="file" id="character-image-input" class="hidden" accept="image/*" />
+          </div>
+          <div class="form-group">
+            <label for="character-name" class="form-label">Nome do Personagem <span class="form-required">*</span></label>
+            <input type="text" id="character-name" class="form-input" required placeholder="Ex: Grog, o Bárbaro" autocomplete="off" />
+            <span class="form-error" id="error-char-name"></span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="character-system" class="form-label">Sistema <span class="form-required">*</span></label>
+              <select id="character-system" class="form-select" required>
+                <option value="">Selecione...</option>
+                <option value="D&D 5e">D&D 5e</option>
+                <option value="Pathfinder">Pathfinder</option>
+                <option value="Tormenta">Tormenta</option>
+                <option value="GURPS">GURPS</option>
+                <option value="Vampiro">Vampiro: A Máscara</option>
+                <option value="Outro">Outro</option>
+              </select>
+              <span class="form-error" id="error-char-system"></span>
+            </div>
+            <div class="form-group">
+              <label for="character-hp" class="form-label">HP</label>
+              <input type="number" id="character-hp" class="form-input" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label for="character-ac" class="form-label">AC</label>
+              <input type="number" id="character-ac" class="form-input" placeholder="10" />
+            </div>
+            <div class="form-group">
+              <label for="character-ini" class="form-label">Ini</label>
+              <input type="number" id="character-ini" class="form-input" placeholder="0" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="character-description" class="form-label">Descrição / Bio</label>
+            <textarea id="character-description" class="form-textarea" rows="4" placeholder="Descreva o personagem, personalidade, equipamentos..."></textarea>
+          </div>
+          <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" id="btn-cancel-char-form">Cancelar</button>
+            <button type="submit" class="btn btn--primary" id="btn-save-char-form">
+              <span class="btn__icon">💾</span> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Link Character Modal -->
+    <div id="link-character-modal" class="modal hidden">
+      <div class="modal__overlay" id="link-char-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title">Adicionar Personagem à Campanha</h2>
+          <button class="modal__close" id="btn-close-link-char-modal">&times;</button>
+        </div>
+        <div class="link-char-list-container">
+          <p class="mb-3">Selecione personagens do sistema <strong id="link-char-system-name">...</strong> para adicionar:</p>
+          <div id="available-chars-list" class="available-chars-list"></div>
+          <div id="available-chars-empty" class="text-center py-4 hidden">
+            <p class="text-muted">Nenhum personagem disponível para este sistema.</p>
+          </div>
+        </div>
+        <div class="modal__footer mt-4">
+          <button class="btn btn--secondary" id="btn-close-link-char">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Encounter Form Modal -->
+    <div id="encounter-modal" class="modal hidden">
+      <div class="modal__overlay" id="encounter-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title" id="encounter-modal-title">Novo Encontro</h2>
+          <button class="modal__close" id="btn-close-encounter-modal">&times;</button>
+        </div>
+        <form id="encounter-form">
+          <input type="hidden" id="encounter-id" />
+          <div class="form-group">
+            <label for="encounter-name" class="form-label">Nome do Encontro <span class="form-required">*</span></label>
+            <input type="text" id="encounter-name" class="form-input" required placeholder="Ex: Emboscada na Floresta" autocomplete="off" />
+            <span class="form-error" id="error-encounter-name"></span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="encounter-difficulty" class="form-label">Dificuldade</label>
+              <select id="encounter-difficulty" class="form-select">
+                <option value="Fácil">Fácil</option>
+                <option value="Médio" selected>Médio</option>
+                <option value="Difícil">Difícil</option>
+                <option value="Mortal">Mortal</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="encounter-location" class="form-label">Local do Encontro</label>
+            <textarea id="encounter-location" class="form-textarea" rows="2" placeholder="Ex: Clareira próxima à estrada leste"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="encounter-description" class="form-label">Notas Adicionais</label>
+            <textarea id="encounter-description" class="form-textarea" rows="3" placeholder="Informações táticas, tesouros, etc."></textarea>
+          </div>
+          <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">Cancelar</button>
+            <button type="submit" class="btn btn--primary" id="btn-save-encounter-form">
+              <span class="btn__icon">💾</span> Salvar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -683,7 +359,6 @@
           <h2 class="modal__title">Adicionar Participante</h2>
           <button class="modal__close" id="btn-close-participant-modal">&times;</button>
         </div>
-        
         <div class="participant-affinity-selector mb-3 px-4 pt-3">
           <label class="form-label mb-2">Afinidade do Participante:</label>
           <div class="affinity-pills">
@@ -701,20 +376,17 @@
             </label>
           </div>
         </div>
-        
         <div class="tabs">
           <button class="tab-btn active" data-tab="tab-db-chars">Personagens</button>
           <button class="tab-btn" data-tab="tab-quick-add">Rápido</button>
           <button class="tab-btn" data-tab="tab-dnd-api">D&D API</button>
         </div>
-
         <div class="tab-content" id="tab-db-chars">
           <div class="search-box mb-3">
             <input type="text" id="db-char-search" class="form-input" placeholder="Buscar personagem..." />
           </div>
           <div id="db-participant-list" class="participant-selection-list"></div>
         </div>
-
         <div class="tab-content hidden" id="tab-quick-add">
           <form id="quick-add-form" class="mt-3">
             <div class="form-group">
@@ -738,7 +410,6 @@
             <button type="submit" class="btn btn--primary mt-3 w-100">Adicionar ao Encontro</button>
           </form>
         </div>
-
         <div class="tab-content hidden" id="tab-dnd-api">
           <div class="search-box mb-3">
             <input type="text" id="api-monster-search" class="form-input" placeholder="Buscar monstro (em inglês)..." />
@@ -746,21 +417,6 @@
           <div id="api-monster-list" class="participant-selection-list">
             <p class="text-center text-muted p-4">Digite o nome do monstro para buscar na API...</p>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Toast Container -->
-    <!-- Dice Box Canvas Container -->
-    <div id="dice-box-overlay" class="dice-overlay">
-      <div id="dice-box"></div>
-      <div id="dice-result" class="dice-result-panel">
-        <div class="dice-result-content">
-          <div class="dice-result-total-group">
-            <span class="dice-result-label">Resultado:</span>
-            <span class="dice-result-total" id="dice-result-total">0</span>
-          </div>
-          <div class="dice-result-details" id="dice-result-details"></div>
         </div>
       </div>
     </div>
@@ -796,12 +452,9 @@
         </div>
         <div class="modal__body">
           <div class="dice-history-list" id="dice-history-list">
-            <!-- Populated via JS -->
             <p class="text-center text-muted p-4">Carregando histórico...</p>
           </div>
-          <div class="dice-history-pagination" id="dice-history-pagination">
-            <!-- Pagination controls -->
-          </div>
+          <div class="dice-history-pagination" id="dice-history-pagination"></div>
         </div>
         <div class="modal__footer">
           <button class="btn btn--secondary" id="btn-clear-dice-history">Limpar Tudo</button>
@@ -810,7 +463,23 @@
       </div>
     </div>
 
+    <!-- 3D Dice canvas (global — inicializado uma vez, independente de rota) -->
+    <div id="dice-box-overlay" class="dice-overlay">
+      <div id="dice-box"></div>
+      <div id="dice-result" class="dice-result-panel">
+        <div class="dice-result-content">
+          <div class="dice-result-total-group">
+            <span class="dice-result-label">Resultado:</span>
+            <span class="dice-result-total" id="dice-result-total">0</span>
+          </div>
+          <div class="dice-result-details" id="dice-result-details"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast notifications (global) -->
     <div id="toast-container" class="toast-container"></div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

@@ -1,0 +1,39 @@
+<div id="characters-list-view" class="campaigns-view">
+  <div class="campaigns-header">
+    <div class="campaigns-header__title">
+      <span class="campaigns-header__icon">🧙</span>
+      <h1 class="campaigns-header__text">Personagens</h1>
+      <span id="characters-count" class="badge badge--muted">0 personagens</span>
+    </div>
+    <button class="btn btn--primary" id="btn-new-character">
+      <span class="btn__icon">+</span> Novo Personagem
+    </button>
+  </div>
+
+  <div class="campaigns-toolbar">
+    <div class="campaigns-search">
+      <span class="campaigns-search__icon">🔍</span>
+      <input type="text" id="character-search" class="campaigns-search__input" placeholder="Buscar personagens pelo nome..." />
+    </div>
+    <select id="character-filter-system" class="campaigns-filter">
+      <option value="">Todos os sistemas</option>
+      <option value="D&D 5e">D&D 5e</option>
+      <option value="Pathfinder">Pathfinder</option>
+      <option value="Tormenta">Tormenta</option>
+      <option value="GURPS">GURPS</option>
+      <option value="Vampiro">Vampiro: A Máscara</option>
+      <option value="Outro">Outro</option>
+    </select>
+  </div>
+
+  <div id="characters-list" class="campaigns-grid"></div>
+
+  <div id="characters-empty" class="empty-state hidden">
+    <div class="empty-state__icon">🧙</div>
+    <h2 class="empty-state__title">Nenhum personagem encontrado</h2>
+    <p class="empty-state__text">Crie seu primeiro personagem para começar a gerenciar sua biblioteca.</p>
+    <button class="btn btn--primary btn--lg" id="btn-char-empty-new">
+      <span class="btn__icon">+</span> Criar Primeiro Personagem
+    </button>
+  </div>
+</div>

@@ -1,0 +1,97 @@
+<!-- Campaigns List -->
+<div id="campaigns-list-view" class="campaigns-view">
+  <div class="campaigns-header">
+    <div class="campaigns-header__title">
+      <span class="campaigns-header__icon">📜</span>
+      <h1 class="campaigns-header__text">Campanhas</h1>
+      <span id="campaigns-count" class="badge badge--muted">0 campanhas</span>
+    </div>
+    <button class="btn btn--primary" id="btn-new-campaign">
+      <span class="btn__icon">+</span> Nova Campanha
+    </button>
+  </div>
+
+  <div class="campaigns-toolbar">
+    <div class="campaigns-search">
+      <span class="campaigns-search__icon">🔍</span>
+      <input type="text" id="campaign-search" class="campaigns-search__input" placeholder="Buscar campanhas pelo nome..." />
+    </div>
+    <select id="campaign-filter-system" class="campaigns-filter">
+      <option value="">Todos os sistemas</option>
+      <option value="D&D 5e">D&D 5e</option>
+      <option value="Pathfinder">Pathfinder</option>
+      <option value="Tormenta">Tormenta</option>
+      <option value="GURPS">GURPS</option>
+      <option value="Vampiro">Vampiro: A Máscara</option>
+      <option value="Outro">Outro</option>
+    </select>
+  </div>
+
+  <div id="campaigns-list" class="campaigns-grid"></div>
+
+  <div id="campaigns-empty" class="empty-state hidden">
+    <div class="empty-state__icon">📜</div>
+    <h2 class="empty-state__title">Nenhuma campanha encontrada</h2>
+    <p class="empty-state__text">Crie sua primeira campanha para começar a organizar suas aventuras.</p>
+    <button class="btn btn--primary btn--lg" id="btn-empty-new">
+      <span class="btn__icon">+</span> Criar Primeira Campanha
+    </button>
+  </div>
+</div>
+
+<!-- Campaign Detail -->
+<div id="campaign-detail" class="campaign-detail hidden">
+  <button class="btn btn--ghost" id="btn-back-to-list">
+    <span class="btn__icon">←</span> Voltar para Campanhas
+  </button>
+  <div class="campaign-detail__header">
+    <h1 id="detail-name" class="campaign-detail__name"></h1>
+    <span id="detail-system" class="badge"></span>
+  </div>
+  <p id="detail-description" class="campaign-detail__desc"></p>
+  <div class="campaign-detail__meta">
+    <span id="detail-created" class="campaign-detail__meta-item">
+      <span class="campaign-detail__meta-icon">📅</span> Criada em: —
+    </span>
+    <span id="detail-updated" class="campaign-detail__meta-item">
+      <span class="campaign-detail__meta-icon">🔄</span> Atualizada em: —
+    </span>
+  </div>
+  <div class="campaign-detail__actions">
+    <button class="btn btn--primary" id="btn-edit-campaign">
+      <span class="btn__icon">✏️</span> Editar
+    </button>
+    <button class="btn btn--danger" id="btn-delete-campaign">
+      <span class="btn__icon">🗑️</span> Excluir
+    </button>
+  </div>
+  <div class="campaign-detail__sections">
+    <div class="section-header">
+      <h2 class="section-title">Personagens da Campanha</h2>
+      <div class="section-actions">
+        <span id="detail-char-count" class="badge badge--muted">0</span>
+        <button class="btn btn--secondary btn--sm" id="btn-add-char-to-campaign">
+          <span class="btn__icon">+</span> Adicionar
+        </button>
+      </div>
+    </div>
+    <div id="detail-characters-list" class="characters-grid mt-4"></div>
+    <div id="detail-characters-empty" class="text-center py-6 mt-4">
+      <p class="text-muted">Nenhum personagem vinculado a esta campanha.</p>
+    </div>
+
+    <div class="section-header mt-8">
+      <h2 class="section-title">Encontros</h2>
+      <div class="section-actions">
+        <span id="detail-encounter-count" class="badge badge--muted">0</span>
+        <button class="btn btn--secondary btn--sm" id="btn-add-encounter">
+          <span class="btn__icon">+</span> Novo Encontro
+        </button>
+      </div>
+    </div>
+    <div id="detail-encounters-list" class="encounters-grid mt-4"></div>
+    <div id="detail-encounters-empty" class="text-center py-6 mt-4">
+      <p class="text-muted">Nenhum encontro criado para esta campanha.</p>
+    </div>
+  </div>
+</div>
