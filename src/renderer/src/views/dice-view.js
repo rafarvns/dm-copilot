@@ -59,9 +59,10 @@ export default class DiceView {
         theme_material: "plastic",
         gravity_multiplier: 400,
         light_intensity: 0.7,
-        baseScale: 100,
-        strength: 1,
+        baseScale: 140,
+        strength: 4,
       });
+      await this.diceBox.initialize();
       console.log("DiceBox-threejs initialized");
     } catch (error) {
       console.error("Failed to initialize DiceBox:", error);
@@ -207,21 +208,21 @@ export default class DiceView {
 
       console.log("Processing queued roll:", notationStr);
 
-      // Roll once on the master to capture authoritative results.
-      const rollResult = await this.diceBox.roll(notationStr);
-      console.log("Roll result:", rollResult);
+      // Generate authoritative values up-front (without rolling 3D yet) so we
+      // can broadcast them BEFORE the local animation starts. Both screens
+      // then roll the same predetermined notation in parallel.
+      const presetNotation = this.generatePresetNotation(notationStr);
+      console.log("Preset notation:", presetNotation);
 
-      // Build a notation with predetermined values, e.g. "2d6@4,5" + "1d4@3"
-      // The roll result format from dice-box-threejs is { rolls: [{rollDieType, value}, ...] }
-      const broadcastNotation = this.buildPresetNotation(currentRoll.notation, rollResult);
-
+      // Broadcast immediately so the player view starts rolling at the same
+      // time as the master (no awaiting the local 3D animation first).
       const hasBroadcast = !!window.dmCopilot?.combat?.broadcast;
       console.log(
-        `[DM→broadcast] dice-roll notation=${JSON.stringify(broadcastNotation)}, hasBroadcast=${hasBroadcast}`
+        `[DM→broadcast] dice-roll notation=${JSON.stringify(presetNotation)}, hasBroadcast=${hasBroadcast}`
       );
       if (hasBroadcast) {
         window.dmCopilot.combat.broadcast("dice-roll", {
-          notation: broadcastNotation,
+          notation: presetNotation,
           themeColor: currentRoll.themeColor,
           characterName: currentRoll.characterName,
         });
@@ -231,7 +232,32 @@ export default class DiceView {
         );
       }
 
-      // Adapt the result shape for displayResults (which expects an array of {value, sides})
+      // Apply per-roll color (e.g. enemy red, ally green) before throwing.
+      if (currentRoll.themeColor && this.diceBox.updateConfig) {
+        try {
+          await this.diceBox.updateConfig({
+            theme_customColorset: {
+              background: [currentRoll.themeColor],
+              foreground: "#ffffff",
+              material: "plastic",
+              edges: "#000000",
+              texture: "none",
+            },
+          });
+        } catch (e) {
+          console.warn("Falha ao atualizar cor do dado:", e);
+        }
+      }
+
+      // Randomize throw strength so dice tumble more naturally and travel
+      // farther from spawn point.
+      this.diceBox.strength = 3 + Math.random() * 4; // 3.0 .. 7.0
+
+      // Roll locally with the same predetermined values that were broadcast.
+      const rollResult = await this.diceBox.roll(presetNotation);
+      console.log("Roll result:", rollResult);
+
+      // Adapt the result shape for displayResults (group format)
       const adaptedResults = this.adaptRollResult(rollResult);
 
       // Pass the bonus and characterName captured when roll was clicked
@@ -270,57 +296,37 @@ export default class DiceView {
   }
 
   /**
-   * Build a notation string with predetermined values for syncing to the player.
-   * Input:
-   *   notationArray: ["2d6", "1d4"]
-   *   rollResult: { rolls: [{rollDieType:"d6", value:3}, {rollDieType:"d6", value:5}, {rollDieType:"d4", value:2}] }
-   * Output: "2d6@3,5+1d4@2"
+   * Convert a regular dice notation (e.g. "1d20", "2d6+1d4", "1d20+5") into one
+   * that has predetermined values appended ("1d20@17", "2d6@3,5+1d4@2",
+   * "1d20@17+5"). The values are rolled in plain JS (Math.random) up-front,
+   * so we can broadcast them to the player view BEFORE any 3D animation
+   * starts — guaranteeing both screens animate in parallel.
    */
-  buildPresetNotation(notationArray, rollResult) {
-    if (!rollResult || !Array.isArray(rollResult.rolls)) {
-      return Array.isArray(notationArray) ? notationArray.join("+") : String(notationArray);
-    }
-
-    const groups = Array.isArray(notationArray) ? notationArray : [notationArray];
-    const remainingRolls = [...rollResult.rolls];
-    const out = [];
-
-    for (const group of groups) {
-      // Parse "2d6" → qty=2, dieType="d6"
-      const m = String(group).match(/^(\d+)?(d\d+)/i);
-      if (!m) {
-        out.push(group);
-        continue;
-      }
-      const qty = parseInt(m[1] || "1", 10);
-      const dieType = m[2].toLowerCase();
+  generatePresetNotation(notationStr) {
+    return String(notationStr).replace(/(\d+)d(\d+)/gi, (match, qty, sides) => {
+      const n = parseInt(qty, 10) || 1;
+      const s = parseInt(sides, 10) || 20;
       const values = [];
-      for (let i = 0; i < qty && remainingRolls.length > 0; i++) {
-        // Try to find a roll that matches the die type
-        const idx = remainingRolls.findIndex(
-          (r) => String(r.rollDieType || r.die || "").toLowerCase() === dieType
-        );
-        if (idx >= 0) {
-          values.push(remainingRolls.splice(idx, 1)[0].value);
-        } else {
-          values.push(remainingRolls.shift().value);
-        }
+      for (let i = 0; i < n; i++) {
+        values.push(1 + Math.floor(Math.random() * s));
       }
-      out.push(`${qty}${dieType}@${values.join(",")}`);
-    }
-
-    return out.join("+");
+      return `${n}d${s}@${values.join(",")}`;
+    });
   }
 
   /**
-   * Adapt dice-box-threejs result shape into the legacy [{value, sides}, ...]
-   * shape that displayResults expects.
+   * Adapt dice-box-threejs result shape into the legacy group array
+   * `[{ rolls: [{value, sides}, ...], die: 'd20', notation: '1d20' }, ...]`
+   * that displayResults expects.
    */
   adaptRollResult(rollResult) {
-    if (!rollResult || !Array.isArray(rollResult.rolls)) return [];
-    return rollResult.rolls.map((r) => ({
-      value: r.value,
-      sides: parseInt(String(r.rollDieType || r.die || "d20").replace(/\D/g, ""), 10) || 20,
+    if (!rollResult || !Array.isArray(rollResult.sets)) return [];
+    return rollResult.sets.map((set) => ({
+      die: set.type,
+      sides: set.sides,
+      notation: `${set.num}${set.type}`,
+      rolls: (set.rolls || []).map((r) => ({ value: r.value, sides: set.sides })),
+      total: set.total,
     }));
   }
 
@@ -496,10 +502,10 @@ export default class DiceView {
 
   hideToast() {
     this.DOM.resultPanel?.classList.remove("visible");
-    
+
     // Clear dice from screen when toast hides
     if (this.diceBox) {
-      this.diceBox.clear();
+      this.diceBox.clearDice?.();
     }
   }
 

@@ -112,51 +112,65 @@
             50%      { transform: translate(-50%, -50%) scale(1.04); }
         }
 
-        /* Dice Result Overlay (the master's authoritative number, shown after the 3D roll) */
-        .dice-result-overlay {
+        /* Roll result panel (anchored bottom-right, shows the authoritative numbers) */
+        .player-roll-panel {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.85);
+            bottom: 270px;
+            right: 24px;
+            min-width: 220px;
+            max-width: 360px;
             z-index: 10000;
             background: rgba(15, 15, 20, 0.92);
             backdrop-filter: blur(14px);
-            border: 2px solid var(--color-primary);
-            border-radius: 24px;
-            padding: 24px 48px;
-            box-shadow: 0 20px 60px rgba(124, 58, 237, 0.55);
+            border: 2px solid var(--accent-color, var(--color-primary));
+            border-radius: 14px;
+            padding: 14px 18px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.55);
             text-align: center;
             opacity: 0;
+            transform: translateY(8px);
             transition: opacity 0.25s ease, transform 0.25s ease;
             pointer-events: none;
         }
 
-        .dice-result-overlay[hidden] { display: none; }
+        .player-roll-panel[hidden] { display: none; }
 
-        .dice-result-overlay--visible {
+        .player-roll-panel--visible {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
+            transform: translateY(0);
         }
 
-        .dice-result-overlay__char {
-            font-size: 1.1rem;
-            color: var(--color-text-muted);
-            font-weight: 600;
+        .player-roll-panel__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
             margin-bottom: 6px;
+            font-size: 0.85rem;
         }
 
-        .dice-result-overlay__value {
-            font-size: 5rem;
-            font-weight: 900;
-            color: var(--color-primary);
-            line-height: 1;
-            text-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+        .player-roll-panel__char {
+            font-weight: 700;
+            color: var(--color-text);
         }
 
-        .dice-result-overlay__detail {
-            font-size: 0.95rem;
+        .player-roll-panel__notation {
             color: var(--color-text-muted);
-            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .player-roll-panel__total {
+            font-size: 3.4rem;
+            font-weight: 900;
+            color: var(--accent-color, var(--color-primary));
+            line-height: 1;
+            text-shadow: 0 0 16px rgba(124, 58, 237, 0.45);
+        }
+
+        .player-roll-panel__breakdown {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            margin-top: 4px;
             font-family: 'Courier New', monospace;
         }
 
@@ -829,10 +843,13 @@
     </div>
 
     <div id="dice-box"></div>
-    <div id="dice-result-overlay" class="dice-result-overlay" hidden>
-      <div class="dice-result-overlay__char" id="dice-result-char"></div>
-      <div class="dice-result-overlay__value" id="dice-result-value"></div>
-      <div class="dice-result-overlay__detail" id="dice-result-detail"></div>
+    <div id="player-roll-panel" class="player-roll-panel" hidden>
+      <div class="player-roll-panel__header">
+        <span class="player-roll-panel__char" id="player-roll-char"></span>
+        <span class="player-roll-panel__notation" id="player-roll-notation"></span>
+      </div>
+      <div class="player-roll-panel__total" id="player-roll-total"></div>
+      <div class="player-roll-panel__breakdown" id="player-roll-breakdown"></div>
     </div>
 
     <audio id="encounter-music" loop preload="auto"></audio>
@@ -926,6 +943,7 @@
         let currentTurnParticipantId = null;
         let diceBox = null;
         let isDiceReady = false;
+        let clearDiceTimer = null;
 
         function showView(view) {
             idleScreen.classList.toggle('hidden', view !== 'idle');
@@ -1131,9 +1149,10 @@
                     theme_material: "plastic",
                     gravity_multiplier: 400,
                     light_intensity: 0.7,
-                    baseScale: 100,
-                    strength: 1,
+                    baseScale: 140,
+                    strength: 4,
                 });
+                await diceBox.initialize();
                 isDiceReady = true;
                 console.log("DiceBox-threejs pronto na visão do jogador");
             } catch (e) {
@@ -1241,6 +1260,48 @@
             }
         });
 
+        // Roll result panel (mirrors the master's dice toast)
+        const playerRollPanel = document.getElementById('player-roll-panel');
+        const playerRollChar = document.getElementById('player-roll-char');
+        const playerRollNotation = document.getElementById('player-roll-notation');
+        const playerRollTotal = document.getElementById('player-roll-total');
+        const playerRollBreakdown = document.getElementById('player-roll-breakdown');
+        let playerRollHideTimer = null;
+
+        function showPlayerRollPanel({ characterName, results, themeColor }) {
+            if (!playerRollPanel || !results) return;
+
+            const sets = Array.isArray(results.sets) ? results.sets : [];
+            const total = (results.total != null) ? results.total : 0;
+
+            // Notation like "1d20" or "2d6+1d4"
+            const notationStr = sets.map(s => `${s.num}${s.type}`).join('+');
+
+            // Breakdown like "[15, 3] = 18"
+            const allValues = sets.flatMap(s => (s.rolls || []).map(r => r.value));
+            const breakdown = allValues.length > 1
+                ? `[${allValues.join(', ')}] = ${total}`
+                : '';
+
+            playerRollChar.textContent = characterName || 'Mestre';
+            playerRollNotation.textContent = notationStr;
+            playerRollTotal.textContent = String(total);
+            playerRollBreakdown.textContent = breakdown;
+
+            // Use the affinity color as the accent of the panel
+            playerRollPanel.style.setProperty('--accent-color', themeColor || '#7c3aed');
+
+            playerRollPanel.hidden = false;
+            void playerRollPanel.offsetWidth;
+            playerRollPanel.classList.add('player-roll-panel--visible');
+
+            if (playerRollHideTimer) clearTimeout(playerRollHideTimer);
+            playerRollHideTimer = setTimeout(() => {
+                playerRollPanel.classList.remove('player-roll-panel--visible');
+                setTimeout(() => { playerRollPanel.hidden = true; }, 300);
+            }, 4500);
+        }
+
         socket.on('dice-roll', async (rollData) => {
             console.log("[Player] dice-roll RECEBIDO | isDiceReady=" + isDiceReady + " | hasDiceBox=" + !!diceBox + " | payload=", rollData);
 
@@ -1265,8 +1326,43 @@
                         : String(rollData.notation || "");
                     console.log("[Player] DiceBox.roll() chamando | notation=", notationStr);
                     diceBox.clearDice && diceBox.clearDice();
+
+                    // Apply per-roll color (matches the master's affinity color).
+                    if (rollData.themeColor && diceBox.updateConfig) {
+                        try {
+                            await diceBox.updateConfig({
+                                theme_customColorset: {
+                                    background: [rollData.themeColor],
+                                    foreground: "#ffffff",
+                                    material: "plastic",
+                                    edges: "#000000",
+                                    texture: "none",
+                                },
+                            });
+                        } catch (e) {
+                            console.warn("Falha ao aplicar cor:", e);
+                        }
+                    }
+
+                    // Randomize throw strength for natural-looking tumbling.
+                    diceBox.strength = 3 + Math.random() * 4; // 3.0 .. 7.0
+
                     const results = await diceBox.roll(notationStr);
                     console.log("[Player] DiceBox.roll() OK | results=", results);
+
+                    // Show result panel on player view
+                    showPlayerRollPanel({
+                        characterName: rollData.characterName,
+                        results: results,
+                        themeColor: rollData.themeColor,
+                    });
+
+                    // Auto-clear the 3D dice after a few seconds so they don't
+                    // pile up on the table (matches the master's hideToast → clearDice flow).
+                    if (clearDiceTimer) clearTimeout(clearDiceTimer);
+                    clearDiceTimer = setTimeout(() => {
+                        diceBox.clearDice && diceBox.clearDice();
+                    }, 4500);
                 } catch (err) {
                     console.error("[Player] Erro ao executar rolagem no DiceBox:", err);
                 }

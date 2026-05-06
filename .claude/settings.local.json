@@ -30,7 +30,9 @@
       "Bash(netstat -ano)",
       "Bash(taskkill //IM electron.exe //F)",
       "WebFetch(domain:github.com)",
-      "Bash(pnpm add *)"
+      "Bash(pnpm add *)",
+      "Bash(cp -r node_modules/@3d-dice/dice-box-threejs/public/textures/* src/renderer/public/textures/)",
+      "Bash(cp -r node_modules/@3d-dice/dice-box-threejs/public/sounds/* src/renderer/public/sounds/)"
     ]
   }
 }
