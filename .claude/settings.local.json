@@ -32,7 +32,21 @@
       "WebFetch(domain:github.com)",
       "Bash(pnpm add *)",
       "Bash(cp -r node_modules/@3d-dice/dice-box-threejs/public/textures/* src/renderer/public/textures/)",
-      "Bash(cp -r node_modules/@3d-dice/dice-box-threejs/public/sounds/* src/renderer/public/sounds/)"
+      "Bash(cp -r node_modules/@3d-dice/dice-box-threejs/public/sounds/* src/renderer/public/sounds/)",
+      "Bash(git filter-repo *)",
+      "Bash(git branch *)",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'chore: purge vendored player blobs containing third-party API keys *)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch *)",
+      "Bash(git stash *)",
+      "Bash(git restore *)",
+      "Bash(xargs -r -n1 git update-ref -d)",
+      "Bash(git update-ref *)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)",
+      "Bash(git rev-list *)",
+      "Bash(git push *)"
     ]
   }
 }

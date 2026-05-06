@@ -2000,6 +2000,63 @@ select:focus {
   margin: 0 var(--space-2);
 }
 
+/* --- Dice roller mode toggle (Master / Character) --- */
+.dice-roller-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 var(--space-2);
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.dice-roller-toggle input { display: none; }
+
+.dice-roller-toggle__track {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  background: #6b21a8;          /* purple = Mestre default */
+  border-radius: 999px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dice-roller-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.dice-roller-toggle input:checked + .dice-roller-toggle__track {
+  background: var(--color-success, #10b981);
+}
+
+.dice-roller-toggle input:checked + .dice-roller-toggle__track .dice-roller-toggle__thumb {
+  transform: translateX(18px);
+}
+
+.dice-roller-toggle__label-master,
+.dice-roller-toggle__label-char {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.dice-roller-toggle input:not(:checked) ~ .dice-roller-toggle__label-master {
+  color: #c084fc;
+}
+
+.dice-roller-toggle input:checked ~ .dice-roller-toggle__label-char {
+  color: var(--color-success, #10b981);
+}
+
 .dice-roll-container {
   display: flex;
   align-items: center;

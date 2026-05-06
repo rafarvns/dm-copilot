@@ -35,6 +35,7 @@ export default class DiceView {
       lastRollDetails: document.querySelector(".last-roll-display__details"),
       queueIndicator: document.getElementById("dice-roll-queue"),
       queueCount: document.querySelector(".queue-count"),
+      rollerAsCharacterToggle: document.getElementById("dice-roller-as-character"),
       btnHistory: document.getElementById("btn-dice-history"),
       modalHistory: document.getElementById("modal-dice-history"),
       historyList: document.getElementById("dice-history-list"),
@@ -137,11 +138,14 @@ export default class DiceView {
 
     const bonus = parseInt(this.DOM.bonusInput?.value || 0);
     
-    // Check if combat is active to set character and color
-    let themeColor = "#7c3aed"; // Default purple
+    // Roll mode: toggle ON → roll as the active character (uses their color
+    // and name in history); toggle OFF (default) → roll as the master (purple,
+    // no character name).
+    let themeColor = "#7c3aed"; // Master purple
     let characterName = null;
-    
-    if (window.encountersView?.combatView?.isActive) {
+
+    const rollAsCharacter = !!this.DOM.rollerAsCharacterToggle?.checked;
+    if (rollAsCharacter && window.encountersView?.combatView?.isActive) {
       const activeChar = window.encountersView.combatView.getActiveParticipant();
       if (activeChar) {
         characterName = activeChar.name;
