@@ -49,6 +49,9 @@ coverage/
 # Backup files
 backup-*.db
 
+# Vendored player blobs (contain third-party API keys)
+*-base.js
+
 # User data (descomentar se quiser ignorar tudo)
 # userData/
 # *.dmcopilot
