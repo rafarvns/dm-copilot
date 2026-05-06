@@ -6,8 +6,8 @@
 // ============================================
 function createCampaign(db, campaignData) {
   const stmt = db.prepare(`
-    INSERT INTO campaigns (name, description, system, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO campaigns (name, description, system, combat_visibility, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -15,6 +15,7 @@ function createCampaign(db, campaignData) {
     campaignData.name,
     campaignData.description || null,
     campaignData.system || null,
+    campaignData.combat_visibility || null,
     now,
     now
   );
@@ -46,20 +47,33 @@ function getCampaignsBySystem(db, system) {
 // UPDATE
 // ============================================
 function updateCampaign(db, id, campaignData) {
-  const stmt = db.prepare(`
-    UPDATE campaigns 
-    SET name = ?, description = ?, system = ?, updated_at = ?
-    WHERE id = ?
-  `);
+  const fields = [];
+  const values = [];
+
+  const columnMap = {
+    name: 'name',
+    description: 'description',
+    system: 'system',
+    combat_visibility: 'combat_visibility'
+  };
+
+  for (const [key, column] of Object.entries(columnMap)) {
+    if (campaignData[key] !== undefined) {
+      fields.push(`${column} = ?`);
+      values.push(campaignData[key] === '' && key !== 'name' ? null : campaignData[key]);
+    }
+  }
+
+  if (fields.length === 0) return false;
 
   const now = new Date().toISOString();
-  const result = stmt.run(
-    campaignData.name,
-    campaignData.description || null,
-    campaignData.system || null,
-    now,
-    id
-  );
+  fields.push("updated_at = ?");
+  values.push(now);
+  values.push(id);
+
+  const sql = `UPDATE campaigns SET ${fields.join(", ")} WHERE id = ?`;
+  const stmt = db.prepare(sql);
+  const result = stmt.run(...values);
 
   return result.changes > 0;
 }

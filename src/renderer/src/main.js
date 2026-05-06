@@ -5,6 +5,7 @@ import "./assets/main.css";
 
 import databaseService from "./db/database.js";
 import { registerRoute, navigateTo } from "./core/router.js";
+import PresentationController from "./core/presentation-controller.js";
 
 import SidebarComponent from "./shared/sidebar/sidebar.js";
 import StatusBarComponent from "./shared/status-bar/status-bar.js";
@@ -14,6 +15,7 @@ import CampaignsFeature from "./features/campaigns/campaigns.js";
 import CharactersFeature from "./features/characters/characters.js";
 
 import { EncountersView } from "./views/database-views.js";
+import ScenesView from "./views/scenes-view.js";
 import charactersView from "./views/characters-view.js";
 import DiceView from "./views/dice-view.js";
 
@@ -83,7 +85,9 @@ async function init() {
     }
 
     // Globais usados pelas views (encounter manager, modais de overlay)
+    window.presentationController = new PresentationController();
     window.encountersView = new EncountersView();
+    window.scenesView = new ScenesView();
     window.charactersView = charactersView;
     try {
       window.diceView = new DiceView();

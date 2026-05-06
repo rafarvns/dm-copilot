@@ -48,6 +48,28 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       delete: (id) => ipcRenderer.invoke("db-encounters-delete", id),
       saveImage: (data) => ipcRenderer.invoke("app-save-encounter-image", data),
       listPresets: () => ipcRenderer.invoke("app-list-encounter-presets"),
+      validateYouTubeUrl: (url) => ipcRenderer.invoke("app-validate-youtube-url", url),
+      downloadMusic: (url, encounterId) =>
+        ipcRenderer.invoke("app-download-encounter-music", { url, encounterId }),
+      deleteMusic: (fileName) => ipcRenderer.invoke("app-delete-encounter-music", fileName),
+    },
+
+    // Scenes
+    scenes: {
+      create: (data) => ipcRenderer.invoke("db-scenes-create", data),
+      getAll: (campaignId) => ipcRenderer.invoke("db-scenes-read-all", campaignId),
+      getById: (id) => ipcRenderer.invoke("db-scenes-read-id", id),
+      update: (id, data) => ipcRenderer.invoke("db-scenes-update", id, data),
+      delete: (id) => ipcRenderer.invoke("db-scenes-delete", id),
+      setLinks: (sceneId, otherSceneIds) =>
+        ipcRenderer.invoke("db-scenes-set-links", sceneId, otherSceneIds),
+      setEncounters: (sceneId, encounterIds) =>
+        ipcRenderer.invoke("db-scenes-set-encounters", sceneId, encounterIds),
+      saveImage: (data) => ipcRenderer.invoke("app-save-scene-image", data),
+      validateYouTubeUrl: (url) => ipcRenderer.invoke("app-validate-youtube-url", url),
+      downloadMusic: (url, sceneId) =>
+        ipcRenderer.invoke("app-download-scene-music", { url, sceneId }),
+      deleteMusic: (fileName) => ipcRenderer.invoke("app-delete-scene-music", fileName),
     },
     
     // Notes

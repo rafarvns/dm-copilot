@@ -45,6 +45,8 @@ class CombatServer {
     this.io = new Server(this.server);
     this.port = 3000;
     this.isRunning = false;
+    this.lastCombatUpdate = null;
+    this.lastSceneUpdate = null;
 
     this.setupRoutes();
     this.setupWebSockets();
@@ -82,6 +84,16 @@ class CombatServer {
     fs.mkdirSync(encounterImagesPath, { recursive: true });
     this.app.use("/images/encounters", express.static(encounterImagesPath));
 
+    // Serve scene background uploads from userData
+    const sceneImagesPath = path.join(app.getPath("userData"), "images", "scenes");
+    fs.mkdirSync(sceneImagesPath, { recursive: true });
+    this.app.use("/images/scenes", express.static(sceneImagesPath));
+
+    // Serve encounter music files (downloaded from YouTube) from userData
+    const musicPath = path.join(app.getPath("userData"), "music");
+    fs.mkdirSync(musicPath, { recursive: true });
+    this.app.use("/music", express.static(musicPath));
+
     // Serve encounter preset backgrounds bundled with the app (dev path)
     const encounterPresetsPath = path.join(
       app.getAppPath(),
@@ -104,6 +116,23 @@ class CombatServer {
     const diceLibPath = path.join(app.getAppPath(), "node_modules", "@3d-dice", "dice-box", "dist");
     if (fs.existsSync(diceLibPath)) {
       this.app.use("/dice-box-lib", express.static(diceLibPath));
+      // Fallback for /dice-box: serves the JS workers (world.onscreen.js,
+      // world.offscreen.js, Dice.js) that DiceBox loads from `assetPath`.
+      // express.static falls through when a file is not found, so graphical
+      // assets (ammo/, themes/) keep coming from the public/ mount above.
+      this.app.use("/dice-box", express.static(diceLibPath));
+    }
+
+    // Serve dice-box-threejs (predeterministic rolling support)
+    const dice3jsPath = path.join(app.getAppPath(), "node_modules", "@3d-dice", "dice-box-threejs");
+    if (fs.existsSync(dice3jsPath)) {
+      this.app.use("/dice-box-threejs", express.static(dice3jsPath));
+      // The lib loads textures/sounds from relative paths — also expose its
+      // public/ folder at root level so the lib finds them by default.
+      const dice3jsPublic = path.join(dice3jsPath, "public");
+      if (fs.existsSync(dice3jsPublic)) {
+        this.app.use(express.static(dice3jsPublic));
+      }
     }
 
     // Serve renderer assets for dice icons etc.
@@ -111,15 +140,28 @@ class CombatServer {
     if (fs.existsSync(rendererAssetsPath)) {
       this.app.use("/src/assets", express.static(rendererAssetsPath));
     }
+
+    // Serve SFX assets for the player view
+    const sfxAssetsPath = path.join(app.getAppPath(), "src", "assets", "sfx");
+    if (fs.existsSync(sfxAssetsPath)) {
+      this.app.use("/sfx", express.static(sfxAssetsPath));
+    }
   }
 
   setupWebSockets() {
     this.io.on("connection", (socket) => {
       console.log("Player connected to combat view:", socket.id);
-      
+
       // Request current state from DM when someone connects
       if (mainWindow) {
         mainWindow.webContents.send("player-connected", socket.id);
+      }
+
+      // Send current view state to the newly connected player
+      if (this.lastCombatUpdate?.status === 'active') {
+        socket.emit('combat-update', this.lastCombatUpdate);
+      } else if (this.lastSceneUpdate?.status === 'active') {
+        socket.emit('scene-update', this.lastSceneUpdate);
       }
 
       socket.on("disconnect", () => {
@@ -138,7 +180,13 @@ class CombatServer {
 
   start() {
     if (this.isRunning) return;
-    
+
+    this.server.once("error", (err) => {
+      console.error(`[CombatServer] Failed to bind on port ${this.port}:`, err.code || err.message);
+      console.error(`[CombatServer] Likely cause: another instance of the app is still running and holding port ${this.port}. Close it (Task Manager → kill electron.exe) and restart.`);
+      this.isRunning = false;
+    });
+
     this.server.listen(this.port, () => {
       this.isRunning = true;
       console.log(`Combat server running at http://${getNetworkIP()}:${this.port}`);
@@ -156,7 +204,15 @@ class CombatServer {
 
   broadcast(event, data) {
     if (this.isRunning) {
+      if (event === 'combat-update') this.lastCombatUpdate = data;
+      if (event === 'scene-update')  this.lastSceneUpdate = data;
+      const clientsCount = this.io?.sockets?.sockets?.size ?? 0;
+      if (event === 'dice-roll') {
+        console.log(`[Server] io.emit dice-roll → ${clientsCount} client(s) | notation=${JSON.stringify(data?.notation)}`);
+      }
       this.io.emit(event, data);
+    } else if (event === 'dice-roll') {
+      console.warn("[Server] dice-roll IGNORED — server not running");
     }
   }
 }
@@ -505,6 +561,74 @@ ipcMain.handle("app-save-encounter-image", async (_event, imageData) => {
   }
 });
 
+ipcMain.handle("app-validate-youtube-url", (_event, url) => {
+  const { validateYouTubeUrl } = require("./services/youtube-downloader");
+  return validateYouTubeUrl(url);
+});
+
+ipcMain.handle("app-download-encounter-music", async (_event, { url, encounterId }) => {
+  try {
+    const { downloadAudio } = require("./services/youtube-downloader");
+    const { fileName } = await downloadAudio(url, `encounter_${encounterId}`);
+    return { success: true, fileName };
+  } catch (error) {
+    console.error("Erro ao baixar música:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("app-delete-encounter-music", (_event, fileName) => {
+  try {
+    const { removeAudio } = require("./services/youtube-downloader");
+    return { success: removeAudio(fileName) };
+  } catch (error) {
+    console.error("Erro ao remover música:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("app-save-scene-image", async (_event, imageData) => {
+  try {
+    const userDataPath = app.getPath("userData");
+    const imagesDir = path.join(userDataPath, "images", "scenes");
+
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    const fileName = `scene_${Date.now()}.webp`;
+    const filePath = path.join(imagesDir, fileName);
+
+    fs.writeFileSync(filePath, Buffer.from(imageData));
+
+    return `scenes/${fileName}`;
+  } catch (error) {
+    console.error("Erro ao salvar imagem de cena:", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("app-download-scene-music", async (_event, { url, sceneId }) => {
+  try {
+    const { downloadAudio } = require("./services/youtube-downloader");
+    const { fileName } = await downloadAudio(url, `scene_${sceneId}`);
+    return { success: true, fileName };
+  } catch (error) {
+    console.error("Erro ao baixar música da cena:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("app-delete-scene-music", (_event, fileName) => {
+  try {
+    const { removeAudio } = require("./services/youtube-downloader");
+    return { success: removeAudio(fileName) };
+  } catch (error) {
+    console.error("Erro ao remover música da cena:", error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle("app-list-encounter-presets", () => {
   try {
     const presetsDir = path.join(
@@ -696,8 +820,65 @@ ipcMain.handle("db-encounters-update", (_event, id, encounterData) => {
 
 ipcMain.handle("db-encounters-delete", (_event, id) => {
   const db = databaseManager.getConnection();
-  const { deleteEncounter } = require("./database/queries/encounters");
+  const { getEncounterById, deleteEncounter } = require("./database/queries/encounters");
+  const { removeAudio } = require("./services/youtube-downloader");
+
+  const existing = getEncounterById(db, id);
+  if (existing && existing.music_file) {
+    removeAudio(existing.music_file);
+  }
   return deleteEncounter(db, id);
+});
+
+// ============================================
+// IPC Handlers - Scenes
+// ============================================
+ipcMain.handle("db-scenes-create", (_event, sceneData) => {
+  const db = databaseManager.getConnection();
+  const { createScene } = require("./database/queries/scenes");
+  return createScene(db, sceneData);
+});
+
+ipcMain.handle("db-scenes-read-all", (_event, campaignId) => {
+  const db = databaseManager.getConnection();
+  const { getScenesByCampaign } = require("./database/queries/scenes");
+  return getScenesByCampaign(db, campaignId);
+});
+
+ipcMain.handle("db-scenes-read-id", (_event, id) => {
+  const db = databaseManager.getConnection();
+  const { getSceneById } = require("./database/queries/scenes");
+  return getSceneById(db, id);
+});
+
+ipcMain.handle("db-scenes-update", (_event, id, sceneData) => {
+  const db = databaseManager.getConnection();
+  const { updateScene } = require("./database/queries/scenes");
+  return updateScene(db, id, sceneData);
+});
+
+ipcMain.handle("db-scenes-delete", (_event, id) => {
+  const db = databaseManager.getConnection();
+  const { getSceneById, deleteScene } = require("./database/queries/scenes");
+  const { removeAudio } = require("./services/youtube-downloader");
+
+  const existing = getSceneById(db, id);
+  if (existing && existing.music_file) {
+    removeAudio(existing.music_file);
+  }
+  return deleteScene(db, id);
+});
+
+ipcMain.handle("db-scenes-set-links", (_event, sceneId, otherSceneIds) => {
+  const db = databaseManager.getConnection();
+  const { setSceneLinks } = require("./database/queries/scenes");
+  return setSceneLinks(db, sceneId, otherSceneIds);
+});
+
+ipcMain.handle("db-scenes-set-encounters", (_event, sceneId, encounterIds) => {
+  const db = databaseManager.getConnection();
+  const { setSceneEncounters } = require("./database/queries/scenes");
+  return setSceneEncounters(db, sceneId, encounterIds);
 });
 
 // ============================================
@@ -853,6 +1034,9 @@ ipcMain.handle("combat-server-get-info", () => {
 });
 
 ipcMain.on("combat-server-broadcast", (_event, { event, data }) => {
+  if (event === "dice-roll") {
+    console.log(`[Main IPC] combat-server-broadcast received: event=${event}, isRunning=${combatServer.isRunning}, notation=${JSON.stringify(data?.notation)}`);
+  }
   combatServer.broadcast(event, data);
 });
 
@@ -908,6 +1092,7 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+  combatServer.start();
 
   // macOS: re-create window when dock icon is clicked and no windows are open
   app.on("activate", () => {

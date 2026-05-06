@@ -29,15 +29,18 @@
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
+    "@3d-dice/dice-box-threejs": "^0.0.12",
     "better-sqlite3": "^12.9.0",
     "express": "^5.2.1",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "youtube-dl-exec": "^3.0.22"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "electron",
-      "esbuild"
+      "esbuild",
+      "youtube-dl-exec"
     ]
   }
 }

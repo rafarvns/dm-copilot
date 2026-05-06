@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^d|\\\\.json$|\\\\.config\")",
+      "Bash(xargs grep *)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm exec *)",
+      "Bash(node -e \"require\\('./src/main/database/migrations/v11_add_encounter_music.js'\\); require\\('./src/main/database/queries/encounters.js'\\); console.log\\('main/db modules OK'\\);\")",
+      "Bash(node --check src/preload/index.js)",
+      "Bash(node --check src/renderer/src/views/database-views.js)",
+      "Bash(node --check src/renderer/src/views/encounter-combat-view.js)",
+      "Bash(pnpm dev *)",
+      "Bash(ls -la out/main/ out/main/database)",
+      "Bash(ls out/main/services)",
+      "Bash(node -e \"console.log\\('host node:', process.versions.node\\); console.log\\('electron in deps: 28'\\)\")",
+      "Bash(pnpm view *)",
+      "Bash(pnpm rebuild *)",
+      "Bash(ls node_modules/.pnpm/youtube-dl-exec@3.1.6/node_modules/youtube-dl-exec/bin)",
+      "Bash(ls node_modules/youtube-dl-exec/bin)",
+      "Bash(node --check src/renderer/src/core/combat-visibility.js)",
+      "Bash(node -e \"require\\('./src/main/database/queries/campaigns.js'\\); require\\('./src/main/database/queries/encounters.js'\\); require\\('./src/main/database/migrations/v13_add_combat_visibility.js'\\); console.log\\('main modules OK'\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(python3 *)",
+      "Bash(node --check src/renderer/src/features/campaigns/campaigns.js)",
+      "Bash(pnpm build *)",
+      "Bash(node --check src/renderer/src/views/dice-view.js)",
+      "Bash(node -e \"require\\('./src/main/index.js'\\)\")",
+      "Bash(tasklist)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //IM electron.exe //F)",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm add *)"
+    ]
+  }
+}

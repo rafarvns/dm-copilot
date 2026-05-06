@@ -3,6 +3,12 @@
 
 import databaseService from "../db/database.js";
 import EncounterCombatView from "./encounter-combat-view.js";
+import {
+  VISIBILITY_AFFINITIES,
+  VISIBILITY_FIELDS,
+  parseVisibility,
+  makeDefaultVisibility
+} from "../core/combat-visibility.js";
 
 // ============================================
 // Toast Notifications
@@ -79,6 +85,12 @@ class CampaignsView {
       detailEncounterList: document.getElementById("detail-encounters-list"),
       detailEncounterEmpty: document.getElementById("detail-encounters-empty"),
       btnAddEncounter: document.getElementById("btn-add-encounter"),
+
+      // Detail - Scenes
+      detailSceneCount: document.getElementById("detail-scene-count"),
+      detailSceneList: document.getElementById("detail-scenes-list"),
+      detailSceneEmpty: document.getElementById("detail-scenes-empty"),
+      btnAddScene: document.getElementById("btn-add-scene"),
       
       // Link character modal
       linkModal: document.getElementById("link-character-modal"),
@@ -91,17 +103,47 @@ class CampaignsView {
       confirmOverlay: document.getElementById("confirm-modal-overlay"),
       confirmMessage: document.getElementById("confirm-message"),
     };
+
+    // Cache visibility checkboxes (4 fields × 3 affinities)
+    this.DOM.visibility = {};
+    for (const aff of VISIBILITY_AFFINITIES) {
+      this.DOM.visibility[aff] = {};
+      for (const field of VISIBILITY_FIELDS) {
+        this.DOM.visibility[aff][field] = document.getElementById(`vis-${aff}-${field}`);
+      }
+    }
+  }
+
+  populateVisibilityCheckboxes(jsonStr) {
+    const vis = parseVisibility(jsonStr) || makeDefaultVisibility();
+    for (const aff of VISIBILITY_AFFINITIES) {
+      for (const field of VISIBILITY_FIELDS) {
+        const cb = this.DOM.visibility?.[aff]?.[field];
+        if (cb) cb.checked = !!vis[aff][field];
+      }
+    }
+  }
+
+  collectVisibilityFromCheckboxes() {
+    const vis = makeDefaultVisibility();
+    for (const aff of VISIBILITY_AFFINITIES) {
+      for (const field of VISIBILITY_FIELDS) {
+        const cb = this.DOM.visibility?.[aff]?.[field];
+        if (cb) vis[aff][field] = !!cb.checked;
+      }
+    }
+    return JSON.stringify(vis);
   }
 
   // ============================================
   // Lifecycle
   // ============================================
   async mount() {
-    if (this.mounted) {
-      await this.loadCampaigns();
-      this.showList();
-      return;
-    }
+    // Abort previously attached listeners (they may point to old DOM
+    // elements from the template which has just been re-injected) and
+    // bind a fresh set tied to the current AbortController.
+    this._abortCtrl?.abort();
+    this._abortCtrl = new AbortController();
 
     this.cacheDOM();
     this.bindEvents();
@@ -109,42 +151,47 @@ class CampaignsView {
     this.mounted = true;
   }
 
+  _on(el, event, handler) {
+    if (!el || !this._abortCtrl) return;
+    el.addEventListener(event, handler, { signal: this._abortCtrl.signal });
+  }
+
   // ============================================
   // Event Binding
   // ============================================
   bindEvents() {
     // New campaign buttons
-    document.getElementById("btn-new-campaign").addEventListener("click", () => this.openForm());
-    document.getElementById("btn-empty-new").addEventListener("click", () => this.openForm());
+    this._on(document.getElementById("btn-new-campaign"), "click", () => this.openForm());
+    this._on(document.getElementById("btn-empty-new"), "click", () => this.openForm());
 
     // Search & filter
-    this.DOM.search.addEventListener("input", () => this.applyFilters());
-    this.DOM.filterSystem.addEventListener("change", () => this.applyFilters());
+    this._on(this.DOM.search, "input", () => this.applyFilters());
+    this._on(this.DOM.filterSystem, "change", () => this.applyFilters());
 
     // Form modal
-    this.DOM.form.addEventListener("submit", (e) => this.handleSubmit(e));
-    document.getElementById("btn-close-modal").addEventListener("click", () => this.closeForm());
-    document.getElementById("btn-cancel-form").addEventListener("click", () => this.closeForm());
-    this.DOM.modalOverlay.addEventListener("click", () => this.closeForm());
+    this._on(this.DOM.form, "submit", (e) => this.handleSubmit(e));
+    this._on(document.getElementById("btn-close-modal"), "click", () => this.closeForm());
+    this._on(document.getElementById("btn-cancel-form"), "click", () => this.closeForm());
+    this._on(this.DOM.modalOverlay, "click", () => this.closeForm());
 
     // Detail view
-    document.getElementById("btn-back-to-list").addEventListener("click", () => this.showList());
-    document.getElementById("btn-edit-campaign").addEventListener("click", () => {
+    this._on(document.getElementById("btn-back-to-list"), "click", () => this.showList());
+    this._on(document.getElementById("btn-edit-campaign"), "click", () => {
       if (this.selectedCampaign) this.openForm(this.selectedCampaign);
     });
-    document.getElementById("btn-delete-campaign").addEventListener("click", () => {
+    this._on(document.getElementById("btn-delete-campaign"), "click", () => {
       if (this.selectedCampaign) this.confirmDelete(this.selectedCampaign.id);
     });
 
     // Character linking
-    document.getElementById("btn-add-char-to-campaign").addEventListener("click", () => this.openLinkModal());
-    document.getElementById("btn-close-link-char-modal").addEventListener("click", () => this.closeLinkModal());
-    document.getElementById("btn-close-link-char").addEventListener("click", () => this.closeLinkModal());
-    this.DOM.linkModalOverlay.addEventListener("click", () => this.closeLinkModal());
-    this.DOM.detailCharList.addEventListener("click", (e) => {
+    this._on(document.getElementById("btn-add-char-to-campaign"), "click", () => this.openLinkModal());
+    this._on(document.getElementById("btn-close-link-char-modal"), "click", () => this.closeLinkModal());
+    this._on(document.getElementById("btn-close-link-char"), "click", () => this.closeLinkModal());
+    this._on(this.DOM.linkModalOverlay, "click", () => this.closeLinkModal());
+    this._on(this.DOM.detailCharList, "click", (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
-      
+
       const action = target.dataset.action;
       if (action === "unlink") {
         this.handleUnlinkChar(e);
@@ -154,31 +201,31 @@ class CampaignsView {
         this.handleDeleteChar(e);
       }
     });
-    this.DOM.linkCharList.addEventListener("click", (e) => this.handleLinkChar(e));
+    this._on(this.DOM.linkCharList, "click", (e) => this.handleLinkChar(e));
 
     // Confirmation modal events
-    document.getElementById("btn-confirm-cancel").addEventListener("click", () => this.closeConfirm());
-    document.getElementById("btn-close-confirm").addEventListener("click", () => this.closeConfirm());
-    document.getElementById("btn-confirm-ok").addEventListener("click", () => this.executeDelete());
-    this.DOM.confirmOverlay.addEventListener("click", () => this.closeConfirm());
+    this._on(document.getElementById("btn-confirm-cancel"), "click", () => this.closeConfirm());
+    this._on(document.getElementById("btn-close-confirm"), "click", () => this.closeConfirm());
+    this._on(document.getElementById("btn-confirm-ok"), "click", () => this.executeDelete());
+    this._on(this.DOM.confirmOverlay, "click", () => this.closeConfirm());
 
     // Card delegation
-    this.DOM.list.addEventListener("click", (e) => this.handleCardClick(e));
+    this._on(this.DOM.list, "click", (e) => this.handleCardClick(e));
 
     // Clear validation on input
-    this.DOM.nameInput.addEventListener("input", () => this.clearFieldError("name"));
+    this._on(this.DOM.nameInput, "input", () => this.clearFieldError("name"));
 
     // Encounter events
-    this.DOM.btnAddEncounter.addEventListener("click", () => {
+    this._on(this.DOM.btnAddEncounter, "click", () => {
       if (this.selectedCampaign) {
         window.encountersView.openForm(null, this.selectedCampaign.id);
       }
     });
 
-    this.DOM.detailEncounterList.addEventListener("click", (e) => {
+    this._on(this.DOM.detailEncounterList, "click", (e) => {
       const btn = e.target.closest("[data-action]");
       if (!btn) return;
-      
+
       const id = parseInt(btn.dataset.id, 10);
       const action = btn.dataset.action;
 
@@ -188,6 +235,29 @@ class CampaignsView {
         window.encountersView.loadEncounterForEdit(id);
       } else if (action === "delete-encounter") {
         window.encountersView.confirmDelete(id);
+      }
+    });
+
+    // Scene events
+    this._on(this.DOM.btnAddScene, "click", () => {
+      if (this.selectedCampaign) {
+        window.scenesView?.openForm(null, this.selectedCampaign.id);
+      }
+    });
+
+    this._on(this.DOM.detailSceneList, "click", (e) => {
+      const btn = e.target.closest("[data-action]");
+      if (!btn) return;
+
+      const id = parseInt(btn.dataset.id, 10);
+      const action = btn.dataset.action;
+
+      if (action === "delete-scene") {
+        window.scenesView?.confirmDelete(id);
+      } else if (action === "open-scene") {
+        window.scenesView?.openSceneDetail(id);
+      } else if (action === "edit-scene") {
+        window.scenesView?.loadSceneForEdit(id);
       }
     });
   }
@@ -309,9 +379,10 @@ class CampaignsView {
     this.DOM.detailCreated.innerHTML = `<span class="campaign-detail__meta-icon">📅</span> Criada em: ${this.formatDate(campaign.created_at)}`;
     this.DOM.detailUpdated.innerHTML = `<span class="campaign-detail__meta-icon">🔄</span> Atualizada em: ${this.formatDate(campaign.updated_at)}`;
 
-    // Load campaign characters and encounters
+    // Load campaign characters, encounters and scenes
     await this.loadCampaignCharacters(campaign.id);
     await this.loadCampaignEncounters(campaign.id);
+    await this.loadCampaignScenes(campaign.id);
   }
 
   async loadCampaignCharacters(campaignId) {
@@ -412,6 +483,50 @@ class CampaignsView {
                 <button class="btn btn--primary btn--sm" data-action="view-encounter" data-id="${enc.id}">Abrir</button>
                 <button class="btn-icon" data-action="edit-encounter" data-id="${enc.id}">✏️</button>
                 <button class="btn-icon btn-icon--danger" data-action="delete-encounter" data-id="${enc.id}">🗑️</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  }
+
+  async loadCampaignScenes(campaignId) {
+    try {
+      const scenes = await window.dmCopilot.db.scenes.getAll(campaignId);
+      this.renderCampaignScenes(scenes || []);
+    } catch (error) {
+      console.error("Failed to load campaign scenes:", error);
+      showToast("Erro ao carregar cenas da campanha", "error");
+    }
+  }
+
+  renderCampaignScenes(scenes) {
+    if (!this.DOM.detailSceneList) return;
+
+    const count = scenes.length;
+    if (this.DOM.detailSceneCount) this.DOM.detailSceneCount.textContent = count;
+
+    const isEmpty = count === 0;
+    this.DOM.detailSceneEmpty?.classList.toggle("hidden", !isEmpty);
+    this.DOM.detailSceneList.classList.toggle("hidden", isEmpty);
+
+    if (!isEmpty) {
+      this.DOM.detailSceneList.innerHTML = scenes.map(scene => {
+        const desc = scene.description ? scene.description.slice(0, 120) : "Sem descrição";
+        return `
+          <div class="campaign-card campaign-card--sm" data-action="open-scene" data-id="${scene.id}" style="cursor: pointer;">
+            <div class="campaign-card__header">
+              <h3 class="campaign-card__title">${this.escapeHTML(scene.name)}</h3>
+            </div>
+            <p class="campaign-card__desc text-xs" style="margin-bottom: 8px;">
+              ${this.escapeHTML(desc)}${scene.description && scene.description.length > 120 ? '…' : ''}
+            </p>
+            <div class="campaign-card__footer">
+              <span class="campaign-card__date">${this.formatDate(scene.created_at)}</span>
+              <div class="campaign-card__actions">
+                <button class="btn btn--primary btn--sm" data-action="open-scene" data-id="${scene.id}">Abrir</button>
+                <button class="btn-icon btn-icon--danger" data-action="delete-scene" data-id="${scene.id}" title="Excluir">🗑️</button>
               </div>
             </div>
           </div>
@@ -589,6 +704,7 @@ class CampaignsView {
     if (this.DOM.nameInput) this.DOM.nameInput.value = campaign ? campaign.name : "";
     if (this.DOM.systemSelect) this.DOM.systemSelect.value = campaign ? (campaign.system || "") : "";
     if (this.DOM.descInput) this.DOM.descInput.value = campaign ? (campaign.description || "") : "";
+    this.populateVisibilityCheckboxes(campaign ? campaign.combat_visibility : null);
 
     // Clear errors
     this.clearAllErrors();
@@ -618,6 +734,8 @@ class CampaignsView {
     // Validate
     if (!this.validate({ name })) return;
 
+    const combat_visibility = this.collectVisibilityFromCheckboxes();
+
     try {
       if (this.editingId) {
         // Update
@@ -625,6 +743,7 @@ class CampaignsView {
           name,
           system: system || null,
           description: description || null,
+          combat_visibility,
         });
         showToast("Campanha atualizada com sucesso!", "success");
       } else {
@@ -633,6 +752,7 @@ class CampaignsView {
           name,
           system: system || null,
           description: description || null,
+          combat_visibility,
         });
         showToast("Campanha criada com sucesso!", "success");
       }
@@ -647,6 +767,14 @@ class CampaignsView {
           this.selectedCampaign = updated;
           this.renderDetail(updated);
         }
+      }
+
+      // Live-sync: if a combat is currently broadcasting for an encounter
+      // belonging to this campaign, push the new visibility to players right away.
+      const enc = window.encountersView?.combatView;
+      if (enc?.isActive && enc.currentEncounter?.campaign_id === this.editingId) {
+        enc.currentCampaign = { ...(enc.currentCampaign || {}), combat_visibility };
+        enc.broadcastState();
       }
     } catch (error) {
       console.error("Failed to save campaign:", error);
@@ -839,6 +967,17 @@ class EncountersView {
       btnCloseModal: document.getElementById("btn-close-encounter-modal"),
       modalOverlay: document.getElementById("encounter-modal-overlay"),
 
+      // Music picker
+      musicUrlInput: document.getElementById("encounter-music-url"),
+      musicFileInput: document.getElementById("encounter-music-file"),
+      musicStatus: document.getElementById("encounter-music-status"),
+      btnMusicRemove: document.getElementById("btn-encounter-music-remove"),
+      btnSaveEncounter: document.getElementById("btn-save-encounter-form"),
+
+      // Visibility override
+      visibilityOverrideToggle: document.getElementById("encounter-visibility-override"),
+      visibilityGrid: document.getElementById("encounter-visibility-grid"),
+
       // Background image picker
       bgInput: document.getElementById("encounter-background-image"),
       bgTabs: document.querySelectorAll(".encounter-bg-tab"),
@@ -884,9 +1023,18 @@ class EncountersView {
       sectionEnemies: document.getElementById("section-enemies"),
     };
 
+    // Visibility override checkboxes (4 fields × 3 affinities)
+    this.DOM.visibilityOverride = {};
+    for (const aff of VISIBILITY_AFFINITIES) {
+      this.DOM.visibilityOverride[aff] = {};
+      for (const field of VISIBILITY_FIELDS) {
+        this.DOM.visibilityOverride[aff][field] = document.getElementById(`enc-vis-${aff}-${field}`);
+      }
+    }
+
     // Verify critical elements
     Object.entries(this.DOM).forEach(([key, el]) => {
-      if (!el && key !== 'tabs' && key !== 'tabContents') {
+      if (!el && key !== 'tabs' && key !== 'tabContents' && key !== 'visibilityOverride') {
         console.warn(`EncountersView: Element not found: ${key}`);
       }
     });
@@ -944,6 +1092,31 @@ class EncountersView {
     });
     this.DOM.btnBgUpload?.addEventListener("click", () => this.DOM.bgFile?.click());
     this.DOM.bgFile?.addEventListener("change", (e) => this.handleBgFileSelect(e));
+
+    // Music remove button
+    this.DOM.btnMusicRemove?.addEventListener("click", () => {
+      if (this.DOM.musicUrlInput) this.DOM.musicUrlInput.value = "";
+      if (this.DOM.musicFileInput) this.DOM.musicFileInput.value = "";
+      this.updateMusicStatusUI();
+    });
+
+    // Visibility override toggle
+    this.DOM.visibilityOverrideToggle?.addEventListener("change", () => {
+      this.applyVisibilityOverrideToggleState();
+    });
+
+    // Auto-activate override toggle when user clicks any visibility checkbox
+    for (const aff of VISIBILITY_AFFINITIES) {
+      for (const field of VISIBILITY_FIELDS) {
+        const cb = this.DOM.visibilityOverride?.[aff]?.[field];
+        cb?.addEventListener("change", () => {
+          if (this.DOM.visibilityOverrideToggle && !this.DOM.visibilityOverrideToggle.checked) {
+            this.DOM.visibilityOverrideToggle.checked = true;
+            this.applyVisibilityOverrideToggleState();
+          }
+        });
+      }
+    }
 
     // Search Events
     this.DOM.dbCharSearch?.addEventListener("input", (e) => this.loadDBParticipants(e.target.value));
@@ -1007,7 +1180,7 @@ class EncountersView {
   // ============================================
   // Encounter Form
   // ============================================
-  openForm(encounter = null, campaignId = null) {
+  async openForm(encounter = null, campaignId = null) {
     this.editingEncounterId = encounter ? encounter.id : null;
     this.currentCampaignId = campaignId || (encounter ? encounter.campaign_id : null);
 
@@ -1026,8 +1199,83 @@ class EncountersView {
     this.loadBgPresets();
     this.switchBgTab(bgValue.startsWith("local-image://") ? "bg-upload" : (bgValue ? "bg-gallery" : "bg-gallery"));
 
+    // Music fields
+    if (this.DOM.musicUrlInput) this.DOM.musicUrlInput.value = encounter?.music_url || "";
+    if (this.DOM.musicFileInput) this.DOM.musicFileInput.value = encounter?.music_file || "";
+    this.updateMusicStatusUI();
+
+    // Visibility override: if encounter has its own override use it, otherwise
+    // preview the campaign's default so the user sees what is being inherited.
+    const overrideJson = encounter?.combat_visibility_override || null;
+    let previewSource = overrideJson;
+    if (!overrideJson && this.currentCampaignId) {
+      try {
+        const camp = await databaseService.getCampaignById(this.currentCampaignId);
+        previewSource = camp?.combat_visibility || null;
+      } catch (err) {
+        console.warn("Falha ao carregar visibility da campanha:", err);
+      }
+    }
+    if (this.DOM.visibilityOverrideToggle) {
+      this.DOM.visibilityOverrideToggle.checked = !!overrideJson;
+    }
+    this.populateEncounterVisibility(previewSource);
+    this.applyVisibilityOverrideToggleState();
+
     this.DOM.modal?.classList.remove("hidden");
     this.DOM.nameInput?.focus();
+  }
+
+  populateEncounterVisibility(jsonStr) {
+    const vis = parseVisibility(jsonStr) || makeDefaultVisibility();
+    for (const aff of VISIBILITY_AFFINITIES) {
+      for (const field of VISIBILITY_FIELDS) {
+        const cb = this.DOM.visibilityOverride?.[aff]?.[field];
+        if (cb) cb.checked = !!vis[aff][field];
+      }
+    }
+  }
+
+  collectEncounterVisibility() {
+    if (!this.DOM.visibilityOverrideToggle?.checked) return null;
+    const vis = makeDefaultVisibility();
+    for (const aff of VISIBILITY_AFFINITIES) {
+      for (const field of VISIBILITY_FIELDS) {
+        const cb = this.DOM.visibilityOverride?.[aff]?.[field];
+        if (cb) vis[aff][field] = !!cb.checked;
+      }
+    }
+    return JSON.stringify(vis);
+  }
+
+  applyVisibilityOverrideToggleState() {
+    const enabled = !!this.DOM.visibilityOverrideToggle?.checked;
+    if (this.DOM.visibilityGrid) {
+      // Visual hint only — checkboxes remain clickable to auto-activate the toggle
+      this.DOM.visibilityGrid.classList.toggle("visibility-grid--inherit", !enabled);
+    }
+  }
+
+  updateMusicStatusUI() {
+    const hasFile = !!(this.DOM.musicFileInput && this.DOM.musicFileInput.value);
+    if (this.DOM.btnMusicRemove) {
+      this.DOM.btnMusicRemove.hidden = !hasFile;
+    }
+    if (this.DOM.musicStatus) {
+      if (hasFile) {
+        this.DOM.musicStatus.textContent = "✓ Música baixada e pronta para tocar.";
+        this.DOM.musicStatus.className = "form-help form-help--ok";
+      } else {
+        this.DOM.musicStatus.textContent = "";
+        this.DOM.musicStatus.className = "form-help";
+      }
+    }
+  }
+
+  setMusicStatus(text, kind = "") {
+    if (!this.DOM.musicStatus) return;
+    this.DOM.musicStatus.textContent = text || "";
+    this.DOM.musicStatus.className = "form-help" + (kind ? ` form-help--${kind}` : "");
   }
 
   switchBgTab(panelId) {
@@ -1149,6 +1397,28 @@ class EncountersView {
 
   async handleSubmit(e) {
     e.preventDefault();
+
+    const newMusicUrl = (this.DOM.musicUrlInput?.value || "").trim();
+    const existingMusicFile = this.DOM.musicFileInput?.value || "";
+    const previousMusicUrl = this.editingEncounterId
+      ? (this.currentEncounter?.music_url || "")
+      : "";
+    const musicChanged = newMusicUrl !== previousMusicUrl;
+
+    // Validate URL early before saving anything
+    if (newMusicUrl && musicChanged) {
+      try {
+        const valid = await window.dmCopilot.db.encounters.validateYouTubeUrl(newMusicUrl);
+        if (!valid) {
+          this.setMusicStatus("URL do YouTube inválida.", "error");
+          return;
+        }
+      } catch (err) {
+        this.setMusicStatus("Erro ao validar URL.", "error");
+        return;
+      }
+    }
+
     const encounterData = {
       campaign_id: this.currentCampaignId,
       name: this.DOM.nameInput.value.trim(),
@@ -1156,25 +1426,60 @@ class EncountersView {
       location: this.DOM.locationInput.value.trim(),
       description: this.DOM.descInput.value.trim(),
       background_image: this.DOM.bgInput?.value || null,
+      music_url: newMusicUrl || null,
+      // music_file is set after download below; for now, preserve existing
+      music_file: existingMusicFile || null,
+      combat_visibility_override: this.collectEncounterVisibility(),
       monsters: this.editingEncounterId ? this.participants : []
     };
 
-    try {
-      if (this.editingEncounterId) {
-        await databaseService.updateEncounter(this.editingEncounterId, encounterData);
-        showToast("Encontro atualizado!");
-      } else {
-        await databaseService.createEncounter(encounterData);
-        showToast("Encontro criado!");
+    // If music URL was cleared or changed, drop the old file (don't keep stale audio)
+    if (musicChanged && existingMusicFile) {
+      try {
+        await window.dmCopilot.db.encounters.deleteMusic(existingMusicFile);
+      } catch (err) {
+        console.warn("Falha ao remover música antiga:", err);
       }
+      encounterData.music_file = null;
+    }
+
+    const submitBtn = this.DOM.btnSaveEncounter;
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      let encounterId = this.editingEncounterId;
+      if (encounterId) {
+        await databaseService.updateEncounter(encounterId, encounterData);
+      } else {
+        const created = await databaseService.createEncounter(encounterData);
+        encounterId = created?.id;
+      }
+
+      // Download new music if needed (after save, since we need encounterId)
+      if (newMusicUrl && musicChanged && encounterId) {
+        this.setMusicStatus("⏳ Baixando música... (pode levar alguns segundos)", "");
+        const result = await window.dmCopilot.db.encounters.downloadMusic(newMusicUrl, encounterId);
+        if (result?.success) {
+          encounterData.music_file = result.fileName;
+          await databaseService.updateEncounter(encounterId, { music_file: result.fileName });
+          if (this.DOM.musicFileInput) this.DOM.musicFileInput.value = result.fileName;
+          this.updateMusicStatusUI();
+        } else {
+          this.setMusicStatus(`✗ ${result?.error || "Falha ao baixar música."}`, "error");
+          showToast("Encontro salvo, mas a música não pôde ser baixada", "error");
+          if (submitBtn) submitBtn.disabled = false;
+          return;
+        }
+      }
+
+      showToast(this.editingEncounterId ? "Encontro atualizado!" : "Encontro criado!");
       this.closeForm();
-      // Reload campaign view if active
+
       if (window.campaignsView && window.campaignsView.selectedCampaign) {
         window.campaignsView.loadCampaignEncounters(this.currentCampaignId);
       }
-      
-      // Update detail view if active
-      if (this.currentEncounter && this.currentEncounter.id === this.editingEncounterId) {
+
+      if (this.currentEncounter && this.currentEncounter.id === encounterId) {
         this.currentEncounter = { ...this.currentEncounter, ...encounterData };
         this.renderManagerHeader();
         this.applyManagerBackground();
@@ -1183,6 +1488,8 @@ class EncountersView {
     } catch (error) {
       console.error("Save encounter failed:", error);
       showToast("Erro ao salvar encontro", "error");
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
   }
 

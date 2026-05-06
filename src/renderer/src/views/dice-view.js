@@ -3,7 +3,7 @@
  * Manages 3D dice selection, rolling, and results
  */
 
-import DiceBox from "@3d-dice/dice-box";
+import DiceBox from "@3d-dice/dice-box-threejs";
 
 export default class DiceView {
   constructor() {
@@ -48,20 +48,21 @@ export default class DiceView {
 
   async initDiceBox() {
     try {
-      this.diceBox = new DiceBox({
-        container: "#dice-box",
-        assetPath: "/dice-box/",
-        theme: "default",
-        themeColor: "#7c3aed",
-        offscreen: false,
-        scale: 6,
+      // dice-box-threejs takes the container as first arg + a config object.
+      // Predeterministic rolls are supported via the "@" syntax in roll(notation).
+      this.diceBox = new DiceBox("#dice-box", {
+        framerate: 1 / 60,
+        sounds: false,
         shadows: true,
-        gravity: 2,
-        startingHeight: 12
+        theme_surface: "green-felt",
+        theme_colorset: "white",
+        theme_material: "plastic",
+        gravity_multiplier: 400,
+        light_intensity: 0.7,
+        baseScale: 100,
+        strength: 1,
       });
-
-      await this.diceBox.init();
-      console.log("DiceBox initialized with assetPath: /dice-box/");
+      console.log("DiceBox-threejs initialized");
     } catch (error) {
       console.error("Failed to initialize DiceBox:", error);
     }
@@ -195,26 +196,46 @@ export default class DiceView {
       }
       
       if (this.diceBox) {
-        await this.diceBox.clear();
+        this.diceBox.clearDice?.();
       }
 
-      console.log("Processing queued roll:", currentRoll.notation);
-      
-      // Broadcast roll to players
-      if (window.api) {
-        window.api.send("db-dice-broadcast", {
-          notation: currentRoll.notation,
+      // The notation in queue is an array like ["1d20"] or ["2d6", "1d4"].
+      // dice-box-threejs accepts a single string with "+" between groups: "2d6+1d4".
+      const notationStr = Array.isArray(currentRoll.notation)
+        ? currentRoll.notation.join("+")
+        : String(currentRoll.notation || "");
+
+      console.log("Processing queued roll:", notationStr);
+
+      // Roll once on the master to capture authoritative results.
+      const rollResult = await this.diceBox.roll(notationStr);
+      console.log("Roll result:", rollResult);
+
+      // Build a notation with predetermined values, e.g. "2d6@4,5" + "1d4@3"
+      // The roll result format from dice-box-threejs is { rolls: [{rollDieType, value}, ...] }
+      const broadcastNotation = this.buildPresetNotation(currentRoll.notation, rollResult);
+
+      const hasBroadcast = !!window.dmCopilot?.combat?.broadcast;
+      console.log(
+        `[DM→broadcast] dice-roll notation=${JSON.stringify(broadcastNotation)}, hasBroadcast=${hasBroadcast}`
+      );
+      if (hasBroadcast) {
+        window.dmCopilot.combat.broadcast("dice-roll", {
+          notation: broadcastNotation,
           themeColor: currentRoll.themeColor,
-          characterName: currentRoll.characterName
+          characterName: currentRoll.characterName,
         });
+      } else {
+        console.warn(
+          "[DM→broadcast] window.dmCopilot.combat.broadcast indisponível — rolagem não sincronizada"
+        );
       }
 
-      const results = await this.diceBox.roll(currentRoll.notation, {
-        themeColor: currentRoll.themeColor
-      });
-      
+      // Adapt the result shape for displayResults (which expects an array of {value, sides})
+      const adaptedResults = this.adaptRollResult(rollResult);
+
       // Pass the bonus and characterName captured when roll was clicked
-      this.displayResults(results, currentRoll.bonus, currentRoll.characterName);
+      this.displayResults(adaptedResults, currentRoll.bonus, currentRoll.characterName);
       
       // Wait a bit for the toast to be seen before next roll if queue exists
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -246,6 +267,61 @@ export default class DiceView {
     
     if (diceParts.length === 0) return null;
     return diceParts;
+  }
+
+  /**
+   * Build a notation string with predetermined values for syncing to the player.
+   * Input:
+   *   notationArray: ["2d6", "1d4"]
+   *   rollResult: { rolls: [{rollDieType:"d6", value:3}, {rollDieType:"d6", value:5}, {rollDieType:"d4", value:2}] }
+   * Output: "2d6@3,5+1d4@2"
+   */
+  buildPresetNotation(notationArray, rollResult) {
+    if (!rollResult || !Array.isArray(rollResult.rolls)) {
+      return Array.isArray(notationArray) ? notationArray.join("+") : String(notationArray);
+    }
+
+    const groups = Array.isArray(notationArray) ? notationArray : [notationArray];
+    const remainingRolls = [...rollResult.rolls];
+    const out = [];
+
+    for (const group of groups) {
+      // Parse "2d6" → qty=2, dieType="d6"
+      const m = String(group).match(/^(\d+)?(d\d+)/i);
+      if (!m) {
+        out.push(group);
+        continue;
+      }
+      const qty = parseInt(m[1] || "1", 10);
+      const dieType = m[2].toLowerCase();
+      const values = [];
+      for (let i = 0; i < qty && remainingRolls.length > 0; i++) {
+        // Try to find a roll that matches the die type
+        const idx = remainingRolls.findIndex(
+          (r) => String(r.rollDieType || r.die || "").toLowerCase() === dieType
+        );
+        if (idx >= 0) {
+          values.push(remainingRolls.splice(idx, 1)[0].value);
+        } else {
+          values.push(remainingRolls.shift().value);
+        }
+      }
+      out.push(`${qty}${dieType}@${values.join(",")}`);
+    }
+
+    return out.join("+");
+  }
+
+  /**
+   * Adapt dice-box-threejs result shape into the legacy [{value, sides}, ...]
+   * shape that displayResults expects.
+   */
+  adaptRollResult(rollResult) {
+    if (!rollResult || !Array.isArray(rollResult.rolls)) return [];
+    return rollResult.rolls.map((r) => ({
+      value: r.value,
+      sides: parseInt(String(r.rollDieType || r.die || "d20").replace(/\D/g, ""), 10) || 20,
+    }));
   }
 
   async displayResults(results, bonus = 0, characterName = null) {

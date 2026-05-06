@@ -34,9 +34,23 @@ function copyDatabasePlugin() {
   };
 }
 
+function copyServicesPlugin() {
+  return {
+    name: "copy-services",
+    closeBundle() {
+      const srcDir = resolve(__dirname, "src/main/services");
+      const outDir = resolve(__dirname, "out/main/services");
+      if (existsSync(srcDir)) {
+        copyDirectory(srcDir, outDir);
+        console.log("Service files copied to output!");
+      }
+    }
+  };
+}
+
 module.exports = defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin(), copyDatabasePlugin()],
+    plugins: [externalizeDepsPlugin(), copyDatabasePlugin(), copyServicesPlugin()],
     build: {
       outDir: resolve(__dirname, "out/main"),
       rollupOptions: {

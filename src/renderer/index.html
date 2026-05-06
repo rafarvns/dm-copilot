@@ -190,6 +190,43 @@
             <label for="campaign-description" class="form-label">Descrição</label>
             <textarea id="campaign-description" class="form-textarea" rows="4" placeholder="Descreva a premissa, cenário e o tom da campanha..."></textarea>
           </div>
+
+          <fieldset class="form-group visibility-grid" id="campaign-visibility-grid">
+            <legend class="form-label">Visibilidade na tela do jogador</legend>
+            <p class="form-help">Define quais dados ficam visíveis para os jogadores durante o combate. Imagem e cor (afinidade) sempre aparecem.</p>
+            <table class="visibility-table">
+              <thead>
+                <tr><th></th><th>Aliados</th><th>Neutros</th><th>Inimigos</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>Nome</th>
+                  <td><input type="checkbox" id="vis-ally-name" /></td>
+                  <td><input type="checkbox" id="vis-neutral-name" /></td>
+                  <td><input type="checkbox" id="vis-enemy-name" /></td>
+                </tr>
+                <tr>
+                  <th>Iniciativa</th>
+                  <td><input type="checkbox" id="vis-ally-initiative" /></td>
+                  <td><input type="checkbox" id="vis-neutral-initiative" /></td>
+                  <td><input type="checkbox" id="vis-enemy-initiative" /></td>
+                </tr>
+                <tr>
+                  <th>HP</th>
+                  <td><input type="checkbox" id="vis-ally-hp" /></td>
+                  <td><input type="checkbox" id="vis-neutral-hp" /></td>
+                  <td><input type="checkbox" id="vis-enemy-hp" /></td>
+                </tr>
+                <tr>
+                  <th>CA</th>
+                  <td><input type="checkbox" id="vis-ally-ca" /></td>
+                  <td><input type="checkbox" id="vis-neutral-ca" /></td>
+                  <td><input type="checkbox" id="vis-enemy-ca" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </fieldset>
+
           <div class="modal__footer">
             <button type="button" class="btn btn--secondary" id="btn-cancel-form">Cancelar</button>
             <button type="submit" class="btn btn--primary" id="btn-save-form">
@@ -376,9 +413,202 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label for="encounter-music-url" class="form-label">Música de Fundo (YouTube)</label>
+            <div class="encounter-music-row">
+              <input type="url" id="encounter-music-url" class="form-input" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" />
+              <button type="button" class="btn btn--secondary" id="btn-encounter-music-remove" hidden>Remover</button>
+            </div>
+            <span id="encounter-music-status" class="form-help"></span>
+            <input type="hidden" id="encounter-music-file" />
+          </div>
+
+          <fieldset class="form-group visibility-grid">
+            <legend class="form-label">Visibilidade na tela do jogador</legend>
+            <label class="form-check">
+              <input type="checkbox" id="encounter-visibility-override" />
+              <span>Sobrescrever a configuração da campanha</span>
+            </label>
+            <div id="encounter-visibility-grid" class="visibility-grid--inherit">
+              <table class="visibility-table">
+                <thead>
+                  <tr><th></th><th>Aliados</th><th>Neutros</th><th>Inimigos</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th>Nome</th>
+                    <td><input type="checkbox" id="enc-vis-ally-name" /></td>
+                    <td><input type="checkbox" id="enc-vis-neutral-name" /></td>
+                    <td><input type="checkbox" id="enc-vis-enemy-name" /></td>
+                  </tr>
+                  <tr>
+                    <th>Iniciativa</th>
+                    <td><input type="checkbox" id="enc-vis-ally-initiative" /></td>
+                    <td><input type="checkbox" id="enc-vis-neutral-initiative" /></td>
+                    <td><input type="checkbox" id="enc-vis-enemy-initiative" /></td>
+                  </tr>
+                  <tr>
+                    <th>HP</th>
+                    <td><input type="checkbox" id="enc-vis-ally-hp" /></td>
+                    <td><input type="checkbox" id="enc-vis-neutral-hp" /></td>
+                    <td><input type="checkbox" id="enc-vis-enemy-hp" /></td>
+                  </tr>
+                  <tr>
+                    <th>CA</th>
+                    <td><input type="checkbox" id="enc-vis-ally-ca" /></td>
+                    <td><input type="checkbox" id="enc-vis-neutral-ca" /></td>
+                    <td><input type="checkbox" id="enc-vis-enemy-ca" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </fieldset>
+
           <div class="modal__footer">
             <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">Cancelar</button>
             <button type="submit" class="btn btn--primary" id="btn-save-encounter-form">
+              <span class="btn__icon">💾</span> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Scene Detail View (Viewer) — usado pela feature Campaigns -->
+    <div id="scene-detail-view" class="overlay-view hidden">
+      <div class="scene-viewer">
+        <div class="scene-viewer__hero" id="scene-viewer-hero">
+          <div class="scene-viewer__hero-overlay"></div>
+          <div class="scene-viewer__hero-content">
+            <div class="scene-viewer__topbar">
+              <button class="btn-icon scene-viewer__back" id="btn-close-scene-detail" title="Voltar">⬅️</button>
+              <div class="scene-viewer__topbar-actions">
+                <button class="btn btn--secondary" id="btn-edit-scene-current">
+                  <span class="btn__icon">✏️</span> Editar
+                </button>
+                <button class="btn btn--primary" id="btn-present-scene" title="Em breve: enviar cena para a tela dos jogadores">
+                  <span class="btn__icon">🎬</span> Apresentar aos Jogadores
+                </button>
+              </div>
+            </div>
+            <!-- Recebe o #dice-toolbar (movido do encontro) enquanto a cena está aberta -->
+            <div id="scene-dice-row" class="scene-viewer__dice-row"></div>
+            <div class="scene-viewer__title-block">
+              <span class="scene-viewer__eyebrow">Cena</span>
+              <h1 class="scene-viewer__title" id="view-scene-name">Nome da Cena</h1>
+              <div class="scene-viewer__music-pill hidden" id="view-scene-music-pill">
+                <span class="scene-viewer__music-icon">🎵</span>
+                <span class="scene-viewer__music-label">Trilha sonora pronta</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scene-viewer__body">
+          <section class="scene-viewer__main">
+            <div class="scene-viewer__section">
+              <h3 class="scene-viewer__section-title">Descrição</h3>
+              <p class="scene-viewer__description" id="view-scene-description"></p>
+            </div>
+
+            <div class="scene-viewer__section">
+              <div class="scene-viewer__notes-header">
+                <h3 class="scene-viewer__section-title">📝 Anotações do Mestre</h3>
+                <div class="scene-viewer__notes-actions">
+                  <button class="btn btn--secondary btn--sm" id="btn-edit-scene-notes">Editar</button>
+                  <button class="btn btn--primary btn--sm hidden" id="btn-save-scene-notes">Salvar</button>
+                  <button class="btn btn--secondary btn--sm hidden" id="btn-cancel-scene-notes">Cancelar</button>
+                </div>
+              </div>
+              <div class="scene-viewer__notes-display" id="view-scene-notes-display">
+                <p class="scene-viewer__notes-empty">Nenhuma anotação ainda. Clique em <strong>Editar</strong> para escrever lembretes, ganchos da cena, segredos do mestre etc.</p>
+              </div>
+              <textarea id="view-scene-notes-edit" class="scene-viewer__notes-edit hidden" rows="10" placeholder="Escreva suas anotações para esta cena..."></textarea>
+            </div>
+          </section>
+
+          <aside class="scene-viewer__sidebar">
+            <div class="scene-viewer__panel">
+              <h4 class="scene-viewer__panel-title">🎭 Cenas Conectadas</h4>
+              <div class="scene-viewer__chips" id="view-scene-linked-scenes">
+                <span class="scene-viewer__empty">Nenhuma ligação.</span>
+              </div>
+            </div>
+
+            <div class="scene-viewer__panel">
+              <h4 class="scene-viewer__panel-title">⚔️ Encontros</h4>
+              <div class="scene-viewer__chips" id="view-scene-linked-encounters">
+                <span class="scene-viewer__empty">Nenhum encontro vinculado.</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene Form Modal -->
+    <div id="scene-modal" class="modal hidden">
+      <div class="modal__overlay" id="scene-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title" id="scene-modal-title">Nova Cena</h2>
+          <button class="modal__close" id="btn-close-scene-modal">&times;</button>
+        </div>
+        <form id="scene-form">
+          <input type="hidden" id="scene-id" />
+          <div class="form-group">
+            <label for="scene-name" class="form-label">Nome da Cena <span class="form-required">*</span></label>
+            <input type="text" id="scene-name" class="form-input" required placeholder="Ex: A Taverna do Javali Dourado" autocomplete="off" />
+            <span class="form-error" id="error-scene-name"></span>
+          </div>
+          <div class="form-group">
+            <label for="scene-description" class="form-label">Descrição <span class="form-required">*</span></label>
+            <textarea id="scene-description" class="form-textarea" rows="4" required placeholder="Atmosfera, personagens presentes, gancho da cena..."></textarea>
+            <span class="form-error" id="error-scene-description"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Imagem (opcional)</label>
+            <input type="hidden" id="scene-background-image" />
+            <input type="file" id="scene-bg-file" accept="image/*" class="hidden" />
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn--secondary" id="btn-scene-bg-upload">
+                <span class="btn__icon">📁</span> Escolher arquivo
+              </button>
+              <button type="button" class="btn btn--secondary btn--sm" id="btn-scene-bg-clear" hidden>Remover</button>
+              <span id="scene-bg-upload-name" class="text-muted ml-2"></span>
+            </div>
+            <div id="scene-bg-preview-wrapper" class="encounter-bg-preview-wrapper hidden mt-2">
+              <span class="form-label">Pré-visualização:</span>
+              <div id="scene-bg-preview" class="encounter-bg-preview"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="scene-music-url" class="form-label">Música de Fundo (YouTube, opcional)</label>
+            <div class="encounter-music-row">
+              <input type="url" id="scene-music-url" class="form-input" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" />
+              <button type="button" class="btn btn--secondary" id="btn-scene-music-remove" hidden>Remover</button>
+            </div>
+            <span id="scene-music-status" class="form-help"></span>
+            <input type="hidden" id="scene-music-file" />
+          </div>
+
+          <div class="form-group">
+            <label for="scene-related-scenes" class="form-label">Cenas relacionadas (opcional)</label>
+            <select id="scene-related-scenes" class="form-select" multiple size="5"></select>
+            <span class="form-help text-muted">Segure Ctrl (ou ⌘) para selecionar várias.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="scene-related-encounters" class="form-label">Encontros relacionados (opcional)</label>
+            <select id="scene-related-encounters" class="form-select" multiple size="5"></select>
+            <span class="form-help text-muted">Segure Ctrl (ou ⌘) para selecionar vários.</span>
+          </div>
+
+          <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" id="btn-cancel-scene-form">Cancelar</button>
+            <button type="submit" class="btn btn--primary" id="btn-save-scene-form">
               <span class="btn__icon">💾</span> Salvar
             </button>
           </div>
@@ -456,6 +686,28 @@
       </div>
     </div>
 
+    <!-- Death Save Modal -->
+    <div id="modal-death-save" class="modal hidden">
+      <div class="modal__overlay" id="death-save-modal-overlay"></div>
+      <div class="modal__content modal__content--sm">
+        <div class="modal__header">
+          <h2 class="modal__title">💀 Teste de Resistência contra Morte</h2>
+          <button class="modal__close" id="btn-close-death-save-modal">&times;</button>
+        </div>
+        <div class="modal__body">
+          <p id="death-save-prompt" class="mb-4">Resultado da rolagem (d20):</p>
+          <div class="form-group">
+            <input type="number" id="input-death-save-value" class="form-input" min="1" max="20" step="1" value="10" />
+          </div>
+          <p class="form-help">≥10 = sucesso · &lt;10 = falha · 1 = duas falhas · 20 = recupera 1 HP</p>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--secondary" id="btn-roll-death-save">🎲 Rolar (d20)</button>
+          <button class="btn btn--primary" id="btn-confirm-death-save">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Initiative Entry Modal -->
     <div id="modal-initiative" class="modal hidden">
       <div class="modal__overlay" id="initiative-modal-overlay"></div>
@@ -514,6 +766,23 @@
 
     <!-- Toast notifications (global) -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- Presentation Conflict Modal -->
+    <div id="modal-presentation-conflict" class="modal hidden">
+      <div class="modal__overlay" id="presentation-conflict-overlay"></div>
+      <div class="modal__content modal__content--sm">
+        <div class="modal__header">
+          <h2 class="modal__title">Apresentação em Andamento</h2>
+        </div>
+        <div class="modal__body">
+          <p id="presentation-conflict-body"></p>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--secondary" id="btn-presentation-conflict-cancel">Cancelar</button>
+          <button class="btn btn--danger" id="btn-presentation-conflict-replace">Substituir</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="/src/main.js"></script>
   </body>
