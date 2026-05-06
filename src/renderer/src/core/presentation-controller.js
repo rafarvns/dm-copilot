@@ -33,6 +33,28 @@ export default class PresentationController {
     this.current = null;
   }
 
+  /**
+   * Registra a presentation atual SEM disparar `start()`. Usado quando o
+   * estado já está ativo no app (ex: mestre reabre um encontro com combate
+   * em andamento — a presentation existe conceitualmente, só precisamos
+   * que o controller saiba dela para futuros conflitos).
+   */
+  adoptPresentation({ type, label, stop }) {
+    if (this.current && this.current.type === type && this.current.label === label) {
+      // Já adotada — só atualiza a callback de stop.
+      this.current.stop = stop;
+      return;
+    }
+    if (this.current?.stop) {
+      // Outra presentation ativa — encerra silenciosamente, sem modal.
+      try { this.current.stop(); } catch (err) {
+        console.warn("adoptPresentation: falha ao parar a presentation anterior:", err);
+      }
+    }
+    this.current = { type, label, stop };
+    this._pending = null;
+  }
+
   _showConflictModal() {
     if (this._bodyEl) {
       this._bodyEl.textContent = `Há uma apresentação em andamento: "${this.current.label}". Deseja substituí-la?`;

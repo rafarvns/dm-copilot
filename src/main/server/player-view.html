@@ -191,6 +191,25 @@
             display: block;
         }
 
+        /* Slots do pool paralelo do player view — múltiplas animações 3D
+           simultâneas sobre o mesmo overlay. Canvas transparentes empilhados. */
+        .dice-box-parallel-slot {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .dice-box-parallel-slot canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            background: transparent;
+        }
+
         /* Layout */
         .header {
             width: 100%;
@@ -1162,6 +1181,96 @@
 
         initDice();
 
+        // ---- Pool paralelo (espelha o master): permite múltiplas animações
+        // 3D simultâneas no player view, sem clobbar quando vários eventos
+        // dice-roll chegam em sequência. ----
+        const PARALLEL_DICE_LIMIT = 4;
+        const parallelDicePool = [];
+
+        async function createParallelDiceSlot(idx) {
+            // Reserva o slot ANTES do await pra evitar criação duplicada
+            // se acquireParallelDiceSlot for chamado durante o init.
+            parallelDicePool[idx] = { id: idx, busy: true, initializing: true };
+
+            const container = document.createElement('div');
+            container.id = `dice-box-parallel-${idx}`;
+            container.className = 'dice-box-parallel-slot';
+            document.body.appendChild(container);
+
+            const db = new DiceBox(`#dice-box-parallel-${idx}`, {
+                framerate: 1 / 60,
+                sounds: false,
+                shadows: false,
+                theme_surface: "green-felt",
+                theme_colorset: "white",
+                theme_material: "plastic",
+                gravity_multiplier: 400,
+                light_intensity: 0.7,
+                baseScale: 140,
+                strength: 4,
+            });
+            try {
+                await db.initialize();
+            } catch (err) {
+                console.error("[Player] Falha ao inicializar slot paralelo:", err);
+                parallelDicePool[idx] = null;
+                container.remove();
+                return null;
+            }
+            if (db.desk) db.desk.visible = false;
+
+            const slot = { id: idx, container, diceBox: db, busy: false };
+            parallelDicePool[idx] = slot;
+            return slot;
+        }
+
+        // Pré-aquece o pool em background SERIAL com pequeno stagger entre
+        // slots — evita pico de compilação de shaders simultânea (que
+        // congelava a main thread por ~900ms num único frame).
+        (async () => {
+            for (let i = 0; i < PARALLEL_DICE_LIMIT; i++) {
+                await createParallelDiceSlot(i);
+                await new Promise((resolve) => {
+                    if (typeof window.requestIdleCallback === "function") {
+                        window.requestIdleCallback(resolve, { timeout: 100 });
+                    } else {
+                        setTimeout(resolve, 50);
+                    }
+                });
+            }
+            console.log(`[Player] Parallel dice pool ready (${parallelDicePool.filter(Boolean).length} slots)`);
+        })();
+
+        function findFreeParallelSlot() {
+            // Ignora slots ainda inicializando (sem diceBox).
+            return parallelDicePool.find((s) => s && !s.busy && s.diceBox) || null;
+        }
+
+        async function acquireParallelDiceSlot() {
+            let slot = findFreeParallelSlot();
+            if (slot) return slot;
+            if (parallelDicePool.filter(Boolean).length < PARALLEL_DICE_LIMIT) {
+                const idx = parallelDicePool.findIndex((s) => !s);
+                slot = await createParallelDiceSlot(idx >= 0 ? idx : parallelDicePool.length);
+                if (slot) return slot;
+            }
+            // Tudo ocupado/inicializando: espera o próximo a liberar.
+            return new Promise((resolve) => {
+                const tick = () => {
+                    const free = findFreeParallelSlot();
+                    if (free) return resolve(free);
+                    setTimeout(tick, 80);
+                };
+                tick();
+            });
+        }
+
+        function releaseParallelDiceSlot(slot) {
+            if (!slot) return;
+            try { slot.diceBox.clearDice?.(); } catch (_) {}
+            slot.busy = false;
+        }
+
         socket.on('connect', () => {
             connBadge.classList.add('connection-badge--online');
             connText.textContent = 'ONLINE';
@@ -1303,71 +1412,50 @@
         }
 
         socket.on('dice-roll', async (rollData) => {
-            console.log("[Player] dice-roll RECEBIDO | isDiceReady=" + isDiceReady + " | hasDiceBox=" + !!diceBox + " | payload=", rollData);
+            console.log("[Player] dice-roll RECEBIDO | payload=", rollData);
 
-            if (!isDiceReady) {
-                console.warn("[Player] DiceBox ainda não está pronto, aguardando até 5s...");
-                for(let i=0; i<10; i++) {
-                    await new Promise(r => setTimeout(r, 500));
-                    if (isDiceReady) {
-                        console.log("[Player] DiceBox ficou pronto após " + ((i+1)*500) + "ms de espera");
-                        break;
-                    }
-                }
+            const notationStr = Array.isArray(rollData.notation)
+                ? rollData.notation.join("+")
+                : String(rollData.notation || "");
+
+            // Adquire um slot paralelo livre (cria sob demanda até PARALLEL_DICE_LIMIT).
+            const slot = await acquireParallelDiceSlot();
+            if (!slot) {
+                console.error("[Player] Sem slot paralelo disponível para rolagem.");
+                return;
             }
 
-            if (diceBox && isDiceReady) {
-                try {
-                    // Master sends notation already in "1d20@17" format with the
-                    // authoritative values, so the player's 3D dice land on the
-                    // same numbers.
-                    const notationStr = Array.isArray(rollData.notation)
-                        ? rollData.notation.join("+")
-                        : String(rollData.notation || "");
-                    console.log("[Player] DiceBox.roll() chamando | notation=", notationStr);
-                    diceBox.clearDice && diceBox.clearDice();
-
-                    // Apply per-roll color (matches the master's affinity color).
-                    if (rollData.themeColor && diceBox.updateConfig) {
-                        try {
-                            await diceBox.updateConfig({
-                                theme_customColorset: {
-                                    background: [rollData.themeColor],
-                                    foreground: "#ffffff",
-                                    material: "plastic",
-                                    edges: "#000000",
-                                    texture: "none",
-                                },
-                            });
-                        } catch (e) {
-                            console.warn("Falha ao aplicar cor:", e);
-                        }
+            slot.busy = true;
+            try {
+                if (rollData.themeColor && slot.diceBox.updateConfig) {
+                    try {
+                        await slot.diceBox.updateConfig({
+                            theme_customColorset: {
+                                background: [rollData.themeColor],
+                                foreground: "#ffffff",
+                                material: "plastic",
+                                edges: "#000000",
+                                texture: "none",
+                            },
+                        });
+                    } catch (e) {
+                        console.warn("[Player] Falha ao aplicar cor:", e);
                     }
-
-                    // Randomize throw strength for natural-looking tumbling.
-                    diceBox.strength = 3 + Math.random() * 4; // 3.0 .. 7.0
-
-                    const results = await diceBox.roll(notationStr);
-                    console.log("[Player] DiceBox.roll() OK | results=", results);
-
-                    // Show result panel on player view
-                    showPlayerRollPanel({
-                        characterName: rollData.characterName,
-                        results: results,
-                        themeColor: rollData.themeColor,
-                    });
-
-                    // Auto-clear the 3D dice after a few seconds so they don't
-                    // pile up on the table (matches the master's hideToast → clearDice flow).
-                    if (clearDiceTimer) clearTimeout(clearDiceTimer);
-                    clearDiceTimer = setTimeout(() => {
-                        diceBox.clearDice && diceBox.clearDice();
-                    }, 4500);
-                } catch (err) {
-                    console.error("[Player] Erro ao executar rolagem no DiceBox:", err);
                 }
-            } else {
-                console.error("[Player] DiceBox indisponível para rolagem | diceBox=" + !!diceBox + " | isDiceReady=" + isDiceReady);
+
+                slot.diceBox.strength = 3 + Math.random() * 4;
+                const results = await slot.diceBox.roll(notationStr);
+
+                showPlayerRollPanel({
+                    characterName: rollData.characterName,
+                    results: results,
+                    themeColor: rollData.themeColor,
+                });
+            } catch (err) {
+                console.error("[Player] Erro ao executar rolagem no slot paralelo:", err);
+            } finally {
+                // Mantém os dados visíveis por um instante antes de limpar o slot.
+                setTimeout(() => releaseParallelDiceSlot(slot), 2500);
             }
         });
 

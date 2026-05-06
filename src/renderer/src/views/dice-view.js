@@ -15,9 +15,19 @@ export default class DiceView {
     this.isProcessingQueue = false;
     this.queue = [];
 
+    // Pool de instâncias DiceBox para rolagens 3D PARALELAS (várias animações
+    // ao mesmo tempo na tela). Cada slot tem seu próprio canvas/scene/world,
+    // e o feltro é escondido para os canvas se sobreporem corretamente.
+    // Usado pelas rolagens individuais (rollProgrammatic). O botão ROLL e
+    // os batches continuam usando a fila principal (this.diceBox).
+    this.parallelPool = [];
+    this.MAX_PARALLEL_SLOTS = 4;
+
     this.initDOM();
     this.initDiceBox();
     this.bindEvents();
+    // Pré-aquece o pool em background — não bloqueia a UI nem o startup.
+    this.warmupParallelPool();
   }
 
   initDOM() {
@@ -67,6 +77,156 @@ export default class DiceView {
       console.log("DiceBox-threejs initialized");
     } catch (error) {
       console.error("Failed to initialize DiceBox:", error);
+    }
+  }
+
+  // ---------------- Parallel Pool ----------------
+
+  async createParallelSlot(idx) {
+    const overlay = this.DOM.overlay;
+    if (!overlay) return null;
+
+    // Reserva o slot ANTES de qualquer await — assim acquireParallelSlot
+    // não pega o mesmo idx e dispara uma criação duplicada.
+    this.parallelPool[idx] = { id: idx, busy: true, initializing: true };
+
+    const container = document.createElement("div");
+    container.id = `dice-box-parallel-${idx}`;
+    container.className = "dice-box-parallel-slot";
+    overlay.appendChild(container);
+
+    const db = new DiceBox(`#dice-box-parallel-${idx}`, {
+      framerate: 1 / 60,
+      sounds: false,
+      shadows: false, // sombras desabilitadas pra reduzir custo (4 contextos WebGL)
+      theme_surface: "green-felt",
+      theme_colorset: "white",
+      theme_material: "plastic",
+      gravity_multiplier: 400,
+      light_intensity: 0.7,
+      baseScale: 140,
+      strength: 4,
+    });
+    try {
+      await db.initialize();
+    } catch (err) {
+      console.error("Falha ao inicializar slot paralelo:", err);
+      this.parallelPool[idx] = null;
+      container.remove();
+      return null;
+    }
+    // Esconde o feltro/desk dessa instância — assim os canvas se sobrepõem
+    // sem o feltro de um cobrir os dados do outro. O canvas em si já é
+    // transparente (alpha: true, clearColor 0,0).
+    if (db.desk) db.desk.visible = false;
+
+    const slot = { id: idx, container, diceBox: db, busy: false };
+    this.parallelPool[idx] = slot;
+    return slot;
+  }
+
+  async warmupParallelPool() {
+    // Init SERIAL com pequeno stagger entre slots — evita o spike de ~900 ms
+    // de compilação de shaders em paralelo (que congelava a main thread).
+    // O custo total fica espalhado em ~750 ms ao invés de concentrado.
+    for (let i = 0; i < this.MAX_PARALLEL_SLOTS; i++) {
+      await this.createParallelSlot(i);
+      await new Promise((resolve) => {
+        if (typeof window.requestIdleCallback === "function") {
+          window.requestIdleCallback(resolve, { timeout: 100 });
+        } else {
+          setTimeout(resolve, 50);
+        }
+      });
+    }
+    console.log(`Parallel dice pool ready (${this.parallelPool.filter(Boolean).length} slots)`);
+  }
+
+  async acquireParallelSlot() {
+    // Slot pronto e ocioso? (ignora slots ainda inicializando — sem diceBox)
+    const ready = this.parallelPool.find((s) => s && !s.busy && s.diceBox);
+    if (ready) return ready;
+
+    // Pool ainda não lotado? Cria mais um sob demanda.
+    const total = this.parallelPool.filter(Boolean).length;
+    if (total < this.MAX_PARALLEL_SLOTS) {
+      const idx = this.parallelPool.findIndex((s) => !s);
+      const newIdx = idx >= 0 ? idx : this.parallelPool.length;
+      const created = await this.createParallelSlot(newIdx);
+      if (created) return created;
+    }
+
+    // Tudo ocupado/inicializando — aguarda o próximo a liberar.
+    return this.waitForFreeSlot();
+  }
+
+  waitForFreeSlot() {
+    return new Promise((resolve) => {
+      const tick = () => {
+        const free = this.parallelPool.find((s) => s && !s.busy && s.diceBox);
+        if (free) return resolve(free);
+        setTimeout(tick, 80);
+      };
+      tick();
+    });
+  }
+
+  releaseParallelSlot(slot) {
+    if (!slot) return;
+    try {
+      slot.diceBox.clearDice?.();
+    } catch (err) {
+      console.warn("Falha ao limpar slot paralelo:", err);
+    }
+    slot.busy = false;
+  }
+
+  /**
+   * Roda uma notação 3D num slot paralelo, sem bloquear outros slots.
+   * Cada slot tem seu próprio canvas/scene; várias rolagens simultâneas
+   * aparecem juntas na tela.
+   */
+  async rollOnParallelSlot(slot, ctx) {
+    slot.busy = true;
+    try {
+      if (ctx.themeColor && slot.diceBox.updateConfig) {
+        try {
+          await slot.diceBox.updateConfig({
+            theme_customColorset: {
+              background: [ctx.themeColor],
+              foreground: "#ffffff",
+              material: "plastic",
+              edges: "#000000",
+              texture: "none",
+            },
+          });
+        } catch (e) {
+          console.warn("Falha ao atualizar cor do dado (slot paralelo):", e);
+        }
+      }
+
+      // Broadcast ao player view (cada rolagem é um evento separado).
+      if (window.dmCopilot?.combat?.broadcast) {
+        window.dmCopilot.combat.broadcast("dice-roll", {
+          notation: ctx.presetNotation,
+          themeColor: ctx.themeColor,
+          characterName: ctx.characterName,
+        });
+      }
+
+      slot.diceBox.strength = 3 + Math.random() * 4;
+      // Mostra o overlay (fundo escurecido) caso esteja escondido.
+      this.showOverlay();
+
+      const rollResult = await slot.diceBox.roll(ctx.presetNotation);
+      const adapted = this.adaptRollResult(rollResult);
+      // Toast e persistência por rolagem (cada uma loga separadamente).
+      this.displayResults(adapted, ctx.bonus, ctx.characterName, ctx.label);
+    } catch (err) {
+      console.error("Parallel roll failed:", err);
+    } finally {
+      // Mantém os dados visíveis um pouco antes de limpar o slot.
+      setTimeout(() => this.releaseParallelSlot(slot), 2500);
     }
   }
 
@@ -199,36 +359,42 @@ export default class DiceView {
       if (this.toastTimeout) {
         clearTimeout(this.toastTimeout);
       }
-      
+
       if (this.diceBox) {
         this.diceBox.clearDice?.();
       }
 
-      // The notation in queue is an array like ["1d20"] or ["2d6", "1d4"].
-      // dice-box-threejs accepts a single string with "+" between groups: "2d6+1d4".
-      const notationStr = Array.isArray(currentRoll.notation)
-        ? currentRoll.notation.join("+")
-        : String(currentRoll.notation || "");
+      const isBatch = currentRoll.kind === "batch";
+      let presetNotation;
+      let broadcastCharacterName;
 
-      console.log("Processing queued roll:", notationStr);
-
-      // Generate authoritative values up-front (without rolling 3D yet) so we
-      // can broadcast them BEFORE the local animation starts. Both screens
-      // then roll the same predetermined notation in parallel.
-      const presetNotation = this.generatePresetNotation(notationStr);
-      console.log("Preset notation:", presetNotation);
+      if (isBatch) {
+        presetNotation = currentRoll.composite;
+        broadcastCharacterName = currentRoll.characterName || null;
+      } else {
+        // The notation in queue is an array like ["1d20"] or ["2d6", "1d4"].
+        // dice-box-threejs accepts a single string with "+" between groups: "2d6+1d4".
+        const notationStr = Array.isArray(currentRoll.notation)
+          ? currentRoll.notation.join("+")
+          : String(currentRoll.notation || "");
+        // Generate authoritative values up-front (without rolling 3D yet) so we
+        // can broadcast them BEFORE the local animation starts. Both screens
+        // then roll the same predetermined notation in parallel.
+        // If the caller already provided a preset (programmatic rolls do this
+        // so they can know the rolled value before queueing), reuse it.
+        presetNotation = currentRoll.presetNotation || this.generatePresetNotation(notationStr);
+        broadcastCharacterName = currentRoll.characterName;
+      }
+      console.log("Processing queued roll:", presetNotation, isBatch ? "(batch)" : "");
 
       // Broadcast immediately so the player view starts rolling at the same
       // time as the master (no awaiting the local 3D animation first).
       const hasBroadcast = !!window.dmCopilot?.combat?.broadcast;
-      console.log(
-        `[DM→broadcast] dice-roll notation=${JSON.stringify(presetNotation)}, hasBroadcast=${hasBroadcast}`
-      );
       if (hasBroadcast) {
         window.dmCopilot.combat.broadcast("dice-roll", {
           notation: presetNotation,
           themeColor: currentRoll.themeColor,
-          characterName: currentRoll.characterName,
+          characterName: broadcastCharacterName,
         });
       } else {
         console.warn(
@@ -259,18 +425,57 @@ export default class DiceView {
 
       // Roll locally with the same predetermined values that were broadcast.
       const rollResult = await this.diceBox.roll(presetNotation);
-      console.log("Roll result:", rollResult);
-
-      // Adapt the result shape for displayResults (group format)
       const adaptedResults = this.adaptRollResult(rollResult);
 
-      // Pass the bonus and characterName captured when roll was clicked
-      this.displayResults(adaptedResults, currentRoll.bonus, currentRoll.characterName);
-      
-      // Wait a bit for the toast to be seen before next roll if queue exists
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Auto-hide toast after 3 seconds total (unless next roll happens)
+      if (isBatch) {
+        // Toast com uma linha por personagem; o branch batch persiste por spec
+        // logo abaixo, então pedimos para displayResults pular DB save / logRoll.
+        const batchLines = currentRoll.specs.map((s) => `${s.characterName}: ${s.total}`);
+        this.displayResults(adaptedResults, 0, broadcastCharacterName, currentRoll.label, {
+          batchLines,
+          skipPersist: true,
+        });
+
+        for (const spec of currentRoll.specs) {
+          const fullNotation = `[${spec.characterName}] ${spec.label || ""} ${spec.notation}`.trim();
+          try {
+            await window.dmCopilot.db.diceRolls.save({
+              notation: fullNotation,
+              total: spec.total + (spec.bonus || 0),
+              details: `<span class="result-die"><span class="result-die__value">${spec.total}</span></span>`,
+              bonus: spec.bonus || 0,
+            });
+          } catch (err) {
+            console.error("Failed to save batch roll to history:", err);
+          }
+          if (window.encountersView?.combatView?.isActive) {
+            window.encountersView.combatView.logRoll({
+              characterName: spec.characterName,
+              notation: `${spec.label || ""} ${spec.notation}`.trim(),
+              total: spec.total + (spec.bonus || 0),
+              details: `<span class="result-die"><span class="result-die__value">${spec.total}</span></span>`,
+            });
+          }
+        }
+
+        try {
+          currentRoll.onComplete?.(currentRoll.specs.map((s) => s.total));
+        } catch (cbErr) {
+          console.warn("onComplete (batch) callback failed:", cbErr);
+        }
+      } else {
+        // Single roll path — displayResults persiste e loga internamente.
+        this.displayResults(adaptedResults, currentRoll.bonus, currentRoll.characterName, currentRoll.label);
+
+        try {
+          currentRoll.onComplete?.(currentRoll.total);
+        } catch (cbErr) {
+          console.warn("onComplete callback failed:", cbErr);
+        }
+      }
+
+      // Auto-hide toast after 3 seconds (unless another roll replaces it).
+      // Non-blocking — não atrasa a próxima rolagem na fila.
       this.toastTimeout = setTimeout(() => {
         this.hideToast();
       }, 3000);
@@ -281,7 +486,7 @@ export default class DiceView {
       this.isRolling = false;
       this.queue.shift(); // Remove processed
       this.updateQueueUI();
-      
+
       // Process next in queue
       this.processQueue();
     }
@@ -294,9 +499,152 @@ export default class DiceView {
         diceParts.push(`${count}${type}`);
       }
     }
-    
+
     if (diceParts.length === 0) return null;
     return diceParts;
+  }
+
+  /**
+   * Programmatic dice roll. Pre-rolls the value synchronously and dispatches
+   * the 3D animation to a parallel pool slot — múltiplas rolagens podem
+   * acontecer ao mesmo tempo na tela (sem fila).
+   *
+   * Returns `{ total, done }` synchronously: `total` é o valor pré-rolado
+   * (disponível imediatamente para atualizar UI), `done` é a Promise que
+   * resolve quando a animação 3D daquela rolagem termina.
+   */
+  rollProgrammatic({ notation = "1d20", characterName = null, affinity = null, bonus = 0, label = null } = {}) {
+    const themeColor = this.colorForAffinity(affinity);
+    const presetNotation = this.generatePresetNotation(notation);
+    const total = this.extractPresetTotal(presetNotation);
+
+    const ctx = { notation, presetNotation, bonus, themeColor, characterName, label, total };
+
+    const done = (async () => {
+      const slot = await this.acquireParallelSlot();
+      if (slot) {
+        await this.rollOnParallelSlot(slot, ctx);
+      } else {
+        // Fallback raro: pool indisponível — cai na fila principal.
+        await new Promise((resolve) => {
+          this.queue.push({
+            kind: "single",
+            notation, presetNotation, bonus, themeColor, characterName, label, total,
+            onComplete: () => resolve(),
+          });
+          this.updateQueueUI();
+          if (!this.isProcessingQueue) this.processQueue();
+        });
+      }
+      return total;
+    })();
+
+    return { total, done };
+  }
+
+  /**
+   * Batched programmatic dice roll. Composes N rolls into ONE 3D animation
+   * (and ONE broadcast to the player view), so a "roll all NPCs" flow can
+   * show every die falling simultaneously.
+   *
+   * @param {Array<{ notation:string, characterName?:string|null,
+   *                 affinity?:string|null, bonus?:number, label?:string|null }>} specs
+   * @returns {Promise<number[]>} totals em ordem de specs (sem bônus)
+   */
+  async rollBatch(specs) {
+    if (!Array.isArray(specs) || specs.length === 0) return [];
+
+    const enriched = specs.map((s) => {
+      const presetNotation = this.generatePresetNotation(s.notation || "1d20");
+      const total = this.extractPresetTotal(presetNotation);
+      return {
+        notation: s.notation || "1d20",
+        presetNotation,
+        total,
+        characterName: s.characterName ?? null,
+        affinity: s.affinity ?? null,
+        bonus: s.bonus || 0,
+        label: s.label ?? null,
+      };
+    });
+
+    const composite = this.composeBatchNotation(enriched);
+    const themeColor = this.pickBatchColor(enriched);
+    const sharedLabel = enriched[0]?.label || null;
+
+    return new Promise((resolve) => {
+      this.queue.push({
+        kind: "batch",
+        specs: enriched,
+        composite,
+        themeColor,
+        characterName: sharedLabel ? `${sharedLabel} (lote)` : null,
+        label: sharedLabel,
+        onComplete: (totals) => resolve(totals),
+      });
+      this.updateQueueUI();
+      if (!this.isProcessingQueue) {
+        this.processQueue();
+      }
+    });
+  }
+
+  /**
+   * Compõe a notação 3D para um lote. A lib dice-box-threejs deduplica
+   * grupos repetidos do mesmo tipo (ex: "1d20@5+1d20@7" renderiza só 1 dado),
+   * então mesclamos specs do mesmo Ndx num único grupo "Nd20@v1,v2,...,vN".
+   * Tipos diferentes (ex: 1d20 + 1d6) continuam unidos por "+".
+   */
+  composeBatchNotation(enriched) {
+    const byDie = new Map(); // sides -> [values...]
+    for (const e of enriched) {
+      const m = /^(\d+)d(\d+)@([\d,]+)$/i.exec(String(e.presetNotation).trim());
+      if (!m) {
+        // Fallback: spec não é um único grupo Ndx@v — usa join + (caso raro).
+        return enriched.map((s) => s.presetNotation).join("+");
+      }
+      const sides = parseInt(m[2], 10);
+      const values = m[3].split(",").map((v) => parseInt(v, 10));
+      if (!byDie.has(sides)) byDie.set(sides, []);
+      byDie.get(sides).push(...values);
+    }
+    return Array.from(byDie.entries())
+      .map(([sides, values]) => `${values.length}d${sides}@${values.join(",")}`)
+      .join("+");
+  }
+
+  pickBatchColor(specs) {
+    const counts = new Map();
+    for (const s of specs) {
+      const a = s.affinity || "master";
+      counts.set(a, (counts.get(a) || 0) + 1);
+    }
+    let bestAffinity = null;
+    let bestCount = -1;
+    const priority = { enemy: 3, neutral: 2, ally: 1, master: 0 };
+    for (const [a, c] of counts) {
+      if (c > bestCount || (c === bestCount && (priority[a] || 0) > (priority[bestAffinity] || 0))) {
+        bestAffinity = a;
+        bestCount = c;
+      }
+    }
+    return this.colorForAffinity(bestAffinity);
+  }
+
+  colorForAffinity(affinity) {
+    if (affinity === "ally") return "#10b981";
+    if (affinity === "neutral") return "#f59e0b";
+    if (affinity === "enemy") return "#ef4444";
+    return "#7c3aed";
+  }
+
+  extractPresetTotal(presetNotation) {
+    let total = 0;
+    String(presetNotation).replace(/@([\d,]+)/g, (_, vals) => {
+      vals.split(",").forEach((v) => { total += parseInt(v, 10) || 0; });
+      return _;
+    });
+    return total;
   }
 
   /**
@@ -334,8 +682,9 @@ export default class DiceView {
     }));
   }
 
-  async displayResults(results, bonus = 0, characterName = null) {
+  async displayResults(results, bonus = 0, characterName = null, label = null, opts = {}) {
     if (!results) return;
+    const { batchLines = null, skipPersist = false } = opts;
 
     let diceTotal = 0;
     const individualHTML = [];
@@ -382,27 +731,43 @@ export default class DiceView {
 
     const finalTotal = diceTotal + bonus;
     const diceDetailsHTML = individualHTML.join('<span class="result-sep">+</span>');
-    
-    const fullDetailsHTML = bonus !== 0 
+
+    const fullDetailsHTML = bonus !== 0
       ? `<span class="result-group">[ ${diceDetailsHTML} ]</span> <span class="result-modifier">${bonus >= 0 ? "+" : "-"} ${Math.abs(bonus)}</span>`
       : `<span class="result-group">[ ${diceDetailsHTML} ]</span>`;
 
-    // Update overlay panel (Toast)
-    this.DOM.resultTotal.textContent = `${finalTotal}`;
-    this.DOM.resultDetails.innerHTML = fullDetailsHTML;
+    // Para batches, o toast mostra uma linha por personagem em vez do total agregado.
+    if (batchLines && batchLines.length > 0) {
+      const linesHTML = batchLines
+        .map((line) => `<div class="result-batch-line">${line}</div>`)
+        .join("");
+      this.DOM.resultTotal.textContent = label || "Lote";
+      this.DOM.resultDetails.innerHTML = linesHTML;
+    } else {
+      this.DOM.resultTotal.textContent = `${finalTotal}`;
+      this.DOM.resultDetails.innerHTML = fullDetailsHTML;
+    }
     this.DOM.resultPanel.classList.add("visible");
 
     // Update header display
     if (this.DOM.lastRollDisplay) {
       this.DOM.lastRollDisplay.classList.remove("hidden");
-      this.DOM.lastRollValue.textContent = (characterName ? `[${characterName}] ` : '') + finalTotal;
-      this.DOM.lastRollDetails.innerHTML = fullDetailsHTML;
+      if (batchLines && batchLines.length > 0) {
+        this.DOM.lastRollValue.textContent = label || "Lote";
+        this.DOM.lastRollDetails.innerHTML = batchLines.join(" · ");
+      } else {
+        this.DOM.lastRollValue.textContent = (characterName ? `[${characterName}] ` : '') + finalTotal;
+        this.DOM.lastRollDetails.innerHTML = fullDetailsHTML;
+      }
     }
+
+    if (skipPersist) return;
 
     // Save to Database
     const baseNotation = notationParts.join(" + ");
-    const fullNotation = characterName ? `[${characterName}] ${baseNotation}` : baseNotation;
-    
+    const labeledNotation = label ? `${label} ${baseNotation}` : baseNotation;
+    const fullNotation = characterName ? `[${characterName}] ${labeledNotation}` : labeledNotation;
+
     try {
       await window.dmCopilot.db.diceRolls.save({
         notation: fullNotation,
@@ -413,12 +778,12 @@ export default class DiceView {
     } catch (err) {
       console.error("Failed to save roll to history:", err);
     }
-    
+
     // Log to combat view if active
     if (window.encountersView?.combatView?.isActive) {
       window.encountersView.combatView.logRoll({
         characterName: characterName || 'Mestre',
-        notation: baseNotation,
+        notation: labeledNotation,
         total: finalTotal,
         details: fullDetailsHTML
       });

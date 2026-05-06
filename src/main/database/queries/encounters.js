@@ -36,32 +36,34 @@ function createEncounter(db, encounterData) {
 // ============================================
 // READ
 // ============================================
+function parseEncounterJsonFields(encounter) {
+  if (!encounter) return encounter;
+  if (encounter.monsters) {
+    try { encounter.monsters = JSON.parse(encounter.monsters); }
+    catch (_) { encounter.monsters = []; }
+  }
+  if (encounter.roll_history) {
+    try { encounter.roll_history = JSON.parse(encounter.roll_history); }
+    catch (_) { encounter.roll_history = []; }
+  } else {
+    encounter.roll_history = [];
+  }
+  return encounter;
+}
+
 function getEncounterById(db, id) {
   const row = db.prepare(`SELECT * FROM encounters WHERE id = ?`).get(id);
-  if (row && row.monsters) {
-    row.monsters = JSON.parse(row.monsters);
-  }
-  return row;
+  return parseEncounterJsonFields(row);
 }
 
 function getEncountersByCampaign(db, campaignId) {
   const rows = db.prepare(`SELECT * FROM encounters WHERE campaign_id = ? ORDER BY created_at DESC`).all(campaignId);
-  return rows.map(encounter => {
-    if (encounter.monsters) {
-      encounter.monsters = JSON.parse(encounter.monsters);
-    }
-    return encounter;
-  });
+  return rows.map(parseEncounterJsonFields);
 }
 
 function getAllEncounters(db) {
   const rows = db.prepare(`SELECT * FROM encounters ORDER BY created_at DESC`).all();
-  return rows.map(encounter => {
-    if (encounter.monsters) {
-      encounter.monsters = JSON.parse(encounter.monsters);
-    }
-    return encounter;
-  });
+  return rows.map(parseEncounterJsonFields);
 }
 
 // ============================================
@@ -85,14 +87,15 @@ function updateEncounter(db, id, encounterData) {
     monsters: 'monsters',
     status: 'status',
     current_round: 'current_round',
-    current_turn_index: 'current_turn_index'
+    current_turn_index: 'current_turn_index',
+    roll_history: 'roll_history'
   };
 
   for (const [key, column] of Object.entries(columnMap)) {
     if (encounterData[key] !== undefined) {
       fields.push(`${column} = ?`);
       let val = encounterData[key];
-      if (key === 'monsters' && val !== null) {
+      if ((key === 'monsters' || key === 'roll_history') && val !== null) {
         val = JSON.stringify(val);
       }
       values.push(val);

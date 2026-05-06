@@ -13,6 +13,7 @@ export default class EncounterCombatView {
   constructor(encountersView) {
     this.encountersView = encountersView;
     this.isActive = false;
+    this.initiativeLocked = false;
     this.currentEncounter = null;
     this.participants = [];
     this.currentTurnIndex = 0;
@@ -36,14 +37,12 @@ export default class EncounterCombatView {
       linkText: document.getElementById("player-link-text"),
       roundDisplay: document.getElementById("combat-round-display"),
       roundNumber: document.getElementById("current-round-number"),
-      
-      // Initiative Modal
-      initModal: document.getElementById("modal-initiative"),
-      initPrompt: document.getElementById("initiative-prompt-text"),
-      initInput: document.getElementById("input-initiative-value"),
-      btnConfirmInit: document.getElementById("btn-confirm-initiative"),
-      btnRollInit: document.getElementById("btn-roll-initiative"),
-      btnCloseInit: document.getElementById("btn-close-initiative-modal"),
+
+      // Initiative phase bar
+      initiativeBar: document.getElementById("combat-initiative-bar"),
+      initiativeBarHint: document.getElementById("initiative-bar-hint"),
+      btnRollAllNpcInit: document.getElementById("btn-roll-all-npc-initiative"),
+      btnRollAllAllyInit: document.getElementById("btn-roll-all-ally-initiative"),
 
       // Death Save Modal
       deathSaveModal: document.getElementById("modal-death-save"),
@@ -68,9 +67,8 @@ export default class EncounterCombatView {
     this.DOM.btnEnd?.addEventListener("click", () => this.endCombat());
     this.DOM.btnNext?.addEventListener("click", () => this.nextTurn());
     this.DOM.btnPrev?.addEventListener("click", () => this.prevTurn());
-
-    // Modal Close
-    this.DOM.btnCloseInit?.addEventListener("click", () => this.cancelInitiative?.());
+    this.DOM.btnRollAllNpcInit?.addEventListener("click", () => this.rollAllNpcInitiative());
+    this.DOM.btnRollAllAllyInit?.addEventListener("click", () => this.rollAllAllyInitiative());
 
     // Listen for player connections
     if (window.dmCopilot.combat) {
@@ -117,8 +115,9 @@ export default class EncounterCombatView {
       return;
     }
 
-    await this.handleInitiatives();
-
+    // Combate começa SEM iniciativas. Mantemos a ordem original
+    // (aliados → neutros → inimigos, conforme o gather) até que
+    // todas as iniciativas sejam definidas pelo mestre.
     await window.presentationController.requestPresentation({
       type: 'combat',
       label: this.currentEncounter.name || 'Combate',
@@ -153,8 +152,11 @@ export default class EncounterCombatView {
     }
 
     this.isActive = true;
+    this.initiativeLocked = false;
     this.currentRound = 1;
     this.currentTurnIndex = 0;
+    // Limpa rollHistory de combates anteriores neste combatView singleton.
+    this.rollHistory = [];
     this.logRoundChange(1);
 
     this.DOM.btnStart.classList.add("hidden");
@@ -164,8 +166,23 @@ export default class EncounterCombatView {
     Object.values(this.DOM.sections).forEach(s => s.classList.add("hidden"));
 
     this.renderBanners();
+    this.updateInitiativePhaseUI();
     this.broadcastState();
-    await this.handleTurnStart();
+
+    // Só inicia o ciclo de turnos quando todas as iniciativas estiverem
+    // definidas. Caso contrário, esperamos o mestre rolar/inserir as
+    // iniciativas antes de o "Próximo Turno" significar algo.
+    if (this.allInitiativesSet()) {
+      this.lockInitiativeOrder();
+      await this.handleTurnStart();
+    }
+  }
+
+  allInitiativesSet() {
+    if (!this.participants || this.participants.length === 0) return false;
+    return this.participants.every(
+      (p) => p.initiative !== null && p.initiative !== undefined
+    );
   }
 
   gatherParticipants() {
@@ -204,7 +221,7 @@ export default class EncounterCombatView {
           name: card.querySelector(".participant-card__name").textContent.trim(),
           image: imgEl ? imgEl.src : null,
           affinity: affinity,
-          initiative: 0,
+          initiative: null,
           has_acted: 0,
           hp: maxHp,
           current_hp: currentHp,
@@ -225,61 +242,6 @@ export default class EncounterCombatView {
       stabilized: false,
       dead: false
     };
-  }
-
-  async handleInitiatives() {
-    // Auto-roll for enemies and neutrals, prompt for allies
-    for (const p of this.participants) {
-      if (p.affinity === 'enemy' || p.affinity === 'neutral') {
-        p.initiative = Math.floor(Math.random() * 20) + 1; // Basic d20 roll
-      } else {
-        p.initiative = await this.requestInitiative(p.name);
-      }
-    }
-    
-    // Sort by initiative descending
-    this.participants.sort((a, b) => b.initiative - a.initiative);
-  }
-
-  requestInitiative(name) {
-    return new Promise((resolve) => {
-      this.DOM.initPrompt.textContent = `Insira a iniciativa para: ${name}`;
-      this.DOM.initInput.value = "10";
-      this.DOM.initModal.classList.remove("hidden");
-      
-      const onConfirm = () => {
-        const val = parseInt(this.DOM.initInput.value) || 10;
-        cleanup();
-        resolve(val);
-      };
-      
-      const onCancel = () => {
-        cleanup();
-        resolve(10); // Default fallback
-      };
-      
-      const onRoll = () => {
-        const roll = Math.floor(Math.random() * 20) + 1;
-        this.DOM.initInput.value = roll;
-        onConfirm(); // Auto-confirm after roll
-      };
-      
-      const cleanup = () => {
-        this.DOM.btnConfirmInit.removeEventListener("click", onConfirm);
-        this.DOM.btnRollInit.removeEventListener("click", onRoll);
-        this.DOM.btnCloseInit.removeEventListener("click", onCancel);
-        this.DOM.initModal.classList.add("hidden");
-        this.cancelInitiative = null;
-      };
-      
-      this.DOM.btnConfirmInit.addEventListener("click", onConfirm);
-      this.DOM.btnRollInit.addEventListener("click", onRoll);
-      this.DOM.btnCloseInit.addEventListener("click", onCancel);
-      this.cancelInitiative = onCancel;
-      
-      this.DOM.initInput.focus();
-      this.DOM.initInput.select();
-    });
   }
 
   requestDeathSaveValue(name) {
@@ -358,10 +320,8 @@ export default class EncounterCombatView {
   async handleNewParticipant(participant) {
     if (!this.isActive) return;
 
-    // Prompt for initiative
-    const initiative = await this.requestInitiative(participant.name);
-    
-    // Transform to combat participant format
+    // Transform to combat participant format. Quem entra DURANTE o combate
+    // começa sem iniciativa — o mestre rola/insere depois pelo banner.
     const maxHp = Number(participant.hp) || 0;
     const currentHp = participant.current_hp !== undefined ? Number(participant.current_hp) : maxHp;
     const ca = Number(participant.ac) || 0;
@@ -370,7 +330,7 @@ export default class EncounterCombatView {
       name: participant.name,
       image: participant.image,
       affinity: participant.affinity,
-      initiative: initiative,
+      initiative: null,
       has_acted: 0,
       hp: maxHp,
       current_hp: currentHp,
@@ -378,29 +338,31 @@ export default class EncounterCombatView {
       deathSaves: this.makeEmptyDeathSaves()
     };
 
-    // Add to list
     const currentActiveId = this.participants[this.currentTurnIndex]?.id;
     this.participants.push(combatParticipant);
-    
-    // Re-sort
-    this.participants.sort((a, b) => b.initiative - a.initiative);
-    
-    // Find new currentTurnIndex for the same character to maintain focus
+
+    // Re-abrimos a fase de iniciativa: o novo participante precisa ter
+    // iniciativa definida antes de continuar o ciclo de turnos.
+    this.initiativeLocked = false;
+
     if (currentActiveId) {
       this.currentTurnIndex = this.participants.findIndex(p => p.id === currentActiveId);
+      if (this.currentTurnIndex < 0) this.currentTurnIndex = 0;
     }
 
     this.renderBanners();
+    this.updateInitiativePhaseUI();
     this.broadcastState();
     this.updateDB();
-    
-    showToast(`${combatParticipant.name} entrou na luta!`);
+
+    showToast(`${combatParticipant.name} entrou na luta! Defina a iniciativa.`);
   }
 
   renderBanners() {
+    const phase = this.initiativeLocked;
     this.DOM.banners.innerHTML = this.participants.map((p, index) => {
-      const isActive = index === this.currentTurnIndex;
-      const hasActed = p.has_acted && !isActive;
+      const isActive = phase && index === this.currentTurnIndex;
+      const hasActed = phase && p.has_acted && !isActive;
       const ds = p.deathSaves;
       const isDead = ds?.dead;
       const showSaves = ds && (ds.active || ds.stabilized || ds.dead);
@@ -419,6 +381,20 @@ export default class EncounterCombatView {
         </div>
       ` : '';
 
+      const initValue = p.initiative ?? "";
+      const initiativeHtml = !this.initiativeLocked
+        ? `
+          <div class="combat-banner__initiative-edit" data-id="${p.id}">
+            <input type="number" class="initiative-input" placeholder="—"
+                   data-id="${p.id}" min="0" max="40" step="1" value="${initValue}" />
+            <button class="btn btn--icon-only btn--sm initiative-roll-btn"
+                    data-id="${p.id}" title="Rolar d20">
+              <span class="btn__icon">🎲</span>
+            </button>
+          </div>
+        `
+        : `<div class="combat-banner__initiative" data-id="${p.id}">${p.initiative}</div>`;
+
       return `
         <div class="combat-banner ${isActive ? 'combat-banner--active' : ''} ${hasActed ? 'combat-banner--acted' : ''} ${isDead ? 'combat-banner--dead' : ''}" data-id="${p.id}">
           <button class="combat-banner__remove" data-id="${p.id}" title="Remover da luta">×</button>
@@ -433,7 +409,7 @@ export default class EncounterCombatView {
           <div class="combat-banner__actions">
             <input type="text" class="damage-input" placeholder="Dano" data-id="${p.id}" />
           </div>
-          <div class="combat-banner__initiative">${p.initiative}</div>
+          ${initiativeHtml}
         </div>
       `;
     }).join('');
@@ -480,6 +456,30 @@ export default class EncounterCombatView {
       marker.addEventListener('click', (e) => {
         e.stopPropagation();
         this.toggleDeathSaveMarker(marker.dataset.id, marker.dataset.kind, parseInt(marker.dataset.index, 10));
+      });
+    });
+
+    // Bind initiative inputs (Enter confirms manual value)
+    this.DOM.banners.querySelectorAll('.initiative-input').forEach(input => {
+      const commit = () => {
+        if (input.value === '') return;
+        const raw = parseInt(input.value, 10);
+        if (Number.isNaN(raw)) return;
+        const p = this.participants.find(x => x.id === input.dataset.id);
+        if (p && p.initiative === raw) return; // valor inalterado, evita re-render
+        this.setManualInitiative(input.dataset.id, raw);
+      };
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') commit();
+      });
+      input.addEventListener('blur', commit);
+    });
+
+    // Bind individual roll buttons (rolls a single d20 with 3D animation)
+    this.DOM.banners.querySelectorAll('.initiative-roll-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.rollSingleInitiative(btn.dataset.id);
       });
     });
   }
@@ -591,8 +591,186 @@ export default class EncounterCombatView {
     this.updateDB();
   }
 
+  updateInitiativePhaseUI() {
+    if (!this.DOM.initiativeBar) return;
+
+    if (!this.isActive) {
+      this.DOM.initiativeBar.classList.add("hidden");
+      this.DOM.btnNext?.classList.remove("hidden");
+      this.DOM.btnPrev?.classList.remove("hidden");
+      return;
+    }
+
+    if (this.initiativeLocked) {
+      this.DOM.initiativeBar.classList.add("hidden");
+      this.DOM.btnNext?.classList.remove("hidden");
+      this.DOM.btnPrev?.classList.remove("hidden");
+      return;
+    }
+
+    // Em fase de iniciativa: mostra a barra e esconde os controles de turno
+    const pendingNpcs = this.participants.filter(
+      (p) => (p.affinity === 'enemy' || p.affinity === 'neutral') &&
+             (p.initiative === null || p.initiative === undefined)
+    ).length;
+    const pendingAllies = this.participants.filter(
+      (p) => p.affinity === 'ally' &&
+             (p.initiative === null || p.initiative === undefined)
+    ).length;
+
+    this.DOM.initiativeBar.classList.remove("hidden");
+    if (this.DOM.btnRollAllNpcInit) {
+      this.DOM.btnRollAllNpcInit.disabled = pendingNpcs === 0;
+    }
+    if (this.DOM.btnRollAllAllyInit) {
+      this.DOM.btnRollAllAllyInit.disabled = pendingAllies === 0;
+    }
+    if (this.DOM.initiativeBarHint) {
+      if (pendingNpcs > 0 && pendingAllies > 0) {
+        this.DOM.initiativeBarHint.textContent =
+          `Faltam ${pendingNpcs} NPC(s) e ${pendingAllies} jogador(es) para definir iniciativa.`;
+      } else if (pendingNpcs > 0) {
+        this.DOM.initiativeBarHint.textContent =
+          `Falta(m) ${pendingNpcs} NPC(s) para rolar iniciativa.`;
+      } else if (pendingAllies > 0) {
+        this.DOM.initiativeBarHint.textContent =
+          `Aguardando iniciativa dos jogadores (${pendingAllies}).`;
+      } else {
+        this.DOM.initiativeBarHint.textContent = "Pronto para iniciar os turnos!";
+      }
+    }
+    this.DOM.btnNext?.classList.add("hidden");
+    this.DOM.btnPrev?.classList.add("hidden");
+  }
+
+  lockInitiativeOrder() {
+    if (this.initiativeLocked) return;
+    // Sort descending by initiative; ties keep insertion order
+    this.participants.sort((a, b) => (b.initiative ?? -Infinity) - (a.initiative ?? -Infinity));
+    this.initiativeLocked = true;
+    this.currentTurnIndex = 0;
+    this.renderBanners();
+    this.updateInitiativePhaseUI();
+    this.broadcastState();
+    this.updateDB();
+  }
+
+  async maybeLockAfterRoll() {
+    if (this.initiativeLocked) return;
+    if (this.allInitiativesSet()) {
+      this.lockInitiativeOrder();
+      await this.handleTurnStart();
+      showToast("Iniciativas definidas — combate começou!", "success");
+    }
+  }
+
+  setManualInitiative(id, value) {
+    const p = this.participants.find((x) => x.id === id);
+    if (!p) return;
+    p.initiative = Math.max(0, Math.min(40, value | 0));
+    this.renderBanners();
+    this.updateInitiativePhaseUI();
+    this.broadcastState();
+    this.maybeLockAfterRoll();
+  }
+
+  async rollSingleInitiative(id) {
+    const p = this.participants.find((x) => x.id === id);
+    if (!p) return;
+    if (!window.diceView?.rollProgrammatic) {
+      // Fallback caso o DiceView não esteja disponível
+      p.initiative = 1 + Math.floor(Math.random() * 20);
+      this.renderBanners();
+      this.updateInitiativePhaseUI();
+      this.broadcastState();
+      await this.maybeLockAfterRoll();
+      return;
+    }
+    // total já vem pré-rolado, sincronamente. A animação 3D fica enfileirada
+    // em background — o mestre pode clicar no próximo dado imediatamente.
+    const { total } = window.diceView.rollProgrammatic({
+      notation: "1d20",
+      characterName: p.name,
+      affinity: p.affinity,
+      label: "Iniciativa",
+    });
+    p.initiative = total;
+    this.renderBanners();
+    this.updateInitiativePhaseUI();
+    this.broadcastState();
+    await this.maybeLockAfterRoll();
+  }
+
+  async rollAllNpcInitiative() {
+    if (!this.isActive || this.initiativeLocked) return;
+
+    const enemies = this.participants.filter(
+      (p) => p.affinity === 'enemy' &&
+             (p.initiative === null || p.initiative === undefined)
+    );
+    const neutrals = this.participants.filter(
+      (p) => p.affinity === 'neutral' &&
+             (p.initiative === null || p.initiative === undefined)
+    );
+
+    if (enemies.length === 0 && neutrals.length === 0) return;
+
+    // Fallback se DiceView não estiver disponível: cai no caminho um-a-um.
+    if (!window.diceView?.rollBatch) {
+      for (const p of [...enemies, ...neutrals]) {
+        await this.rollSingleInitiative(p.id);
+      }
+      return;
+    }
+
+    // Inimigos rolam juntos (vermelho), depois neutros juntos (laranja).
+    // Cada batch é UMA animação 3D só, com todos os dados caindo simultaneamente.
+    await this.rollAffinityBatch(enemies, 'enemy');
+    await this.rollAffinityBatch(neutrals, 'neutral');
+
+    this.renderBanners();
+    this.updateInitiativePhaseUI();
+    this.broadcastState();
+    await this.maybeLockAfterRoll();
+  }
+
+  async rollAllAllyInitiative() {
+    if (!this.isActive || this.initiativeLocked) return;
+    const allies = this.participants.filter(
+      (p) => p.affinity === 'ally' &&
+             (p.initiative === null || p.initiative === undefined)
+    );
+    if (allies.length === 0) return;
+
+    if (!window.diceView?.rollBatch) {
+      for (const p of allies) {
+        await this.rollSingleInitiative(p.id);
+      }
+      return;
+    }
+
+    await this.rollAffinityBatch(allies, 'ally');
+
+    this.renderBanners();
+    this.updateInitiativePhaseUI();
+    this.broadcastState();
+    await this.maybeLockAfterRoll();
+  }
+
+  async rollAffinityBatch(group, affinity) {
+    if (!group || group.length === 0) return;
+    const specs = group.map((p) => ({
+      notation: '1d20',
+      characterName: p.name,
+      affinity,
+      label: 'Iniciativa',
+    }));
+    const totals = await window.diceView.rollBatch(specs);
+    group.forEach((p, i) => { p.initiative = totals[i]; });
+  }
+
   async nextTurn() {
-    if (!this.isActive) return;
+    if (!this.isActive || !this.initiativeLocked) return;
 
     // Mark current as acted
     this.participants[this.currentTurnIndex].has_acted = 1;
@@ -616,7 +794,7 @@ export default class EncounterCombatView {
   }
 
   prevTurn() {
-    if (!this.isActive) return;
+    if (!this.isActive || !this.initiativeLocked) return;
 
     this.currentTurnIndex--;
     if (this.currentTurnIndex < 0) {
@@ -683,7 +861,9 @@ export default class EncounterCombatView {
     if (!this.currentEncounter) return;
     await window.dmCopilot.db.encounters.update(this.currentEncounter.id, {
       current_round: this.currentRound,
-      current_turn_index: this.currentTurnIndex
+      current_turn_index: this.currentTurnIndex,
+      monsters: this.participants,
+      roll_history: this.rollHistory.slice(0, 50),
     });
   }
 
@@ -715,7 +895,9 @@ export default class EncounterCombatView {
     window.dmCopilot.combat.broadcast('combat-update', {
       status: 'active',
       currentRound: this.currentRound,
-      currentTurnIndex: this.currentTurnIndex,
+      // Antes de travar a ordem de iniciativa, ninguém está "no turno".
+      // Mandamos -1 para que o player view não destaque ninguém.
+      currentTurnIndex: this.initiativeLocked ? this.currentTurnIndex : -1,
       participants: processedParticipants,
       rollHistory: this.rollHistory,
       backgroundImage,
@@ -734,6 +916,20 @@ export default class EncounterCombatView {
     return value;
   }
 
+  /**
+   * Reset visual do combate (sem mexer em estado de memória nem DB).
+   * Usado pelo _stopCombatInternal e também pelo openEncounterManager
+   * antes de decidir se vai retomar combate ou mostrar pré-combate.
+   */
+  resetCombatUI() {
+    this.DOM.btnStart?.classList.remove("hidden");
+    this.DOM.btnEnd?.classList.add("hidden");
+    this.DOM.roundDisplay?.classList.add("hidden");
+    this.DOM.arena?.classList.add("hidden");
+    this.DOM.initiativeBar?.classList.add("hidden");
+    if (this.DOM.banners) this.DOM.banners.innerHTML = "";
+  }
+
   async _stopCombatInternal() {
     try {
       window.dmCopilot.combat.broadcast('combat-update', { status: 'inactive' });
@@ -742,12 +938,10 @@ export default class EncounterCombatView {
     }
 
     this.isActive = false;
+    this.initiativeLocked = false;
     window.presentationController?.clearPresentation();
 
-    this.DOM.btnStart.classList.remove("hidden");
-    this.DOM.btnEnd.classList.add("hidden");
-    this.DOM.roundDisplay.classList.add("hidden");
-    this.DOM.arena.classList.add("hidden");
+    this.resetCombatUI();
 
     this.encountersView.organizeParticipants();
     this.encountersView.renderParticipants();
@@ -758,6 +952,70 @@ export default class EncounterCombatView {
       });
     } catch (err) {
       console.error("Error ending combat:", err);
+    }
+  }
+
+  /**
+   * Re-hidrata o combate a partir de um encounter persistido no DB
+   * (status='active') e ativa a UI de combate. Usado quando o mestre reabre
+   * um encontro ativo (mesmo após restart da app).
+   */
+  async resumeFromEncounter(encounter) {
+    // Carrega visibility config (campanha) — necessário para broadcastState filtrar.
+    if (!this.currentCampaign || this.currentCampaign.id !== encounter.campaign_id) {
+      try {
+        this.currentCampaign = await window.dmCopilot.db.campaigns.getById(encounter.campaign_id);
+      } catch (err) {
+        console.warn("Resume: falha ao carregar campanha:", err);
+        this.currentCampaign = null;
+      }
+    }
+
+    // Mesma sessão (memória pode ter dado mais recente que o último DB write)?
+    // Caso contrário re-hidrata do DB.
+    const sameSession = this.isActive && this.currentEncounter?.id === encounter.id;
+    if (!sameSession) {
+      this.currentEncounter = encounter;
+      this.participants = (encounter.monsters || []).map((p) => ({
+        ...p,
+        deathSaves: p.deathSaves || this.makeEmptyDeathSaves(),
+      }));
+      this.currentRound = encounter.current_round || 1;
+      this.currentTurnIndex = encounter.current_turn_index || 0;
+      this.rollHistory = Array.isArray(encounter.roll_history) ? encounter.roll_history : [];
+      // initiativeLocked é DERIVADO: se todos têm initiative !== null, está travado.
+      this.initiativeLocked = this.participants.length > 0 &&
+        this.participants.every((p) => p.initiative !== null && p.initiative !== undefined);
+      this.isActive = true;
+    }
+
+    // UI: ativa modo combate.
+    this.DOM.btnStart?.classList.add("hidden");
+    this.DOM.btnEnd?.classList.remove("hidden");
+    this.DOM.roundDisplay?.classList.remove("hidden");
+    this.DOM.arena?.classList.remove("hidden");
+    if (this.DOM.roundNumber) this.DOM.roundNumber.textContent = this.currentRound;
+    Object.values(this.DOM.sections).forEach((s) => s.classList.add("hidden"));
+
+    try {
+      const { ip, port } = await window.dmCopilot.combat.getInfo();
+      if (this.DOM.linkText) this.DOM.linkText.textContent = `http://${ip}:${port}`;
+      this.DOM.serverLink?.classList.remove("hidden");
+    } catch (err) {
+      console.warn("Resume: falha ao carregar info do servidor:", err);
+    }
+
+    this.renderBanners();
+    this.updateInitiativePhaseUI();
+    this.broadcastState();
+
+    // Adota a presentation existente sem disparar start (já estamos ativos).
+    if (window.presentationController?.adoptPresentation) {
+      window.presentationController.adoptPresentation({
+        type: "combat",
+        label: encounter.name || "Combate",
+        stop: () => this._stopCombatInternal(),
+      });
     }
   }
 
@@ -781,13 +1039,14 @@ export default class EncounterCombatView {
       affinity,
       timestamp: new Date().toLocaleTimeString()
     });
-    
+
     // Keep only last 20
     if (this.rollHistory.length > 20) {
       this.rollHistory.pop();
     }
-    
+
     this.broadcastState();
+    this.updateDB();
   }
 
   logRoundChange(round) {
@@ -803,5 +1062,6 @@ export default class EncounterCombatView {
     }
 
     this.broadcastState();
+    this.updateDB();
   }
 }

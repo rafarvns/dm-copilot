@@ -1527,10 +1527,21 @@ class EncountersView {
       this.currentEncounter = encounter;
       this.participants = encounter.monsters || [];
       this.organizeParticipants();
-      
+
       this.renderManagerHeader();
-      this.renderParticipants();
       this.applyManagerBackground();
+
+      // Reset visual de combate antes de decidir o ramo (evita carregar
+      // banners stale de um combate anterior se o mestre vier de outra tela).
+      this.combatView?.resetCombatUI();
+
+      if (encounter.status === "active") {
+        // Combate em andamento — re-hidrata e mostra os banners no lugar dos cards.
+        await this.combatView.resumeFromEncounter(encounter);
+      } else {
+        // Pré-combate normal.
+        this.renderParticipants();
+      }
 
       this.DOM.detailView?.classList.remove("hidden");
     } catch (error) {

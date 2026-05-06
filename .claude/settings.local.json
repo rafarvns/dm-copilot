@@ -46,7 +46,11 @@
       "Bash(git reflog *)",
       "Bash(git gc *)",
       "Bash(git rev-list *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(xargs cat *)",
+      "Bash(node --check src/renderer/src/core/presentation-controller.js)",
+      "Bash(node --check src/main/database/queries/encounters.js)",
+      "Bash(node --check src/main/database/migrations/v15_add_roll_history.js)"
     ]
   }
 }
