@@ -341,6 +341,41 @@
             <label for="encounter-description" class="form-label">Notas Adicionais</label>
             <textarea id="encounter-description" class="form-textarea" rows="3" placeholder="Informações táticas, tesouros, etc."></textarea>
           </div>
+
+          <div class="form-group">
+            <label class="form-label">Imagem de Fundo</label>
+            <input type="hidden" id="encounter-background-image" />
+
+            <div class="encounter-bg-tabs">
+              <button type="button" class="encounter-bg-tab active" data-bg-tab="bg-gallery">Galeria</button>
+              <button type="button" class="encounter-bg-tab" data-bg-tab="bg-upload">Carregar</button>
+              <button type="button" class="encounter-bg-tab" data-bg-tab="bg-none">Sem imagem</button>
+            </div>
+
+            <div class="encounter-bg-panel" id="bg-gallery">
+              <div id="encounter-bg-gallery" class="encounter-bg-gallery">
+                <p class="text-muted text-center py-4">Carregando galeria...</p>
+              </div>
+            </div>
+
+            <div class="encounter-bg-panel hidden" id="bg-upload">
+              <input type="file" id="encounter-bg-file" accept="image/*" class="hidden" />
+              <button type="button" class="btn btn--secondary" id="btn-encounter-bg-upload">
+                <span class="btn__icon">📁</span> Escolher arquivo
+              </button>
+              <span id="encounter-bg-upload-name" class="text-muted ml-2"></span>
+            </div>
+
+            <div class="encounter-bg-panel hidden" id="bg-none">
+              <p class="text-muted">O encontro será exibido sem plano de fundo.</p>
+            </div>
+
+            <div id="encounter-bg-preview-wrapper" class="encounter-bg-preview-wrapper hidden">
+              <span class="form-label">Pré-visualização:</span>
+              <div id="encounter-bg-preview" class="encounter-bg-preview"></div>
+            </div>
+          </div>
+
           <div class="modal__footer">
             <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">Cancelar</button>
             <button type="submit" class="btn btn--primary" id="btn-save-encounter-form">

@@ -817,6 +817,7 @@ class EncountersView {
     this.participants = []; // Current encounter participants
     this.affinityGroups = { ally: [], neutral: [], enemy: [] };
     this.combatView = new EncounterCombatView(this);
+    this.bgPresetsLoaded = false;
 
     this.initDOM();
     this.initEvents();
@@ -837,6 +838,21 @@ class EncountersView {
       btnCancel: document.getElementById("btn-cancel-encounter-form"),
       btnCloseModal: document.getElementById("btn-close-encounter-modal"),
       modalOverlay: document.getElementById("encounter-modal-overlay"),
+
+      // Background image picker
+      bgInput: document.getElementById("encounter-background-image"),
+      bgTabs: document.querySelectorAll(".encounter-bg-tab"),
+      bgGallery: document.getElementById("encounter-bg-gallery"),
+      bgFile: document.getElementById("encounter-bg-file"),
+      btnBgUpload: document.getElementById("btn-encounter-bg-upload"),
+      bgUploadName: document.getElementById("encounter-bg-upload-name"),
+      bgPreview: document.getElementById("encounter-bg-preview"),
+      bgPreviewWrapper: document.getElementById("encounter-bg-preview-wrapper"),
+      bgPanels: {
+        gallery: document.getElementById("bg-gallery"),
+        upload: document.getElementById("bg-upload"),
+        none: document.getElementById("bg-none"),
+      },
 
       // Encounter Detail View (Manager)
       detailView: document.getElementById("encounter-detail-view"),
@@ -922,6 +938,13 @@ class EncountersView {
     // Main Add Participant Button
     this.DOM.btnAddPartMain?.addEventListener("click", () => this.openParticipantModal());
 
+    // Background image picker
+    this.DOM.bgTabs?.forEach((tab) => {
+      tab.addEventListener("click", () => this.switchBgTab(tab.dataset.bgTab));
+    });
+    this.DOM.btnBgUpload?.addEventListener("click", () => this.DOM.bgFile?.click());
+    this.DOM.bgFile?.addEventListener("change", (e) => this.handleBgFileSelect(e));
+
     // Search Events
     this.DOM.dbCharSearch?.addEventListener("input", (e) => this.loadDBParticipants(e.target.value));
     this.DOM.apiMonsterSearch?.addEventListener("input", (e) => {
@@ -998,8 +1021,125 @@ class EncountersView {
     if (this.DOM.locationInput) this.DOM.locationInput.value = encounter ? (encounter.location || "") : "";
     if (this.DOM.descInput) this.DOM.descInput.value = encounter ? (encounter.description || "") : "";
 
+    const bgValue = encounter ? (encounter.background_image || "") : "";
+    this.setSelectedBackground(bgValue);
+    this.loadBgPresets();
+    this.switchBgTab(bgValue.startsWith("local-image://") ? "bg-upload" : (bgValue ? "bg-gallery" : "bg-gallery"));
+
     this.DOM.modal?.classList.remove("hidden");
     this.DOM.nameInput?.focus();
+  }
+
+  switchBgTab(panelId) {
+    this.DOM.bgTabs?.forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.bgTab === panelId);
+    });
+    Object.entries(this.DOM.bgPanels || {}).forEach(([key, el]) => {
+      if (!el) return;
+      const expectedId = `bg-${key}`;
+      el.classList.toggle("hidden", expectedId !== panelId);
+    });
+    if (panelId === "bg-none") {
+      this.setSelectedBackground("");
+    }
+  }
+
+  async loadBgPresets() {
+    if (!this.DOM.bgGallery) return;
+    try {
+      const presets = await window.dmCopilot.db.encounters.listPresets();
+      if (!presets || presets.length === 0) {
+        this.DOM.bgGallery.innerHTML = `<p class="text-muted text-center py-4">Nenhuma imagem na pasta de presets.<br><small>Adicione imagens em <code>src/assets/images/encounters-presets/</code>.</small></p>`;
+        return;
+      }
+      const currentBg = this.DOM.bgInput?.value || "";
+      this.DOM.bgGallery.innerHTML = presets.map((file) => {
+        const value = `preset:${file}`;
+        const url = this.resolveBackgroundUrl(value);
+        const selected = value === currentBg ? "selected" : "";
+        return `<div class="encounter-bg-thumb ${selected}" data-bg-value="${this.escapeHTML(value)}" style="background-image: url('${url}')" title="${this.escapeHTML(file)}"></div>`;
+      }).join("");
+
+      this.DOM.bgGallery.onclick = (e) => {
+        const thumb = e.target.closest(".encounter-bg-thumb");
+        if (!thumb) return;
+        this.setSelectedBackground(thumb.dataset.bgValue);
+        this.DOM.bgGallery.querySelectorAll(".encounter-bg-thumb").forEach((t) => t.classList.remove("selected"));
+        thumb.classList.add("selected");
+      };
+    } catch (error) {
+      console.error("Erro ao carregar presets:", error);
+      this.DOM.bgGallery.innerHTML = `<p class="text-muted text-center py-4">Erro ao carregar galeria.</p>`;
+    }
+  }
+
+  async handleBgFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (this.DOM.bgUploadName) this.DOM.bgUploadName.textContent = file.name;
+    try {
+      const buffer = await this.processBackgroundImage(file);
+      const relativePath = await window.dmCopilot.db.encounters.saveImage(buffer);
+      const value = `local-image://${relativePath}`;
+      this.setSelectedBackground(value);
+      // Limpa seleção de presets na galeria, se houver
+      this.DOM.bgGallery?.querySelectorAll(".encounter-bg-thumb").forEach((t) => t.classList.remove("selected"));
+    } catch (error) {
+      console.error("Erro ao processar imagem de fundo:", error);
+      showToast("Erro ao salvar imagem", "error");
+    }
+  }
+
+  processBackgroundImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const MAX_SIZE = 1920;
+        if (width > MAX_SIZE || height > MAX_SIZE) {
+          if (width > height) {
+            height = (height / width) * MAX_SIZE;
+            width = MAX_SIZE;
+          } else {
+            width = (width / height) * MAX_SIZE;
+            height = MAX_SIZE;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error("Falha ao exportar imagem"));
+          blob.arrayBuffer().then(resolve);
+        }, "image/webp", 0.85);
+      };
+      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  setSelectedBackground(value) {
+    if (this.DOM.bgInput) this.DOM.bgInput.value = value || "";
+    const url = value ? this.resolveBackgroundUrl(value) : "";
+    if (this.DOM.bgPreviewWrapper) {
+      this.DOM.bgPreviewWrapper.classList.toggle("hidden", !url);
+    }
+    if (this.DOM.bgPreview) {
+      this.DOM.bgPreview.style.backgroundImage = url ? `url('${url}')` : "";
+    }
+  }
+
+  // Resolves stored value into a URL renderable in the DM view.
+  // - "preset:<file>"        → /src/assets/images/encounters-presets/<file>
+  // - "local-image://<path>" → used as-is (custom protocol)
+  resolveBackgroundUrl(value) {
+    if (!value) return "";
+    if (value.startsWith("preset:")) {
+      return `/src/assets/images/encounters-presets/${value.slice("preset:".length)}`;
+    }
+    return value;
   }
 
   closeForm() {
@@ -1015,6 +1155,7 @@ class EncountersView {
       difficulty: this.DOM.difficultySelect.value,
       location: this.DOM.locationInput.value.trim(),
       description: this.DOM.descInput.value.trim(),
+      background_image: this.DOM.bgInput?.value || null,
       monsters: this.editingEncounterId ? this.participants : []
     };
 
@@ -1036,6 +1177,8 @@ class EncountersView {
       if (this.currentEncounter && this.currentEncounter.id === this.editingEncounterId) {
         this.currentEncounter = { ...this.currentEncounter, ...encounterData };
         this.renderManagerHeader();
+        this.applyManagerBackground();
+        this.combatView?.broadcastState?.();
       }
     } catch (error) {
       console.error("Save encounter failed:", error);
@@ -1080,7 +1223,8 @@ class EncountersView {
       
       this.renderManagerHeader();
       this.renderParticipants();
-      
+      this.applyManagerBackground();
+
       this.DOM.detailView?.classList.remove("hidden");
     } catch (error) {
       console.error("Open manager failed:", error);
@@ -1088,8 +1232,24 @@ class EncountersView {
     }
   }
 
+  applyManagerBackground() {
+    const view = this.DOM.detailView;
+    if (!view) return;
+    const value = this.currentEncounter?.background_image;
+    if (!value) {
+      view.classList.remove("encounter-detail-view--has-bg");
+      view.style.removeProperty("--encounter-bg-url");
+      return;
+    }
+    const url = this.resolveBackgroundUrl(value);
+    view.style.setProperty("--encounter-bg-url", `url('${url}')`);
+    view.classList.add("encounter-detail-view--has-bg");
+  }
+
   closeEncounterManager() {
     this.DOM.detailView?.classList.add("hidden");
+    this.DOM.detailView?.classList.remove("encounter-detail-view--has-bg");
+    this.DOM.detailView?.style.removeProperty("--encounter-bg-url");
     this.currentEncounter = null;
     this.participants = [];
   }

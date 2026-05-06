@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       getById: (id) => ipcRenderer.invoke("db-encounters-read-id", id),
       update: (id, data) => ipcRenderer.invoke("db-encounters-update", id, data),
       delete: (id) => ipcRenderer.invoke("db-encounters-delete", id),
+      saveImage: (data) => ipcRenderer.invoke("app-save-encounter-image", data),
+      listPresets: () => ipcRenderer.invoke("app-list-encounter-presets"),
     },
     
     // Notes

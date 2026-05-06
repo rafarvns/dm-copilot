@@ -1,198 +1,100 @@
 // DM Copilot - Renderer Process
-// Handles UI logic, navigation, and communication with the main process
+// Bootstraps the modular shell (sidebar + status-bar + router outlet).
 
-// Import styles (Vite handles CSS injection with HMR)
 import "./assets/main.css";
 
-// Database Service
 import databaseService from "./db/database.js";
+import { registerRoute, navigateTo } from "./core/router.js";
 
-// Views
-import { CampaignsView, EncountersView, showToast } from "./views/database-views.js";
+import SidebarComponent from "./shared/sidebar/sidebar.js";
+import StatusBarComponent from "./shared/status-bar/status-bar.js";
+
+import DashboardFeature from "./features/dashboard/dashboard.js";
+import CampaignsFeature from "./features/campaigns/campaigns.js";
+import CharactersFeature from "./features/characters/characters.js";
+
+import { EncountersView } from "./views/database-views.js";
 import charactersView from "./views/characters-view.js";
 import DiceView from "./views/dice-view.js";
 
-// ============================================
-// DOM Element References
-// ============================================
-const DOM = {
-  // Sidebar
-  sidebarLinks: document.querySelectorAll(".sidebar__link[data-view]"),
+const sidebar = new SidebarComponent();
+const statusBar = new StatusBarComponent();
 
-  // Views (includes both .welcome and .view elements)
-  views: document.querySelectorAll('[id^="view-"]'),
+function mountShell() {
+  const sidebarEl = document.getElementById("app-sidebar");
+  if (sidebarEl) sidebar.mount(sidebarEl);
 
-  // Status bar
-  versionInfo: document.getElementById("version-info"),
-
-  // Feature cards & action buttons
-  actionElements: document.querySelectorAll("[data-action]"),
-};
-
-// ============================================
-// Application State
-// ============================================
-const state = {
-  currentView: "dashboard",
-};
-
-// ============================================
-// View Instances
-// ============================================
-window.campaignsView = new CampaignsView();
-window.encountersView = new EncountersView();
-window.diceView = new DiceView();
-
-// ============================================
-// Navigation
-// ============================================
-function navigateTo(viewName) {
-  if (!viewName) return;
-
-  // Hide all views
-  DOM.views.forEach((view) => {
-    view.classList.add("hidden");
-    view.classList.remove("animate-fade-in");
-  });
-
-  // Show target view
-  const targetView = document.getElementById(`view-${viewName}`);
-  if (targetView) {
-    targetView.classList.remove("hidden");
-    // Re-trigger animation
-    requestAnimationFrame(() => {
-      targetView.classList.add("animate-fade-in");
-    });
-  }
-
-  // Update sidebar active state
-  DOM.sidebarLinks.forEach((link) => {
-    const isActive = link.dataset.view === viewName;
-    link.classList.toggle("sidebar__link--active", isActive);
-  });
-
-  state.currentView = viewName;
-
-  // Mount views when navigated to
-  if (viewName === "campaigns") {
-    window.campaignsView.mount();
-  } else if (viewName === "characters") {
-    charactersView.mount();
-  }
+  const statusBarEl = document.getElementById("app-statusbar");
+  if (statusBarEl) statusBar.mount(statusBarEl);
 }
 
-// ============================================
-// Action Handlers
-// ============================================
-function handleAction(action) {
-  const actionViewMap = {
-    "new-campaign": "campaigns",
-    "new-character": "characters",
-    "open-campaigns": "campaigns",
-    "open-characters": "characters",
-    "open-dice": "dice",
-    "open-notes": "notes",
-    "open-settings": "settings",
-  };
-
-  const targetView = actionViewMap[action];
-  if (targetView) {
-    navigateTo(targetView);
-
-    // Special actions after navigation
-    if (action === "new-campaign") {
-      setTimeout(() => window.campaignsView.openForm(), 100);
-    } else if (action === "new-character") {
-      setTimeout(() => charactersView.openForm(), 100);
-    }
-  }
+function registerRoutes() {
+  registerRoute("dashboard", DashboardFeature);
+  registerRoute("campaigns", CampaignsFeature);
+  registerRoute("characters", CharactersFeature);
 }
 
-// ============================================
-// Event Listeners
-// ============================================
-function setupNavigation() {
-  DOM.sidebarLinks.forEach((link) => {
-    link.addEventListener("click", (event) => {
-      event.preventDefault();
-      const view = link.dataset.view;
-      if (view) {
-        navigateTo(view);
-      }
-    });
-  });
-}
-
-function setupActions() {
-  DOM.actionElements.forEach((element) => {
-    element.addEventListener("click", () => {
-      const action = element.dataset.action;
-      if (action) {
-        handleAction(action);
-      }
-    });
+function setupSidebarNavigation() {
+  const sidebarEl = document.getElementById("app-sidebar");
+  if (!sidebarEl) return;
+  sidebarEl.addEventListener("click", (event) => {
+    const link = event.target.closest(".sidebar__link[data-view]");
+    if (!link) return;
+    event.preventDefault();
+    navigateTo(link.dataset.view);
   });
 }
 
 function setupMenuActions() {
-  // Listen for menu actions from the main process
-  if (window.dmCopilot && window.dmCopilot.onMenuAction) {
-    window.dmCopilot.onMenuAction((action) => {
-      switch (action) {
-        case "new-campaign":
-          navigateTo("campaigns");
-          if (window.campaignsView) {
-            setTimeout(() => window.campaignsView.openForm(), 100);
-          }
-          break;
-        case "open-campaign":
-          navigateTo("campaigns");
-          break;
-        case "save-campaign":
-          // Future implementation
-          break;
-        case "about":
-          navigateTo("settings");
-          break;
-        default:
-          break;
-      }
-    });
-  }
+  if (!window.dmCopilot?.onMenuAction) return;
+  window.dmCopilot.onMenuAction(async (action) => {
+    switch (action) {
+      case "new-campaign":
+        await navigateTo("campaigns");
+        setTimeout(() => window.campaignsView?.openForm(), 100);
+        break;
+      case "open-campaign":
+        await navigateTo("campaigns");
+        break;
+      case "about":
+        await navigateTo("dashboard");
+        break;
+      default:
+        break;
+    }
+  });
 }
 
-// ============================================
-// Initialization
-// ============================================
 async function init() {
   try {
-    // Initialize database
+    mountShell();
+    registerRoutes();
+
     try {
       const dbReady = await databaseService.init();
-      if (dbReady) {
-        console.log("Database service initialized");
-      } else {
-        console.warn("Database initialization failed, continuing without database");
-      }
+      if (dbReady) console.log("Database service initialized");
     } catch (error) {
       console.warn("Database service not available:", error);
     }
 
-    // Get app version from main process
-    if (window.dmCopilot && window.dmCopilot.getAppVersion) {
+    if (window.dmCopilot?.getAppVersion) {
       const version = await window.dmCopilot.getAppVersion();
-      if (DOM.versionInfo) {
-        DOM.versionInfo.textContent = `v${version}`;
-      }
+      statusBar.setVersion(version);
     }
 
-    // Set up all event listeners
-    setupNavigation();
-    setupActions();
+    // Globais usados pelas views (encounter manager, modais de overlay)
+    window.encountersView = new EncountersView();
+    window.charactersView = charactersView;
+    try {
+      window.diceView = new DiceView();
+    } catch (error) {
+      console.warn("DiceView initialization failed:", error);
+    }
+
+    setupSidebarNavigation();
     setupMenuActions();
 
-    // Start on dashboard view
-    navigateTo("dashboard");
+    await navigateTo("dashboard");
 
     console.log("DM Copilot initialized successfully");
   } catch (error) {
@@ -200,5 +102,4 @@ async function init() {
   }
 }
 
-// Start the application when the DOM is ready
 document.addEventListener("DOMContentLoaded", init);

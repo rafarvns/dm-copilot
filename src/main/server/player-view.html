@@ -29,6 +29,19 @@
             flex-direction: column;
             align-items: center;
             height: 100vh;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.4s ease;
+        }
+
+        body.has-bg {
+            background-image:
+                linear-gradient(180deg,
+                    rgba(15, 15, 20, 0.55) 0%,
+                    rgba(15, 15, 20, 0.3) 50%,
+                    rgba(15, 15, 20, 0.65) 100%),
+                var(--encounter-bg-url);
         }
 
         /* Dice Box Background */
@@ -579,12 +592,23 @@
             lastRollContainer.style.display = 'none';
         });
 
+        function applyBackground(url) {
+            console.log("[applyBackground]", url);
+            if (url) {
+                document.body.style.setProperty('--encounter-bg-url', `url('${url}')`);
+                document.body.classList.add('has-bg');
+            } else {
+                document.body.style.removeProperty('--encounter-bg-url');
+                document.body.classList.remove('has-bg');
+            }
+        }
+
         socket.on('combat-update', (data) => {
             // Check for turn or round change
             if (data && data.status === 'active') {
                 const activeParticipant = data.participants[data.currentTurnIndex];
                 const turnId = activeParticipant ? activeParticipant.id : null;
-                
+
                 if (turnId !== currentTurnParticipantId || data.currentRound !== currentRound) {
                     currentTurnParticipantId = turnId;
                     currentRound = data.currentRound;
@@ -593,14 +617,16 @@
             }
 
             lastCombatState = data;
-            
+
             if (!data || data.status !== 'active') {
                 container.innerHTML = '<div class="status-msg">O mestre finalizou o encontro ou está preparando a cena.</div>';
                 roundInfo.textContent = 'Intervalo';
                 lastRollContainer.style.display = 'none';
+                applyBackground(null);
                 return;
             }
 
+            applyBackground(data.backgroundImage);
             renderCombat(data);
             renderLog(data.rollHistory);
         });

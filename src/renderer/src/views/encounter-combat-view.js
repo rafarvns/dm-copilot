@@ -405,6 +405,8 @@ export default class EncounterCombatView {
   }
 
   broadcastState() {
+    if (!this.isActive) return;
+
     // Transform local-image:// protocol to http for players
     const processedParticipants = this.participants.map(p => {
       let imageUrl = p.image;
@@ -414,13 +416,30 @@ export default class EncounterCombatView {
       return { ...p, image: imageUrl };
     });
 
+    // Resolve encounter background to a URL the player view (Express) can serve
+    const bgValue = this.currentEncounter?.background_image || this.encountersView?.currentEncounter?.background_image;
+    const backgroundImage = this.resolveBackgroundForPlayer(bgValue);
+    console.log("[broadcastState] bgValue:", bgValue, "→ player URL:", backgroundImage);
+
     window.dmCopilot.combat.broadcast('combat-update', {
       status: 'active',
       currentRound: this.currentRound,
       currentTurnIndex: this.currentTurnIndex,
       participants: processedParticipants,
-      rollHistory: this.rollHistory
+      rollHistory: this.rollHistory,
+      backgroundImage
     });
+  }
+
+  resolveBackgroundForPlayer(value) {
+    if (!value) return null;
+    if (value.startsWith("preset:")) {
+      return `/encounter-presets/${value.slice("preset:".length)}`;
+    }
+    if (value.startsWith("local-image://")) {
+      return `/images/${value.replace("local-image://", "")}`;
+    }
+    return value;
   }
 
   async endCombat() {

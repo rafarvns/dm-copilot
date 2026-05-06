@@ -72,11 +72,27 @@ class CombatServer {
       : path.join(__dirname, "..", "..", "src", "main", "server");
     this.app.use(express.static(staticPath));
 
-    // Serve character images from userData
+    // Serve character images from userData (cria pasta antes para garantir mount mesmo no primeiro boot)
     const imagesPath = path.join(app.getPath("userData"), "images", "characters");
-    if (fs.existsSync(imagesPath)) {
-      this.app.use("/images/characters", express.static(imagesPath));
-    }
+    fs.mkdirSync(imagesPath, { recursive: true });
+    this.app.use("/images/characters", express.static(imagesPath));
+
+    // Serve encounter background uploads from userData
+    const encounterImagesPath = path.join(app.getPath("userData"), "images", "encounters");
+    fs.mkdirSync(encounterImagesPath, { recursive: true });
+    this.app.use("/images/encounters", express.static(encounterImagesPath));
+
+    // Serve encounter preset backgrounds bundled with the app (dev path)
+    const encounterPresetsPath = path.join(
+      app.getAppPath(),
+      "src",
+      "renderer",
+      "src",
+      "assets",
+      "images",
+      "encounters-presets"
+    );
+    this.app.use("/encounter-presets", express.static(encounterPresetsPath));
 
     // Serve dice-box assets from renderer public
     const diceAssetsPath = path.join(app.getAppPath(), "src", "renderer", "public", "dice-box");
@@ -466,6 +482,54 @@ function sendMenuAction(action) {
 // ============================================
 ipcMain.handle("get-app-version", () => {
   return app.getVersion();
+});
+
+ipcMain.handle("app-save-encounter-image", async (_event, imageData) => {
+  try {
+    const userDataPath = app.getPath("userData");
+    const imagesDir = path.join(userDataPath, "images", "encounters");
+
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    const fileName = `enc_${Date.now()}.webp`;
+    const filePath = path.join(imagesDir, fileName);
+
+    fs.writeFileSync(filePath, Buffer.from(imageData));
+
+    return `encounters/${fileName}`;
+  } catch (error) {
+    console.error("Erro ao salvar imagem de encontro:", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("app-list-encounter-presets", () => {
+  try {
+    const presetsDir = path.join(
+      app.getAppPath(),
+      "src",
+      "renderer",
+      "src",
+      "assets",
+      "images",
+      "encounters-presets"
+    );
+
+    if (!fs.existsSync(presetsDir)) {
+      return [];
+    }
+
+    const allowed = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+    return fs
+      .readdirSync(presetsDir)
+      .filter((file) => allowed.has(path.extname(file).toLowerCase()))
+      .sort();
+  } catch (error) {
+    console.error("Erro ao listar presets de encontro:", error);
+    return [];
+  }
 });
 
 ipcMain.handle("app-save-character-image", async (_event, imageData) => {

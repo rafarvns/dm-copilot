@@ -154,6 +154,14 @@ class DatabaseService {
     return await window.dmCopilot.db.encounters.delete(id);
   }
 
+  async saveEncounterImage(imageData) {
+    return await window.dmCopilot.db.encounters.saveImage(imageData);
+  }
+
+  async listEncounterPresets() {
+    return await window.dmCopilot.db.encounters.listPresets();
+  }
+
   // ============================================
   // Notes
   // ============================================
