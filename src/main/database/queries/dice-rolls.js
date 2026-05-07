@@ -48,5 +48,5 @@ module.exports = {
   saveDiceRoll,
   getDiceHistory,
   getDiceHistoryCount,
-  clearDiceHistory
+  clearDiceHistory,
 };

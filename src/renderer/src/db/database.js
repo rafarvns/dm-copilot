@@ -17,7 +17,7 @@ class DatabaseService {
       }
 
       const result = await window.dmCopilot.db.init();
-      
+
       if (result.success) {
         this.initialized = true;
         this.dbPath = result.path;

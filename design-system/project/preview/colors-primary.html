@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 18px 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; box-sizing: border-box; }
+  .sw { display:flex; flex-direction:column; gap:6px; }
+  .chip { height: 56px; border-radius: var(--radius-md); border: 1px solid var(--color-border); }
+  .lbl { display:flex; justify-content:space-between; font-size:11px; color: var(--color-text-secondary); font-family: var(--font-body); }
+  .lbl b { color: var(--color-text); font-weight:600; }
+  .hex { font-family: var(--font-mono); color: var(--color-text-muted); }
+</style></head>
+<body>
+  <div class="sw"><div class="chip" style="background:#5aa888;"></div><div class="lbl"><b>primary</b><span class="hex">#5aa888</span></div></div>
+  <div class="sw"><div class="chip" style="background:#4a8e72;"></div><div class="lbl"><b>primary-hover</b><span class="hex">#4a8e72</span></div></div>
+  <div class="sw"><div class="chip" style="background:#9ccab4;"></div><div class="lbl"><b>primary-light</b><span class="hex">#9ccab4</span></div></div>
+  <div class="sw"><div class="chip" style="background: linear-gradient(135deg,#5aa888,#4a8e72);"></div><div class="lbl"><b>roll-gradient</b><span class="hex">primary→#4a8e72</span></div></div>
+  <div class="sw"><div class="chip" style="background: linear-gradient(135deg,#5aa888,#c89c5e);"></div><div class="lbl"><b>emblem-gradient</b><span class="hex">primary→muted-gold</span></div></div>
+  <div class="sw"><div class="chip" style="background:#0f1410; box-shadow:0 0 20px rgba(90,168,136,0.40) inset;"></div><div class="lbl"><b>shadow-glow</b><span class="hex">emerald aura</span></div></div>
+</body></html>

@@ -25,7 +25,7 @@ function createCharacter(db, characterData) {
   return {
     id: result.lastInsertRowid,
     ...characterData,
-    created_at: now
+    created_at: now,
   };
 }
 
@@ -94,45 +94,61 @@ function linkToCampaign(db, characterId, campaignId) {
     const result = stmt.run(campaignId, characterId);
     return result.changes > 0;
   } catch (error) {
-    console.error('Error linking character to campaign:', error);
+    console.error("Error linking character to campaign:", error);
     return false;
   }
 }
 
 function unlinkFromCampaign(db, characterId, campaignId) {
-  const result = db.prepare(`
+  const result = db
+    .prepare(
+      `
     DELETE FROM campaign_characters 
     WHERE campaign_id = ? AND character_id = ?
-  `).run(campaignId, characterId);
+  `
+    )
+    .run(campaignId, characterId);
   return result.changes > 0;
 }
 
 function getCharactersByCampaign(db, campaignId) {
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT c.* FROM characters c
     JOIN campaign_characters cc ON c.id = cc.character_id
     WHERE cc.campaign_id = ?
     ORDER BY c.name
-  `).all(campaignId);
+  `
+    )
+    .all(campaignId);
   return rows;
 }
 
 function getAvailableCharactersForCampaign(db, campaignId, system) {
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT * FROM characters 
     WHERE system = ? 
     AND id NOT IN (SELECT character_id FROM campaign_characters WHERE campaign_id = ?)
     ORDER BY name
-  `).all(system, campaignId);
+  `
+    )
+    .all(system, campaignId);
   return rows;
 }
 
 function countCharactersByCampaign(db, campaignId) {
-  const row = db.prepare(`
+  const row = db
+    .prepare(
+      `
     SELECT COUNT(*) as count 
     FROM campaign_characters 
     WHERE campaign_id = ?
-  `).get(campaignId);
+  `
+    )
+    .get(campaignId);
   return row.count;
 }
 
@@ -147,5 +163,5 @@ module.exports = {
   unlinkFromCampaign,
   getCharactersByCampaign,
   getAvailableCharactersForCampaign,
-  countCharactersByCampaign
+  countCharactersByCampaign,
 };

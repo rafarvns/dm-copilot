@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Brand emblem</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; background: var(--color-bg); display: flex; align-items: center; gap: 28px; padding: 22px 28px; height: 156px; box-sizing: border-box; }
+  .lockup { display: flex; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+  .lockup img { width: 48px; height: 48px; }
+  .lockup-text { display: flex; flex-direction: column; }
+  .lockup-text .name { font-family: var(--font-display); font-size: 20px; color: var(--color-text); letter-spacing: 0.02em; }
+  .lockup-text .tagline { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
+  .emblem { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 45%, rgba(124,58,237,0.18), transparent 65%); border-radius: 24px; }
+  .emblem img { width: 100%; height: 100%; object-fit: contain; }
+  .gradient-mark { width: 64px; height: 64px; background: linear-gradient(135deg, var(--color-primary), var(--color-accent-gold)); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow); font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.04em; color: #0f0f14; }
+</style>
+</head>
+<body>
+  <div class="emblem"><img src="../assets/logo_dm_copilot.png" alt="DM Copilot"></div>
+  <div class="lockup">
+    <img src="../assets/logo_dm_copilot.png" alt="">
+    <div class="lockup-text"><span class="name">DM Copilot</span><span class="tagline">Seu Companheiro de RPG</span></div>
+  </div>
+  <div class="gradient-mark">DM</div>
+</body>
+</html>

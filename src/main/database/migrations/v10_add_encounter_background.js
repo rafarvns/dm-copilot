@@ -6,7 +6,9 @@ function up(db) {
   try {
     db.exec(`ALTER TABLE encounters ADD COLUMN background_image TEXT`);
   } catch (error) {
-    console.warn("Migration v10: Column 'background_image' might already exist or table is missing.");
+    console.warn(
+      "Migration v10: Column 'background_image' might already exist or table is missing."
+    );
   }
 }
 

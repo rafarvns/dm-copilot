@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 22px; font-family: var(--font-body); color: var(--color-text); display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; }
+  .card.hover { border-color: #a78bfa; box-shadow: var(--shadow-glow); transform: translateY(-2px); }
+  .card.hover::before { content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: linear-gradient(180deg, #7c3aed, #f59e0b); }
+  .title { font-family: var(--font-display); font-size: 18px; color: #f59e0b; margin-bottom: 8px; }
+  .desc { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 14px; line-height: 1.5; }
+  .footer { display:flex; justify-content:space-between; border-top: 1px solid var(--color-border); padding-top: 10px; font-size: 11px; color: var(--color-text-muted); }
+  .badge { display:inline-flex; padding: 2px 10px; font-size: 11px; font-weight: 600; border-radius: 9999px; background: rgba(124,58,237,0.15); color: #a78bfa; }
+</style></head>
+<body>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:12px;">
+      <div class="title">A Mina do Rei Anão</div>
+      <span class="badge">D&amp;D 5e</span>
+    </div>
+    <div class="desc">Os heróis descem nas profundezas de Khundrak'tar para recuperar o martelo perdido do clã Pedra-Forte.</div>
+    <div class="footer"><span>Atualizado há 3 dias</span><span>Sessão 7</span></div>
+  </div>
+  <div class="card hover">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:12px;">
+      <div class="title">Tormenta na Costa</div>
+      <span class="badge" style="background: rgba(245,158,11,0.15); color:#f59e0b;">Tormenta</span>
+    </div>
+    <div class="desc">Piratas, deuses esquecidos e uma tempestade que não passa. <em>(hover state)</em></div>
+    <div class="footer"><span>Atualizado hoje</span><span>Sessão 12</span></div>
+  </div>
+</body></html>

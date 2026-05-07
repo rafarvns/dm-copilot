@@ -14,13 +14,13 @@ function up(db) {
   } catch (e) {
     console.warn("Migration v9: status column already exists");
   }
-  
+
   try {
     db.prepare(`ALTER TABLE encounters ADD COLUMN current_round INTEGER DEFAULT 1`).run();
   } catch (e) {
     console.warn("Migration v9: current_round column already exists");
   }
-  
+
   try {
     db.prepare(`ALTER TABLE encounters ADD COLUMN current_turn_index INTEGER DEFAULT 0`).run();
   } catch (e) {

@@ -42,7 +42,9 @@ function getSceneById(db, id) {
 }
 
 function getScenesByCampaign(db, campaignId) {
-  return db.prepare(`SELECT * FROM scenes WHERE campaign_id = ? ORDER BY created_at DESC`).all(campaignId);
+  return db
+    .prepare(`SELECT * FROM scenes WHERE campaign_id = ? ORDER BY created_at DESC`)
+    .all(campaignId);
 }
 
 // ============================================
@@ -94,7 +96,9 @@ function deleteScene(db, id) {
 // ============================================
 function getSceneLinks(db, sceneId) {
   // Retorna as cenas conectadas (ambos os lados da ligação simétrica).
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT s.id, s.name
     FROM scenes s
     WHERE s.id IN (
@@ -103,18 +107,20 @@ function getSceneLinks(db, sceneId) {
       SELECT scene_id_a FROM scene_links WHERE scene_id_b = ?
     )
     ORDER BY s.name
-  `).all(sceneId, sceneId);
+  `
+    )
+    .all(sceneId, sceneId);
 }
 
 function setSceneLinks(db, sceneId, otherSceneIds) {
   const sid = Number(sceneId);
-  const others = (otherSceneIds || [])
-    .map(Number)
-    .filter((n) => Number.isInteger(n) && n !== sid);
+  const others = (otherSceneIds || []).map(Number).filter((n) => Number.isInteger(n) && n !== sid);
 
   const tx = db.transaction(() => {
     db.prepare(`DELETE FROM scene_links WHERE scene_id_a = ? OR scene_id_b = ?`).run(sid, sid);
-    const insert = db.prepare(`INSERT OR IGNORE INTO scene_links (scene_id_a, scene_id_b) VALUES (?, ?)`);
+    const insert = db.prepare(
+      `INSERT OR IGNORE INTO scene_links (scene_id_a, scene_id_b) VALUES (?, ?)`
+    );
     for (const other of others) {
       const a = Math.min(sid, other);
       const b = Math.max(sid, other);
@@ -130,24 +136,28 @@ function setSceneLinks(db, sceneId, otherSceneIds) {
 // SCENE ↔ ENCOUNTER (N:N)
 // ============================================
 function getSceneEncounters(db, sceneId) {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT e.id, e.name, e.difficulty
     FROM encounters e
     INNER JOIN scene_encounters se ON se.encounter_id = e.id
     WHERE se.scene_id = ?
     ORDER BY e.name
-  `).all(sceneId);
+  `
+    )
+    .all(sceneId);
 }
 
 function setSceneEncounters(db, sceneId, encounterIds) {
   const sid = Number(sceneId);
-  const ids = (encounterIds || [])
-    .map(Number)
-    .filter((n) => Number.isInteger(n));
+  const ids = (encounterIds || []).map(Number).filter((n) => Number.isInteger(n));
 
   const tx = db.transaction(() => {
     db.prepare(`DELETE FROM scene_encounters WHERE scene_id = ?`).run(sid);
-    const insert = db.prepare(`INSERT OR IGNORE INTO scene_encounters (scene_id, encounter_id) VALUES (?, ?)`);
+    const insert = db.prepare(
+      `INSERT OR IGNORE INTO scene_encounters (scene_id, encounter_id) VALUES (?, ?)`
+    );
     for (const eid of ids) insert.run(sid, eid);
   });
 

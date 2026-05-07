@@ -13,7 +13,9 @@ function up(db) {
   try {
     db.exec(`ALTER TABLE encounters ADD COLUMN combat_visibility_override TEXT`);
   } catch (error) {
-    console.warn("Migration v13: Column 'combat_visibility_override' might already exist on encounters.");
+    console.warn(
+      "Migration v13: Column 'combat_visibility_override' might already exist on encounters."
+    );
   }
 }
 

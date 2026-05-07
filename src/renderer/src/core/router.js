@@ -1,3 +1,5 @@
+import { mountIcons } from "./icons.js";
+
 const routes = new Map();
 let currentRoute = null;
 
@@ -14,16 +16,17 @@ export async function navigateTo(name) {
   if (!FeatureClass) return;
 
   const instance = new FeatureClass();
-  const outlet = document.getElementById('view-outlet');
+  const outlet = document.getElementById("view-outlet");
   if (!outlet) return;
 
-  outlet.innerHTML = '';
+  outlet.innerHTML = "";
   await instance.mount(outlet);
+  mountIcons(outlet);
 
   currentRoute = { name, instance };
 
-  document.querySelectorAll('.sidebar__link[data-view]').forEach((l) => {
-    l.classList.toggle('sidebar__link--active', l.dataset.view === name);
+  document.querySelectorAll(".sidebar__link[data-view]").forEach((l) => {
+    l.classList.toggle("sidebar__link--active", l.dataset.view === name);
   });
 }
 

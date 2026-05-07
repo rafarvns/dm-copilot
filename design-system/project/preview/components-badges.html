@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 22px 28px; font-family: var(--font-body); color: var(--color-text); display:flex; flex-wrap:wrap; gap: 12px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 9999px; }
+  .muted { background: #2a2a38; color: #636380; }
+  .primary { background: rgba(124,58,237,0.15); color: #a78bfa; }
+  .gold { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .stat { display:flex; flex-direction:column; align-items:center; padding: 8px 12px; background: #2a2a38; border-radius: 8px; min-width: 60px; }
+  .stat .l { font-size: 10px; text-transform: uppercase; color: #636380; font-weight: 700; }
+  .stat .v { font-size: 16px; font-weight: 600; }
+  .hp { color: #f43f5e; }
+  .ac { color: #0ea5e9; }
+  .ini { color: #f59e0b; }
+</style></head>
+<body>
+  <span class="badge muted">D&amp;D 5e</span>
+  <span class="badge primary">Pathfinder</span>
+  <span class="badge gold">Médio</span>
+  <span class="badge gold" style="background: rgba(244,63,94,0.15); color:#f43f5e;">Mortal</span>
+  <div class="stat"><span class="l">HP</span><span class="v hp">42</span></div>
+  <div class="stat"><span class="l">AC</span><span class="v ac">17</span></div>
+  <div class="stat"><span class="l">INI</span><span class="v ini">+3</span></div>
+</body></html>

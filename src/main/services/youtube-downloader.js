@@ -3,7 +3,8 @@ const path = require("path");
 const fs = require("fs");
 const youtubedl = require("youtube-dl-exec");
 
-const YOUTUBE_URL_REGEX = /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|playlist|shorts)|youtu\.be\/)/i;
+const YOUTUBE_URL_REGEX =
+  /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch|playlist|shorts)|youtu\.be\/)/i;
 
 function getMusicDir() {
   const dir = path.join(app.getPath("userData"), "music");
@@ -17,9 +18,7 @@ function validateYouTubeUrl(url) {
 }
 
 function listFilesByBase(musicDir, fileBaseName) {
-  return fs
-    .readdirSync(musicDir)
-    .filter((f) => f.startsWith(`${fileBaseName}.`));
+  return fs.readdirSync(musicDir).filter((f) => f.startsWith(`${fileBaseName}.`));
 }
 
 function removeAudio(fileName) {
@@ -64,13 +63,15 @@ async function downloadAudio(url, fileBaseName) {
       output: outputTemplate,
       noPlaylist: true,
       noWarnings: true,
-      noCheckCertificates: true
+      noCheckCertificates: true,
     });
   } catch (err) {
     const msg = String(err && err.stderr ? err.stderr : err && err.message ? err.message : err);
     if (/private/i.test(msg)) throw new Error("Vídeo privado — não é possível baixar");
-    if (/age|sign in/i.test(msg)) throw new Error("Vídeo restrito por idade — não é possível baixar");
-    if (/unavailable|not available|removed/i.test(msg)) throw new Error("Vídeo indisponível ou removido");
+    if (/age|sign in/i.test(msg))
+      throw new Error("Vídeo restrito por idade — não é possível baixar");
+    if (/unavailable|not available|removed/i.test(msg))
+      throw new Error("Vídeo indisponível ou removido");
     throw new Error(`Erro no download: ${msg.split("\n")[0]}`);
   }
 
@@ -87,5 +88,5 @@ module.exports = {
   downloadAudio,
   validateYouTubeUrl,
   removeAudio,
-  getMusicDir
+  getMusicDir,
 };

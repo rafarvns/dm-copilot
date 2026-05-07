@@ -22,14 +22,14 @@ const baseRow = () => ({ name: true, initiative: true, hp: false, ca: false });
 export const DEFAULT_VISIBILITY = Object.freeze({
   ally: baseRow(),
   neutral: baseRow(),
-  enemy: baseRow()
+  enemy: baseRow(),
 });
 
 export function makeDefaultVisibility() {
   return {
     ally: baseRow(),
     neutral: baseRow(),
-    enemy: baseRow()
+    enemy: baseRow(),
   };
 }
 
@@ -75,6 +75,6 @@ export function applyVisibilityToParticipant(p, visForAffinity) {
     initiative: visForAffinity.initiative ? p.initiative : null,
     hp: visForAffinity.hp ? p.hp : null,
     current_hp: visForAffinity.hp ? p.current_hp : null,
-    ca: visForAffinity.ca ? p.ca : null
+    ca: visForAffinity.ca ? p.ca : null,
   };
 }

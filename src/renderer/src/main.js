@@ -5,6 +5,7 @@ import "./assets/main.css";
 
 import databaseService from "./db/database.js";
 import { registerRoute, navigateTo } from "./core/router.js";
+import { mountIcons } from "./core/icons.js";
 import PresentationController from "./core/presentation-controller.js";
 
 import SidebarComponent from "./shared/sidebar/sidebar.js";
@@ -70,6 +71,7 @@ function setupMenuActions() {
 async function init() {
   try {
     mountShell();
+    mountIcons(document.body);
     registerRoutes();
 
     try {

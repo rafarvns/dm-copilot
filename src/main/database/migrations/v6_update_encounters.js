@@ -11,7 +11,7 @@ function up(db) {
 }
 
 function down(db) {
-  // SQLite doesn't support DROP COLUMN in older versions easily, 
+  // SQLite doesn't support DROP COLUMN in older versions easily,
   // but for development, we can just leave it or recreate table if needed.
   // Since we use the database-manager's migration system, usually we don't rollback columns.
 }

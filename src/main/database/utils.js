@@ -125,9 +125,7 @@ export function formatNote(note) {
   return {
     ...note,
     created_at: new Date(note.created_at).toLocaleDateString("pt-BR"),
-    updated_at: note.updated_at
-      ? new Date(note.updated_at).toLocaleDateString("pt-BR")
-      : null,
+    updated_at: note.updated_at ? new Date(note.updated_at).toLocaleDateString("pt-BR") : null,
   };
 }
 

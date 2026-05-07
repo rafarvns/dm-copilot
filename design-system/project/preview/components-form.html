@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 22px 28px; font-family: var(--font-body); color: var(--color-text); display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .group { display:flex; flex-direction:column; gap:6px; }
+  label { font-size: 13px; font-weight:500; color: var(--color-text-secondary); }
+  .input, .select, .textarea { width: 100%; padding: 8px 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); font-size: 13px; font-family: inherit; outline: none; box-sizing:border-box; }
+  .focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.20); }
+  .err { border-color: #f43f5e; }
+  .help { font-size: 11px; color: var(--color-text-muted); }
+  .err-msg { font-size: 11px; color: #f43f5e; }
+  .req { color: #f43f5e; }
+</style></head>
+<body>
+  <div class="group">
+    <label>Nome da Campanha <span class="req">*</span></label>
+    <input class="input focus" value="A Mina do Rei Anão" />
+    <span class="help">Aparece na lista e nas telas dos jogadores.</span>
+  </div>
+  <div class="group">
+    <label>Sistema de RPG</label>
+    <select class="select"><option>D&amp;D 5e</option></select>
+  </div>
+  <div class="group" style="grid-column: span 2;">
+    <label>Notas Adicionais</label>
+    <textarea class="textarea" rows="2" placeholder="Informações táticas, tesouros, etc."></textarea>
+  </div>
+  <div class="group">
+    <label>HP <span class="req">*</span></label>
+    <input class="input err" value="" />
+    <span class="err-msg">Campo obrigatório.</span>
+  </div>
+</body></html>

@@ -3,6 +3,7 @@
 // Espelha o padrão de EncountersView (database-views.js).
 
 import { showToast } from "../core/toast.js";
+import { icon } from "../core/icons.js";
 
 class ScenesView {
   constructor() {
@@ -141,10 +142,10 @@ class ScenesView {
 
     if (this.DOM.idInput) this.DOM.idInput.value = scene ? scene.id : "";
     if (this.DOM.nameInput) this.DOM.nameInput.value = scene ? scene.name : "";
-    if (this.DOM.descInput) this.DOM.descInput.value = scene ? (scene.description || "") : "";
+    if (this.DOM.descInput) this.DOM.descInput.value = scene ? scene.description || "" : "";
 
     // Background
-    this.setSelectedBackground(scene ? (scene.background_image || "") : "");
+    this.setSelectedBackground(scene ? scene.background_image || "" : "");
     if (this.DOM.bgUploadName) this.DOM.bgUploadName.textContent = "";
     if (this.DOM.bgFile) this.DOM.bgFile.value = "";
 
@@ -185,10 +186,12 @@ class ScenesView {
 
     if (this.DOM.relatedScenes) {
       const others = (allScenes || []).filter((s) => s.id !== this.editingSceneId);
-      this.DOM.relatedScenes.innerHTML = others.map((s) => {
-        const sel = linkedSceneIds.has(s.id) ? "selected" : "";
-        return `<option value="${s.id}" ${sel}>${this.escapeHTML(s.name)}</option>`;
-      }).join("");
+      this.DOM.relatedScenes.innerHTML = others
+        .map((s) => {
+          const sel = linkedSceneIds.has(s.id) ? "selected" : "";
+          return `<option value="${s.id}" ${sel}>${this.escapeHTML(s.name)}</option>`;
+        })
+        .join("");
       if (others.length === 0) {
         this.DOM.relatedScenes.innerHTML = `<option disabled>Nenhuma outra cena nesta campanha.</option>`;
       }
@@ -196,10 +199,12 @@ class ScenesView {
 
     if (this.DOM.relatedEncounters) {
       const list = allEncounters || [];
-      this.DOM.relatedEncounters.innerHTML = list.map((e) => {
-        const sel = linkedEncounterIds.has(e.id) ? "selected" : "";
-        return `<option value="${e.id}" ${sel}>${this.escapeHTML(e.name)}</option>`;
-      }).join("");
+      this.DOM.relatedEncounters.innerHTML = list
+        .map((e) => {
+          const sel = linkedEncounterIds.has(e.id) ? "selected" : "";
+          return `<option value="${e.id}" ${sel}>${this.escapeHTML(e.name)}</option>`;
+        })
+        .join("");
       if (list.length === 0) {
         this.DOM.relatedEncounters.innerHTML = `<option disabled>Nenhum encontro nesta campanha.</option>`;
       }
@@ -250,10 +255,14 @@ class ScenesView {
         canvas.width = width;
         canvas.height = height;
         canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (!blob) return reject(new Error("Falha ao exportar imagem"));
-          blob.arrayBuffer().then(resolve);
-        }, "image/webp", 0.85);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error("Falha ao exportar imagem"));
+            blob.arrayBuffer().then(resolve);
+          },
+          "image/webp",
+          0.85
+        );
       };
       img.onerror = () => reject(new Error("Erro ao carregar imagem"));
       img.src = URL.createObjectURL(file);
@@ -293,7 +302,7 @@ class ScenesView {
     if (this.DOM.btnMusicRemove) this.DOM.btnMusicRemove.hidden = !hasFile;
     if (this.DOM.musicStatus) {
       if (hasFile) {
-        this.DOM.musicStatus.textContent = "✓ Música baixada e pronta para tocar.";
+        this.DOM.musicStatus.innerHTML = `${icon("check-circle-2")} Música baixada e pronta para tocar.`;
         this.DOM.musicStatus.className = "form-help form-help--ok";
       } else {
         this.DOM.musicStatus.textContent = "";
@@ -328,7 +337,7 @@ class ScenesView {
 
     const newMusicUrl = (this.DOM.musicUrlInput?.value || "").trim();
     const existingMusicFile = this.DOM.musicFileInput?.value || "";
-    const previousMusicUrl = this.editingSceneId ? (this.currentScene?.music_url || "") : "";
+    const previousMusicUrl = this.editingSceneId ? this.currentScene?.music_url || "" : "";
     const musicChanged = newMusicUrl !== previousMusicUrl;
 
     if (newMusicUrl && musicChanged) {
@@ -375,14 +384,20 @@ class ScenesView {
       }
 
       if (newMusicUrl && musicChanged && sceneId) {
-        this.setMusicStatus("⏳ Baixando música... (pode levar alguns segundos)", "");
+        this.setMusicStatus(
+          `${icon("hourglass")} Baixando música... (pode levar alguns segundos)`,
+          ""
+        );
         const result = await window.dmCopilot.db.scenes.downloadMusic(newMusicUrl, sceneId);
         if (result?.success) {
           await window.dmCopilot.db.scenes.update(sceneId, { music_file: result.fileName });
           if (this.DOM.musicFileInput) this.DOM.musicFileInput.value = result.fileName;
           this.updateMusicStatusUI();
         } else {
-          this.setMusicStatus(`✗ ${result?.error || "Falha ao baixar música."}`, "error");
+          this.setMusicStatus(
+            `${icon("circle-x")} ${result?.error || "Falha ao baixar música."}`,
+            "error"
+          );
           showToast("Cena salva, mas a música não pôde ser baixada", "error");
           if (submitBtn) submitBtn.disabled = false;
           return;
@@ -495,12 +510,16 @@ class ScenesView {
       if (links.length === 0) {
         this.DOM.detailLinkedScenes.innerHTML = `<span class="scene-viewer__empty">Nenhuma ligação.</span>`;
       } else {
-        this.DOM.detailLinkedScenes.innerHTML = links.map((s) => `
+        this.DOM.detailLinkedScenes.innerHTML = links
+          .map(
+            (s) => `
           <button class="scene-viewer__chip" data-scene-id="${s.id}" type="button">
             <span class="scene-viewer__chip-name">${this.escapeHTML(s.name)}</span>
             <span class="scene-viewer__chip-meta">→</span>
           </button>
-        `).join("");
+        `
+          )
+          .join("");
       }
     }
 
@@ -510,12 +529,16 @@ class ScenesView {
       if (encs.length === 0) {
         this.DOM.detailLinkedEncounters.innerHTML = `<span class="scene-viewer__empty">Nenhum encontro vinculado.</span>`;
       } else {
-        this.DOM.detailLinkedEncounters.innerHTML = encs.map((e) => `
+        this.DOM.detailLinkedEncounters.innerHTML = encs
+          .map(
+            (e) => `
           <button class="scene-viewer__chip" data-encounter-id="${e.id}" type="button">
             <span class="scene-viewer__chip-name">${this.escapeHTML(e.name)}</span>
-            <span class="scene-viewer__chip-meta">${this.escapeHTML(e.difficulty || '')}</span>
+            <span class="scene-viewer__chip-meta">${this.escapeHTML(e.difficulty || "")}</span>
           </button>
-        `).join("");
+        `
+          )
+          .join("");
       }
     }
 
@@ -547,8 +570,8 @@ class ScenesView {
     // Delegate to controller (handles conflict detection)
     const sceneSnapshot = this.activeScene;
     await window.presentationController.requestPresentation({
-      type: 'scene',
-      label: sceneSnapshot.name || 'Cena',
+      type: "scene",
+      label: sceneSnapshot.name || "Cena",
       start: () => this._activateScene(sceneSnapshot),
       stop: () => this._stopSceneInternal(),
     });
@@ -603,8 +626,8 @@ class ScenesView {
     this.DOM.btnPresent.disabled = false;
     this.DOM.btnPresent.title = "";
     this.DOM.btnPresent.innerHTML = isPresenting
-      ? `<span class="btn__icon">🛑</span> Encerrar Apresentação`
-      : `<span class="btn__icon">🎬</span> Apresentar aos Jogadores`;
+      ? `${icon("circle-stop")} Encerrar Apresentação`
+      : `${icon("monitor-play")} Apresentar aos Jogadores`;
   }
 
   renderNotesDisplay(notes) {
@@ -718,19 +741,19 @@ class ScenesView {
     this.activeScene = scene;
     let bgImage = null;
     if (scene.background_image) {
-      if (scene.background_image.startsWith('local-image://')) {
-        bgImage = `/images/scenes/${scene.background_image.replace('local-image://', '')}`;
+      if (scene.background_image.startsWith("local-image://")) {
+        bgImage = `/images/scenes/${scene.background_image.replace("local-image://", "")}`;
       } else {
         bgImage = scene.background_image;
       }
     }
     const musicFile = scene.music_file ? `/music/${scene.music_file}` : null;
 
-    window.dmCopilot.combat.broadcast('scene-update', {
-      status: 'active',
+    window.dmCopilot.combat.broadcast("scene-update", {
+      status: "active",
       sceneId: scene.id,
       name: scene.name,
-      description: scene.description || '',
+      description: scene.description || "",
       backgroundImage: bgImage,
       musicFile,
     });
@@ -738,7 +761,7 @@ class ScenesView {
 
   hideScene() {
     this.activeScene = null;
-    window.dmCopilot.combat.broadcast('scene-update', { status: 'inactive' });
+    window.dmCopilot.combat.broadcast("scene-update", { status: "inactive" });
   }
 }
 

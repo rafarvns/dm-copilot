@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 22px; font-family: var(--font-body); color: var(--color-text); display:flex; justify-content:center; align-items:center; }
+  .toolbar { display: flex; align-items: center; gap: 16px; background: rgba(30,41,59,0.5); backdrop-filter: blur(8px); padding: 6px 16px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+  .dice-btn { position: relative; width: 42px; height: 42px; border-radius: 12px; background: var(--color-surface); border: 1px solid var(--color-border); display:flex; align-items:center; justify-content:center; }
+  .dice-btn img { width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  .dice-btn--active { border-color: #7c3aed; }
+  .dice-btn--active img { filter: drop-shadow(0 0 8px #7c3aed); }
+  .pill { position: absolute; top: -6px; right: -6px; background: #7c3aed; color: #fff; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 10px; display:flex; align-items:center; justify-content:center; border: 2px solid var(--color-surface); }
+  .roll { height: 42px; padding: 0 20px; font-weight: 800; letter-spacing: 1px; background: linear-gradient(135deg, #7c3aed, #9333ea); color: #fff; box-shadow: 0 4px 15px rgba(124,58,237,0.4); border-radius: 8px; border: none; cursor: pointer; }
+</style></head>
+<body>
+  <div class="toolbar">
+    <div class="dice-btn"><img src="../assets/dice/d4.png" alt="d4"></div>
+    <div class="dice-btn"><img src="../assets/dice/d6.png" alt="d6"></div>
+    <div class="dice-btn"><img src="../assets/dice/d8.png" alt="d8"></div>
+    <div class="dice-btn dice-btn--active"><img src="../assets/dice/d20.png" alt="d20"><span class="pill">2</span></div>
+    <div class="dice-btn"><img src="../assets/dice/d12.png" alt="d12"></div>
+    <div class="dice-btn"><img src="../assets/dice/d10.png" alt="d10"></div>
+    <button class="roll">💥 ROLL</button>
+  </div>
+</body></html>

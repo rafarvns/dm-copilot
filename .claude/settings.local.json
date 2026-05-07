@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
   "permissions": {
     "allow": [
       "Bash(grep -E \"^d|\\\\.json$|\\\\.config\")",
@@ -50,7 +53,15 @@
       "Bash(xargs cat *)",
       "Bash(node --check src/renderer/src/core/presentation-controller.js)",
       "Bash(node --check src/main/database/queries/encounters.js)",
-      "Bash(node --check src/main/database/migrations/v15_add_roll_history.js)"
+      "Bash(node --check src/main/database/migrations/v15_add_roll_history.js)",
+      "Bash(grep -rn \"💀\\\\|💥\\\\|⚔️\\\\|🏳️\\\\|➕\\\\|✏️\\\\|🎲\\\\|🎬\\\\|📝\\\\|🎭\\\\|⏳\\\\|💾\\\\|🗑️\\\\|👤\\\\|📷\\\\|🛑\\\\|📁\\\\|✨\\\\|🛡️\\\\|ℹ️\\\\|❌\\\\|✅\\\\|📜\\\\|🧙\\\\|📅\\\\|🔄\\\\|🔍\\\\|🗺️\\\\|📖\\\\|🎵\\\\|🔊\\\\|🔇\\\\|🔗\\\\|🟢\\\\|🟡\\\\|🔴\\\\|👯\\\\|📍\\\\|🏠\\\\|⚙️\\\\|❤\\\\|⬅️\" src/renderer/ --include=\"*.html\" --include=\"*.js\" --include=\"*.css\")",
+      "Read(//tmp/**)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/design-extract)",
+      "Bash(tar -xzf \"C:\\\\Users\\\\RAFA-PC\\\\.claude\\\\projects\\\\E--LivreSolucoes-dm-copilot\\\\1331d36e-c5ec-492d-8267-e9da13c19225\\\\tool-results\\\\webfetch-1778155197168-swhqat.bin\" -C /tmp/design-extract)",
+      "Bash(cp \"C:\\\\Users\\\\RAFA-PC\\\\.claude\\\\projects\\\\E--LivreSolucoes-dm-copilot\\\\1331d36e-c5ec-492d-8267-e9da13c19225\\\\tool-results\\\\webfetch-1778155197168-swhqat.bin\" /tmp/design.tar.gz)",
+      "Bash(tar -xzf /tmp/design.tar.gz -C /tmp/design-extract)",
+      "Bash(pnpm format *)"
     ]
   }
 }

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 22px; font-family: var(--font-body); color: var(--color-text); display:flex; flex-direction: column; gap: 10px; }
+  .toast { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-lg); font-size: 14px; min-width: 280px; }
+  .success { border-left: 4px solid #10b981; }
+  .error { border-left: 4px solid #f43f5e; }
+  .info { border-left: 4px solid #0ea5e9; }
+  .icon { font-size: 18px; }
+</style></head>
+<body>
+  <div class="toast success"><span class="icon">✅</span><span>Campanha criada com sucesso</span></div>
+  <div class="toast error"><span class="icon">⚠️</span><span>Erro ao salvar — verifique sua conexão</span></div>
+  <div class="toast info"><span class="icon">ℹ️</span><span>Apresentando cena para os jogadores…</span></div>
+</body></html>

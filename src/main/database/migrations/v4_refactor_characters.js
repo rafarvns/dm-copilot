@@ -47,7 +47,7 @@ function up(db) {
 function down(db) {
   db.exec("DROP TABLE IF EXISTS campaign_characters");
   db.exec("DROP TABLE IF EXISTS characters");
-  
+
   // Recriar a tabela original da v1 se necessário para rollback total
   db.exec(`
     CREATE TABLE IF NOT EXISTS characters (

@@ -3,6 +3,7 @@
 
 import databaseService from "../db/database.js";
 import { showToast } from "./database-views.js";
+import { icon } from "../core/icons.js";
 
 class GlobalCharactersView {
   constructor() {
@@ -22,7 +23,7 @@ class GlobalCharactersView {
       count: document.getElementById("characters-count"),
       search: document.getElementById("character-search"),
       filterSystem: document.getElementById("character-filter-system"),
-      
+
       // Modal form
       modal: document.getElementById("character-modal"),
       modalOverlay: document.getElementById("character-modal-overlay"),
@@ -63,8 +64,12 @@ class GlobalCharactersView {
     this.DOM.filterSystem.addEventListener("change", () => this.applyFilters());
 
     this.DOM.form.addEventListener("submit", (e) => this.handleSubmit(e));
-    document.getElementById("btn-close-char-modal").addEventListener("click", () => this.closeForm());
-    document.getElementById("btn-cancel-char-form").addEventListener("click", () => this.closeForm());
+    document
+      .getElementById("btn-close-char-modal")
+      .addEventListener("click", () => this.closeForm());
+    document
+      .getElementById("btn-cancel-char-form")
+      .addEventListener("click", () => this.closeForm());
     this.DOM.modalOverlay.addEventListener("click", () => this.closeForm());
 
     this.DOM.list.addEventListener("click", (e) => this.handleCardAction(e));
@@ -72,7 +77,7 @@ class GlobalCharactersView {
     this.DOM.nameInput.addEventListener("input", () => this.clearFieldError("Name"));
     this.DOM.systemInput.addEventListener("change", () => this.clearFieldError("System"));
 
-    window.addEventListener('app:edit-character', (e) => {
+    window.addEventListener("app:edit-character", (e) => {
       this.openForm(e.detail);
     });
 
@@ -96,7 +101,9 @@ class GlobalCharactersView {
     const systemFilter = this.DOM.filterSystem?.value || "";
 
     this.filteredCharacters = this.characters.filter((c) => {
-      const matchesSearch = !searchTerm || c.name.toLowerCase().includes(searchTerm) ||
+      const matchesSearch =
+        !searchTerm ||
+        c.name.toLowerCase().includes(searchTerm) ||
         (c.description && c.description.toLowerCase().includes(searchTerm));
       const matchesSystem = !systemFilter || c.system === systemFilter;
       return matchesSearch && matchesSystem;
@@ -110,25 +117,24 @@ class GlobalCharactersView {
 
     const total = this.characters.length;
     const shown = this.filteredCharacters.length;
-    this.DOM.count.textContent = total === shown
-      ? `${total} personagem${total !== 1 ? "s" : ""}`
-      : `${shown} de ${total} personagem${total !== 1 ? "s" : ""}`;
+    this.DOM.count.textContent =
+      total === shown
+        ? `${total} personagem${total !== 1 ? "s" : ""}`
+        : `${shown} de ${total} personagem${total !== 1 ? "s" : ""}`;
 
     const isEmpty = this.filteredCharacters.length === 0;
     this.DOM.empty.classList.toggle("hidden", !isEmpty);
     this.DOM.list.classList.toggle("hidden", isEmpty);
 
     if (!isEmpty) {
-      this.DOM.list.innerHTML = this.filteredCharacters
-        .map((c) => this.renderCard(c))
-        .join("");
+      this.DOM.list.innerHTML = this.filteredCharacters.map((c) => this.renderCard(c)).join("");
     }
   }
 
   renderCard(char) {
-    const avatarContent = char.image_path 
+    const avatarContent = char.image_path
       ? `<img src="local-image://${char.image_path}" alt="${char.name}">`
-      : `<span class="character-card__avatar-placeholder">👤</span>`;
+      : `<span class="character-card__avatar-placeholder">${icon("user", { size: 24 })}</span>`;
 
     return `
       <div class="character-card" data-id="${char.id}">
@@ -162,8 +168,8 @@ class GlobalCharactersView {
         <div class="campaign-card__footer mt-4">
           <span class="campaign-card__date">${this.formatDate(char.updated_at || char.created_at)}</span>
           <div class="campaign-card__actions">
-            <button class="campaign-card__btn" data-action="edit" data-id="${char.id}" title="Editar">✏️</button>
-            <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete" data-id="${char.id}" title="Excluir">🗑️</button>
+            <button class="campaign-card__btn" data-action="edit" data-id="${char.id}" title="Editar">${icon("pencil")}</button>
+            <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete" data-id="${char.id}" title="Excluir">${icon("trash-2")}</button>
           </div>
         </div>
       </div>
@@ -176,7 +182,7 @@ class GlobalCharactersView {
 
     const action = target.dataset.action;
     const id = parseInt(target.dataset.id, 10);
-    const char = this.characters.find(c => c.id === id);
+    const char = this.characters.find((c) => c.id === id);
 
     if (action === "edit" && char) {
       this.openForm(char);
@@ -202,7 +208,7 @@ class GlobalCharactersView {
     this.editingId = char ? char.id : null;
     this.selectedImageFile = null;
     this.DOM.modalTitle.textContent = char ? "Editar Personagem" : "Novo Personagem";
-    
+
     this.DOM.idInput.value = char ? char.id : "";
     this.DOM.nameInput.value = char ? char.name : "";
     this.DOM.systemInput.value = char ? char.system : "";
@@ -234,7 +240,7 @@ class GlobalCharactersView {
 
   async handleSubmit(e) {
     e.preventDefault();
-    
+
     const data = {
       name: this.DOM.nameInput.value.trim(),
       system: this.DOM.systemInput.value,
@@ -242,7 +248,9 @@ class GlobalCharactersView {
       ac: parseInt(this.DOM.acInput.value) || 10,
       ini: parseInt(this.DOM.iniInput.value) || 0,
       description: this.DOM.descInput.value.trim(),
-      image_path: this.editingId ? this.characters.find(c => c.id === this.editingId)?.image_path : null
+      image_path: this.editingId
+        ? this.characters.find((c) => c.id === this.editingId)?.image_path
+        : null,
     };
 
     if (!this.validate(data)) return;
@@ -299,7 +307,7 @@ class GlobalCharactersView {
   showFieldError(field, message) {
     const errorEl = this.DOM[`error${field}`];
     const inputEl = this.DOM[`${field.toLowerCase()}Input`];
-    
+
     if (errorEl) errorEl.textContent = message;
     if (inputEl) inputEl.classList.add("form-input--error");
   }
@@ -307,7 +315,7 @@ class GlobalCharactersView {
   clearFieldError(field) {
     const errorEl = this.DOM[`error${field}`];
     const inputEl = this.DOM[`${field.toLowerCase()}Input`];
-    
+
     if (errorEl) errorEl.textContent = "";
     if (inputEl) inputEl.classList.remove("form-input--error");
   }
@@ -370,13 +378,17 @@ class GlobalCharactersView {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        canvas.toBlob((blob) => {
-          if (blob) {
-            blob.arrayBuffer().then(resolve);
-          } else {
-            reject(new Error("Falha ao exportar imagem"));
-          }
-        }, "image/webp", 0.85);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              blob.arrayBuffer().then(resolve);
+            } else {
+              reject(new Error("Falha ao exportar imagem"));
+            }
+          },
+          "image/webp",
+          0.85
+        );
       };
       img.onerror = () => reject(new Error("Erro ao carregar imagem"));
       img.src = URL.createObjectURL(file);

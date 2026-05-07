@@ -1,0 +1,157 @@
+/* ============================================================
+   DM Copilot — Design tokens (canonical layer)
+   ------------------------------------------------------------
+   Source of truth for the design system, mirrored from
+   design-system/project/colors_and_type.css.
+
+   Imported at the top of main.css. Kept separate so feature
+   work can opt in to the canonical token set incrementally;
+   main.css's :root currently overrides identical names so
+   nothing visually changes until each surface is migrated.
+   See CLAUDE.md § Design system for the migration plan.
+   ============================================================ */
+
+/* JetBrains Mono is loaded from Google Fonts.
+   Brand fonts (Nodesto Caps Condensed, Scaly Sans) ship locally. */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap");
+
+/* ---------- Brand fonts ---------- */
+@font-face {
+  font-family: "Nodesto Caps Condensed";
+  src: url("./fonts/Nodesto_Caps_Condensed_1_.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nodesto Caps Condensed";
+  src: url("./fonts/NodestoCapsCondensed-Italic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nodesto Caps Condensed";
+  src: url("./fonts/NodestoCapsCondensed-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nodesto Caps Condensed";
+  src: url("./fonts/NodestoCapsCondensed-Bold_Italic.otf") format("opentype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Scaly Sans";
+  src: url("./fonts/Scaly_Sans_3_.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scaly Sans";
+  src: url("./fonts/Scaly_Sans_Italic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scaly Sans";
+  src: url("./fonts/Scaly_Sans_Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scaly Sans";
+  src: url("./fonts/Scaly_Sans_Bold_Italic_1_.otf") format("opentype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  /* === BRAND / PRIMARY ============================================ */
+  --color-primary: #7c3aed; /* arcane purple */
+  --color-primary-hover: #6d28d9;
+  --color-primary-light: #a78bfa;
+  --color-primary-deep: #9333ea; /* roll-button gradient endpoint */
+
+  /* === SURFACES (dark, near-black to elevated) ==================== */
+  --color-bg: #0f0f14;
+  --color-surface: #1a1a24;
+  --color-surface-hover: #22222e;
+  --color-surface-active: #2a2a38;
+  --color-border: #2e2e3e;
+
+  /* === TEXT ======================================================== */
+  --color-text: #e2e2ea;
+  --color-text-secondary: #9393a8;
+  --color-text-muted: #636380;
+
+  /* === ACCENTS (semantic) ========================================= */
+  --color-accent-gold: #f59e0b; /* nomes de campanhas/personagens, warnings */
+  --color-accent-emerald: #10b981; /* sucesso, status dot */
+  --color-accent-rose: #f43f5e; /* perigo, HP, erros */
+  --color-accent-sky: #0ea5e9; /* info, AC */
+
+  /* === AFFINITY (combat sides) ==================================== */
+  --color-ally: #22c55e;
+  --color-ally-fg: #4ade80;
+  --color-neutral: #eab308;
+  --color-neutral-fg: #fde047;
+  --color-enemy: #ef4444;
+  --color-enemy-fg: #f87171;
+
+  /* === TYPOGRAPHY ================================================= */
+  /* Cinzel/Inter remain in main.css for now; switch to the brand
+     families below as features migrate. Fonts are already loaded. */
+  --font-display-brand: "Nodesto Caps Condensed", "Times New Roman", serif;
+  --font-body-brand:
+    "Scaly Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  /* === SPACING (4px scale) ======================================== */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* === RADII ====================================================== */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* === ELEVATION / SHADOWS ======================================== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.15); /* arcane purple aura */
+
+  /* === MOTION ===================================================== */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* === LAYOUT ===================================================== */
+  --sidebar-width: 260px;
+}

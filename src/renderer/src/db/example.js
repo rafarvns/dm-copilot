@@ -25,9 +25,9 @@ async function exampleCreateCampaign() {
     const campaign = await databaseService.createCampaign({
       name: "A Lenda de Zelda",
       description: "Uma campanha épica em Hyrule",
-      system: "D&D 5e"
+      system: "D&D 5e",
     });
-    
+
     console.log("Campaign created:", campaign);
     return campaign.id;
   } catch (error) {
@@ -67,10 +67,10 @@ async function exampleCreateCharacter(campaignId) {
         constitution: 14,
         intelligence: 12,
         wisdom: 10,
-        charisma: 13
-      }
+        charisma: 13,
+      },
     });
-    
+
     console.log("Character created:", character);
   } catch (error) {
     console.error("Failed to create character:", error);
@@ -89,10 +89,10 @@ async function exampleCreateEncounter(campaignId) {
       difficulty: "hard",
       monsters: [
         { name: "Ganondorf", hp: 200, ac: 18 },
-        { name: "Gerudo Warrior", hp: 60, ac: 15 }
-      ]
+        { name: "Gerudo Warrior", hp: 60, ac: 15 },
+      ],
     });
-    
+
     console.log("Encounter created:", encounter);
   } catch (error) {
     console.error("Failed to create encounter:", error);
@@ -107,9 +107,9 @@ async function exampleCreateNote(campaignId) {
     const note = await databaseService.createNote({
       campaign_id: campaignId,
       title: "Quest Secundária",
-      content: "Encontrar a espada Master Sword no Bosque da Perdição"
+      content: "Encontrar a espada Master Sword no Bosque da Perdição",
     });
-    
+
     console.log("Note created:", note);
   } catch (error) {
     console.error("Failed to create note:", error);
@@ -137,7 +137,7 @@ async function exampleTransaction() {
     const campaign = await databaseService.createCampaign({
       name: "Transação de Teste",
       description: "Testando transações",
-      system: "Pathfinder"
+      system: "Pathfinder",
     });
 
     // Criar personagem
@@ -145,7 +145,7 @@ async function exampleTransaction() {
       campaign_id: campaign.id,
       name: "Personagem 1",
       class: "Mago",
-      level: 1
+      level: 1,
     });
 
     // Criar personagem 2
@@ -153,7 +153,7 @@ async function exampleTransaction() {
       campaign_id: campaign.id,
       name: "Personagem 2",
       class: "Guerreiro",
-      level: 1
+      level: 1,
     });
 
     console.log("Transaction completed successfully");
@@ -170,9 +170,9 @@ async function exampleUpdateCampaign(campaignId) {
     const updated = await databaseService.updateCampaign(campaignId, {
       name: "A Lenda de Zelda - Edição Atualizada",
       description: "Uma campanha épica em Hyrule (Atualizada)",
-      system: "D&D 5e"
+      system: "D&D 5e",
     });
-    
+
     console.log("Campaign updated:", updated);
   } catch (error) {
     console.error("Failed to update campaign:", error);
@@ -196,44 +196,44 @@ async function exampleDeleteCampaign(campaignId) {
 // ============================================
 async function runAllExamples() {
   console.log("=== Running Database Examples ===\n");
-  
+
   // 1. Inicializar
   await exampleInit();
-  
+
   // 2. Criar campanha
   const campaignId = await exampleCreateCampaign();
-  
+
   // 3. Listar campanhas
   await exampleGetCampaigns();
-  
+
   // 4. Criar personagem
   if (campaignId) {
     await exampleCreateCharacter(campaignId);
   }
-  
+
   // 5. Criar encontro
   if (campaignId) {
     await exampleCreateEncounter(campaignId);
   }
-  
+
   // 6. Criar nota
   if (campaignId) {
     await exampleCreateNote(campaignId);
   }
-  
+
   // 7. Backup
   await exampleBackup();
-  
+
   // 8. Atualizar
   if (campaignId) {
     await exampleUpdateCampaign(campaignId);
   }
-  
+
   // 9. Deletar
   if (campaignId) {
     await exampleDeleteCampaign(campaignId);
   }
-  
+
   console.log("\n=== All Examples Completed ===");
 }
 
@@ -249,5 +249,5 @@ export {
   exampleTransaction,
   exampleUpdateCampaign,
   exampleDeleteCampaign,
-  runAllExamples
+  runAllExamples,
 };

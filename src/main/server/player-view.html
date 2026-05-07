@@ -1,864 +1,985 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DM Copilot - Visualização do Jogador</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root {
-            --color-bg: #0f0f14;
-            --color-surface: #1a1a24;
-            --color-primary: #7c3aed;
-            --color-ally: #10b981;
-            --color-neutral: #f59e0b;
-            --color-enemy: #ef4444;
-            --color-text: #e2e8f0;
-            --color-text-muted: #94a3b8;
-            --color-border: rgba(255,255,255,0.1);
+      :root {
+        --color-bg: #0f0f14;
+        --color-surface: #1a1a24;
+        --color-primary: #7c3aed;
+        --color-ally: #10b981;
+        --color-neutral: #f59e0b;
+        --color-enemy: #ef4444;
+        --color-text: #e2e8f0;
+        --color-text-muted: #94a3b8;
+        --color-border: rgba(255, 255, 255, 0.1);
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--color-bg);
+        color: var(--color-text);
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: background-image 0.4s ease;
+      }
+
+      body.has-bg {
+        background-image:
+          linear-gradient(
+            180deg,
+            rgba(15, 15, 20, 0.55) 0%,
+            rgba(15, 15, 20, 0.3) 50%,
+            rgba(15, 15, 20, 0.65) 100%
+          ),
+          var(--encounter-bg-url);
+      }
+
+      /* Music Controls */
+      .music-controls {
+        position: fixed;
+        top: 100px;
+        right: 24px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        background: rgba(15, 15, 20, 0.75);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--color-border);
+        border-radius: 999px;
+        z-index: 50;
+        font-size: 0.9rem;
+      }
+
+      .music-controls[hidden] {
+        display: none;
+      }
+
+      .music-controls__btn {
+        background: transparent;
+        border: none;
+        color: var(--color-text);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .music-controls__btn:hover {
+        color: var(--color-primary);
+      }
+
+      .music-controls__volume {
+        width: 90px;
+        accent-color: var(--color-primary);
+        cursor: pointer;
+      }
+
+      .music-controls__icon {
+        font-size: 1rem;
+        line-height: 1;
+        opacity: 0.85;
+      }
+
+      .music-unlock {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--color-primary);
+        color: white;
+        border: none;
+        border-radius: 999px;
+        padding: 18px 40px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        z-index: 200;
+        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.5);
+        animation: music-unlock-pulse 1.6s ease-in-out infinite;
+      }
+
+      .music-unlock[hidden] {
+        display: none;
+      }
+
+      @keyframes music-unlock-pulse {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
         }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--color-bg);
-            color: var(--color-text);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            transition: background-image 0.4s ease;
+        50% {
+          transform: translate(-50%, -50%) scale(1.04);
         }
+      }
 
-        body.has-bg {
-            background-image:
-                linear-gradient(180deg,
-                    rgba(15, 15, 20, 0.55) 0%,
-                    rgba(15, 15, 20, 0.3) 50%,
-                    rgba(15, 15, 20, 0.65) 100%),
-                var(--encounter-bg-url);
-        }
+      /* Roll result panel (anchored bottom-right, shows the authoritative numbers) */
+      .player-roll-panel {
+        position: fixed;
+        bottom: 270px;
+        right: 24px;
+        min-width: 220px;
+        max-width: 360px;
+        z-index: 10000;
+        background: rgba(15, 15, 20, 0.92);
+        backdrop-filter: blur(14px);
+        border: 2px solid var(--accent-color, var(--color-primary));
+        border-radius: 14px;
+        padding: 14px 18px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+        text-align: center;
+        opacity: 0;
+        transform: translateY(8px);
+        transition:
+          opacity 0.25s ease,
+          transform 0.25s ease;
+        pointer-events: none;
+      }
 
-        /* Music Controls */
-        .music-controls {
-            position: fixed;
-            top: 100px;
-            right: 24px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 14px;
-            background: rgba(15, 15, 20, 0.75);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--color-border);
-            border-radius: 999px;
-            z-index: 50;
-            font-size: 0.9rem;
-        }
+      .player-roll-panel[hidden] {
+        display: none;
+      }
 
-        .music-controls[hidden] { display: none; }
+      .player-roll-panel--visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
 
-        .music-controls__btn {
-            background: transparent;
-            border: none;
-            color: var(--color-text);
-            font-size: 1.1rem;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-        }
+      .player-roll-panel__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+      }
 
-        .music-controls__btn:hover { color: var(--color-primary); }
+      .player-roll-panel__char {
+        font-weight: 700;
+        color: var(--color-text);
+      }
 
-        .music-controls__volume {
-            width: 90px;
-            accent-color: var(--color-primary);
-            cursor: pointer;
-        }
+      .player-roll-panel__notation {
+        color: var(--color-text-muted);
+        font-family: "Courier New", monospace;
+      }
 
-        .music-controls__icon {
-            font-size: 1rem;
-            line-height: 1;
-            opacity: 0.85;
-        }
+      .player-roll-panel__total {
+        font-size: 3.4rem;
+        font-weight: 900;
+        color: var(--accent-color, var(--color-primary));
+        line-height: 1;
+        text-shadow: 0 0 16px rgba(124, 58, 237, 0.45);
+      }
 
-        .music-unlock {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--color-primary);
-            color: white;
-            border: none;
-            border-radius: 999px;
-            padding: 18px 40px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            z-index: 200;
-            box-shadow: 0 8px 24px rgba(124, 58, 237, 0.5);
-            animation: music-unlock-pulse 1.6s ease-in-out infinite;
-        }
+      .player-roll-panel__breakdown {
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        margin-top: 4px;
+        font-family: "Courier New", monospace;
+      }
 
-        .music-unlock[hidden] { display: none; }
+      /* Dice Box Background */
+      #dice-box {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999; /* Garantir que fique por cima de tudo */
+        pointer-events: none;
+      }
 
-        @keyframes music-unlock-pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50%      { transform: translate(-50%, -50%) scale(1.04); }
-        }
+      #dice-box canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+      }
 
-        /* Roll result panel (anchored bottom-right, shows the authoritative numbers) */
-        .player-roll-panel {
-            position: fixed;
-            bottom: 270px;
-            right: 24px;
-            min-width: 220px;
-            max-width: 360px;
-            z-index: 10000;
-            background: rgba(15, 15, 20, 0.92);
-            backdrop-filter: blur(14px);
-            border: 2px solid var(--accent-color, var(--color-primary));
-            border-radius: 14px;
-            padding: 14px 18px;
-            box-shadow: 0 12px 36px rgba(0,0,0,0.55);
-            text-align: center;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: opacity 0.25s ease, transform 0.25s ease;
-            pointer-events: none;
-        }
-
-        .player-roll-panel[hidden] { display: none; }
-
-        .player-roll-panel--visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .player-roll-panel__header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 12px;
-            margin-bottom: 6px;
-            font-size: 0.85rem;
-        }
-
-        .player-roll-panel__char {
-            font-weight: 700;
-            color: var(--color-text);
-        }
-
-        .player-roll-panel__notation {
-            color: var(--color-text-muted);
-            font-family: 'Courier New', monospace;
-        }
-
-        .player-roll-panel__total {
-            font-size: 3.4rem;
-            font-weight: 900;
-            color: var(--accent-color, var(--color-primary));
-            line-height: 1;
-            text-shadow: 0 0 16px rgba(124, 58, 237, 0.45);
-        }
-
-        .player-roll-panel__breakdown {
-            font-size: 0.85rem;
-            color: var(--color-text-muted);
-            margin-top: 4px;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* Dice Box Background */
-        #dice-box {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999; /* Garantir que fique por cima de tudo */
-            pointer-events: none;
-        }
-
-        #dice-box canvas {
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-        }
-
-        /* Slots do pool paralelo do player view — múltiplas animações 3D
+      /* Slots do pool paralelo do player view — múltiplas animações 3D
            simultâneas sobre o mesmo overlay. Canvas transparentes empilhados. */
-        .dice-box-parallel-slot {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            pointer-events: none;
-        }
-
-        .dice-box-parallel-slot canvas {
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-            background: transparent;
-        }
-
-        /* Layout */
-        .header {
-            width: 100%;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 40px;
-            box-sizing: border-box;
-            background: rgba(15, 15, 20, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--color-border);
-            z-index: 10;
-        }
-
-        .main-content {
-            flex: 1;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            z-index: 5;
-        }
-
-        .footer {
-            width: 100%;
-            height: 250px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid var(--color-border);
-            padding: 20px 40px;
-            box-sizing: border-box;
-            overflow: hidden;
-            z-index: 10;
-        }
-
-        /* Banners */
-        .combat-container {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: flex-start;
-            justify-content: center;
-            gap: 20px;
-            width: 100%;
-            padding: 40px;
-            perspective: 2000px;
-            transition: all 0.5s ease;
-            overflow-y: auto;
-            max-height: 100%;
-        }
-
-        .banner {
-            flex: 0 0 160px;
-            height: 300px;
-            background: var(--color-surface);
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 12px;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            border: 2px solid transparent;
-        }
-
-        @keyframes active-pulse {
-            0% { transform: scale(1.15) translateZ(60px); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
-            50% { transform: scale(1.18) translateZ(70px); box-shadow: 0 0 50px rgba(124, 58, 237, 0.8); border-color: #fff; }
-            100% { transform: scale(1.15) translateZ(60px); box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
-        }
-
-        .banner--active {
-            border-color: var(--color-primary);
-            z-index: 10;
-            animation: active-pulse 1.75s infinite ease-in-out;
-        }
-
-        .banner--acted {
-            opacity: 0.4;
-            filter: grayscale(0.9);
-            transform: scale(0.9);
-        }
-
-        .banner__affinity {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            margin-bottom: 8px;
-        }
-
-        .affinity--ally { background-color: var(--color-ally); }
-        .affinity--neutral { background-color: var(--color-neutral); }
-        .affinity--enemy { background-color: var(--color-enemy); }
-
-        .banner__image-container {
-            width: 100%;
-            height: 210px;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--color-border);
-        }
-
-        .banner__img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .banner__name {
-            font-size: 0.9rem;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 2px;
-            word-break: break-word;
-            color: var(--color-text-muted);
-        }
-
-        .banner__initiative {
-            font-size: 1.4rem;
-            font-weight: 900;
-            color: var(--color-primary);
-            margin-top: auto;
-        }
-
-        .banner__stats {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            align-items: center;
-            font-size: 0.78rem;
-            color: var(--color-text-muted);
-            margin-top: 4px;
-        }
-
-        .banner__hp {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 700;
-        }
-
-        .banner__hp-icon { color: #ef4444; }
-        .banner__hp--low { color: #ef4444; }
-
-        .banner__ca {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            font-weight: 700;
-            color: #f59e0b;
-        }
-
-        .banner__name--hidden {
-            font-style: italic;
-            opacity: 0.7;
-        }
-
-        /* Death Saves on player banner */
-        .death-saves {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 4px;
-            margin: 6px 0;
-        }
-
-        .death-save-marker {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid currentColor;
-            background: transparent;
-        }
-
-        .death-save-marker--success { color: var(--color-ally); }
-        .death-save-marker--failure { color: var(--color-enemy); }
-
-        .death-save-marker.filled {
-            background: currentColor;
-            box-shadow: 0 0 6px currentColor;
-        }
-
-        .death-save-divider {
-            width: 1px;
-            height: 14px;
-            background: rgba(255,255,255,0.2);
-            margin: 0 2px;
-        }
-
-        .banner--dead {
-            filter: grayscale(1) brightness(0.55);
-            position: relative;
-        }
-
-        .banner--dead::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='%23ffffff'><path d='M32 4C18 4 8 14 8 28c0 8 4 14 10 19v9c0 2 2 4 4 4h4v-6h4v6h4v-6h4v6h4c2 0 4-2 4-4v-9c6-5 10-11 10-19C56 14 46 4 32 4zm-10 24c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zm20 0c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zM26 38l6-8 6 8h-12z'/></svg>");
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 60% auto;
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        /* Round & Turn Info */
-        .round-badge {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--color-text);
-            background: var(--color-primary);
-            padding: 6px 20px;
-            border-radius: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .connection-badge {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            opacity: 0.55;
-            pointer-events: none;
-        }
-
-        .connection-badge #conn-text {
-            display: none;
-        }
-
-        .connection-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #ef4444;
-        }
-
-        .connection-badge--online .connection-dot {
-            background: #10b981;
-            box-shadow: 0 0 6px rgba(16, 185, 129, 0.45);
-        }
-
-        /* Last Roll Panel */
-        .last-roll-panel {
-            background: rgba(124, 58, 237, 0.2);
-            border: 1px solid rgba(124, 58, 237, 0.4);
-            border-radius: 12px;
-            padding: 10px 25px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            animation: slideIn 0.5s ease-out;
-            box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .last-roll__label {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--color-text-muted);
-        }
-
-        .last-roll__value {
-            font-size: 1.8rem;
-            font-weight: 900;
-            color: #fff;
-        }
-
-        /* Turn Overlay */
-        .turn-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: 1000;
-            backdrop-filter: blur(8px);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.35s ease;
-        }
-
-        .turn-overlay.active { opacity: 1; }
-
-        .turn-overlay__content {
-            text-align: center;
-            transform: scale(0.8);
-            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .turn-overlay.active .turn-overlay__content { transform: scale(1); }
-
-        .turn-overlay__round {
-            font-size: 1.5rem;
-            font-weight: 300;
-            color: var(--color-text-muted);
-            margin-bottom: 5px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-
-        .turn-overlay__title {
-            font-size: 0.9rem;
-            letter-spacing: 5px;
-            color: var(--color-primary);
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-
-        .turn-overlay__name {
-            font-size: 4rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            color: #fff;
-            text-shadow: 0 0 30px rgba(124, 58, 237, 0.6);
-        }
-
-        /* Result Die Icons */
-        .result-die {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin: 0 2px;
-        }
-
-        .result-die__icon {
-            width: 14px;
-            height: 14px;
-            object-fit: contain;
-        }
-
-        .result-die__value {
-            font-weight: 700;
-            color: var(--color-text);
-        }
-
-        /* Roll Log */
-        .log-container {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .log-header {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--color-text-muted);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .log-list {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding-right: 10px;
-        }
-
-        .log-list::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .log-list::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.1);
-            border-radius: 2px;
-        }
-
-        .log-item {
-            background: rgba(255,255,255,0.03);
-            border-radius: 6px;
-            padding: 8px 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.95rem;
-            border-left: 3px solid transparent;
-        }
-
-        .log-item--roll { border-left-color: var(--color-primary); }
-        .log-item--ally { border-left-color: var(--color-ally); }
-        .log-item--ally .log-item__char { color: var(--color-ally); }
-        .log-item--neutral { border-left-color: var(--color-neutral); }
-        .log-item--neutral .log-item__char { color: var(--color-neutral); }
-        .log-item--enemy { border-left-color: var(--color-enemy); }
-        .log-item--enemy .log-item__char { color: var(--color-enemy); }
-
-        .log-item--round-change {
-            background: rgba(124, 58, 237, 0.1);
-            border: 1px dashed rgba(124, 58, 237, 0.4);
-            justify-content: center;
-            font-weight: 800;
-            color: var(--color-primary);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            padding: 6px;
-            margin: 8px 0;
-            border-left: none;
-            width: 100%;
-        }
-
-        .log-item__main {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .log-item__char {
-            font-weight: 700;
-            color: var(--color-primary);
-        }
-
-        .log-item__notation {
-            color: var(--color-text-muted);
-            font-size: 0.85rem;
-        }
-
-        .log-item__total {
-            font-weight: 900;
-            font-size: 1.1rem;
-        }
-
-        .log-item__time {
-            font-size: 0.75rem;
-            color: var(--color-text-muted);
-        }
-
-        /* Damage Effects */
-        .floating-text {
-            position: fixed;
-            pointer-events: none;
-            z-index: 9999;
-            font-family: var(--font-display);
-            font-size: 5rem;
-            font-weight: 900;
-            text-shadow: 0 0 20px rgba(0,0,0,0.9), 4px 4px 0 rgba(0,0,0,1);
-            animation: floatUpFade 1.8s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
-        }
-
-        @keyframes floatUpFade {
-            0% { transform: scale(0.4) translateY(0); opacity: 0; }
-            15% { transform: scale(1.3) translateY(-40px); opacity: 1; }
-            100% { transform: scale(1) translateY(-200px); opacity: 0; }
-        }
-
-        .banner--damage {
-            animation: banner-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 30px rgba(239, 68, 68, 0.5) !important;
-        }
-
-        .banner--heal {
-            animation: banner-heal 0.5s ease-out both;
-            border-color: #10b981 !important;
-            box-shadow: 0 0 30px rgba(16, 185, 129, 0.5) !important;
-        }
-
-        @keyframes banner-shake {
-            10%, 90% { transform: translate3d(-2px, 0, 0); }
-            20%, 80% { transform: translate3d(4px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-            40%, 60% { transform: translate3d(6px, 0, 0); }
-        }
-
-        @keyframes banner-heal {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .status-msg {
-            font-size: 1.5rem;
-            color: var(--color-text-muted);
-            font-weight: 300;
-            text-align: center;
-            padding: 20px;
-        }
-
-        /* ── Idle screen ── */
-        #idle-screen {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            background: var(--color-bg);
-            z-index: 10;
-        }
-
-        #idle-screen.hidden { display: none; }
-
-        .idle-icon {
-            font-size: 5rem;
-            opacity: 0.25;
-            animation: idle-pulse 3s ease-in-out infinite;
-            user-select: none;
-        }
-
-        @keyframes idle-pulse {
-            0%, 100% { opacity: 0.20; transform: scale(1); }
-            50%       { opacity: 0.40; transform: scale(1.06); }
-        }
-
-        .idle-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--color-text);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            text-align: center;
-        }
-
-        .idle-subtitle {
-            font-size: 1rem;
-            color: var(--color-text-muted);
-            font-weight: 300;
-            text-align: center;
-            max-width: 420px;
-            line-height: 1.6;
-        }
-
-        .idle-dots {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .idle-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--color-primary);
-            opacity: 0.3;
-            animation: dot-blink 1.4s ease-in-out infinite;
-        }
-
-        .idle-dot:nth-child(2) { animation-delay: 0.2s; }
-        .idle-dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes dot-blink {
-            0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); }
-            40%           { opacity: 0.9; transform: scale(1.15); }
-        }
-
-        /* ── Scene screen ── */
-        #scene-screen {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: 10;
-            /* Center the title in the visible area between the header (80px)
+      .dice-box-parallel-slot {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      .dice-box-parallel-slot canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+        background: transparent;
+      }
+
+      /* Layout */
+      .header {
+        width: 100%;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 40px;
+        box-sizing: border-box;
+        background: rgba(15, 15, 20, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--color-border);
+        z-index: 10;
+      }
+
+      .main-content {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+        z-index: 5;
+      }
+
+      .footer {
+        width: 100%;
+        height: 250px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--color-border);
+        padding: 20px 40px;
+        box-sizing: border-box;
+        overflow: hidden;
+        z-index: 10;
+      }
+
+      /* Banners */
+      .combat-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 20px;
+        width: 100%;
+        padding: 40px;
+        perspective: 2000px;
+        transition: all 0.5s ease;
+        overflow-y: auto;
+        max-height: 100%;
+      }
+
+      .banner {
+        flex: 0 0 160px;
+        height: 300px;
+        background: var(--color-surface);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        border: 2px solid transparent;
+      }
+
+      @keyframes active-pulse {
+        0% {
+          transform: scale(1.15) translateZ(60px);
+          box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+        50% {
+          transform: scale(1.18) translateZ(70px);
+          box-shadow: 0 0 50px rgba(124, 58, 237, 0.8);
+          border-color: #fff;
+        }
+        100% {
+          transform: scale(1.15) translateZ(60px);
+          box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+      }
+
+      .banner--active {
+        border-color: var(--color-primary);
+        z-index: 10;
+        animation: active-pulse 1.75s infinite ease-in-out;
+      }
+
+      .banner--acted {
+        opacity: 0.4;
+        filter: grayscale(0.9);
+        transform: scale(0.9);
+      }
+
+      .banner__affinity {
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        margin-bottom: 8px;
+      }
+
+      .affinity--ally {
+        background-color: var(--color-ally);
+      }
+      .affinity--neutral {
+        background-color: var(--color-neutral);
+      }
+      .affinity--enemy {
+        background-color: var(--color-enemy);
+      }
+
+      .banner__image-container {
+        width: 100%;
+        height: 210px;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 8px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--color-border);
+      }
+
+      .banner__img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .banner__name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 2px;
+        word-break: break-word;
+        color: var(--color-text-muted);
+      }
+
+      .banner__initiative {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: var(--color-primary);
+        margin-top: auto;
+      }
+
+      .banner__stats {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.78rem;
+        color: var(--color-text-muted);
+        margin-top: 4px;
+      }
+
+      .banner__hp {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 700;
+      }
+
+      .banner__hp-icon {
+        color: #ef4444;
+      }
+      .banner__hp--low {
+        color: #ef4444;
+      }
+
+      .banner__ca {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-weight: 700;
+        color: #f59e0b;
+      }
+
+      .banner__name--hidden {
+        font-style: italic;
+        opacity: 0.7;
+      }
+
+      /* Death Saves on player banner */
+      .death-saves {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        margin: 6px 0;
+      }
+
+      .death-save-marker {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        background: transparent;
+      }
+
+      .death-save-marker--success {
+        color: var(--color-ally);
+      }
+      .death-save-marker--failure {
+        color: var(--color-enemy);
+      }
+
+      .death-save-marker.filled {
+        background: currentColor;
+        box-shadow: 0 0 6px currentColor;
+      }
+
+      .death-save-divider {
+        width: 1px;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.2);
+        margin: 0 2px;
+      }
+
+      .banner--dead {
+        filter: grayscale(1) brightness(0.55);
+        position: relative;
+      }
+
+      .banner--dead::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='%23ffffff'><path d='M32 4C18 4 8 14 8 28c0 8 4 14 10 19v9c0 2 2 4 4 4h4v-6h4v6h4v-6h4v6h4c2 0 4-2 4-4v-9c6-5 10-11 10-19C56 14 46 4 32 4zm-10 24c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zm20 0c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zM26 38l6-8 6 8h-12z'/></svg>");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 60% auto;
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      /* Round & Turn Info */
+      .round-badge {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--color-text);
+        background: var(--color-primary);
+        padding: 6px 20px;
+        border-radius: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .connection-badge {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        opacity: 0.55;
+        pointer-events: none;
+      }
+
+      .connection-badge #conn-text {
+        display: none;
+      }
+
+      .connection-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #ef4444;
+      }
+
+      .connection-badge--online .connection-dot {
+        background: #10b981;
+        box-shadow: 0 0 6px rgba(16, 185, 129, 0.45);
+      }
+
+      /* Last Roll Panel */
+      .last-roll-panel {
+        background: rgba(124, 58, 237, 0.2);
+        border: 1px solid rgba(124, 58, 237, 0.4);
+        border-radius: 12px;
+        padding: 10px 25px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        animation: slideIn 0.5s ease-out;
+        box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateY(-20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .last-roll__label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--color-text-muted);
+      }
+
+      .last-roll__value {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #fff;
+      }
+
+      /* Turn Overlay */
+      .turn-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        backdrop-filter: blur(8px);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+      }
+
+      .turn-overlay.active {
+        opacity: 1;
+      }
+
+      .turn-overlay__content {
+        text-align: center;
+        transform: scale(0.8);
+        transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .turn-overlay.active .turn-overlay__content {
+        transform: scale(1);
+      }
+
+      .turn-overlay__round {
+        font-size: 1.5rem;
+        font-weight: 300;
+        color: var(--color-text-muted);
+        margin-bottom: 5px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+      }
+
+      .turn-overlay__title {
+        font-size: 0.9rem;
+        letter-spacing: 5px;
+        color: var(--color-primary);
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+
+      .turn-overlay__name {
+        font-size: 4rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: #fff;
+        text-shadow: 0 0 30px rgba(124, 58, 237, 0.6);
+      }
+
+      /* Result Die Icons */
+      .result-die {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin: 0 2px;
+      }
+
+      .result-die__icon {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
+      }
+
+      .result-die__value {
+        font-weight: 700;
+        color: var(--color-text);
+      }
+
+      /* Roll Log */
+      .log-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .log-header {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .log-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-right: 10px;
+      }
+
+      .log-list::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .log-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+      }
+
+      .log-item {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 8px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.95rem;
+        border-left: 3px solid transparent;
+      }
+
+      .log-item--roll {
+        border-left-color: var(--color-primary);
+      }
+      .log-item--ally {
+        border-left-color: var(--color-ally);
+      }
+      .log-item--ally .log-item__char {
+        color: var(--color-ally);
+      }
+      .log-item--neutral {
+        border-left-color: var(--color-neutral);
+      }
+      .log-item--neutral .log-item__char {
+        color: var(--color-neutral);
+      }
+      .log-item--enemy {
+        border-left-color: var(--color-enemy);
+      }
+      .log-item--enemy .log-item__char {
+        color: var(--color-enemy);
+      }
+
+      .log-item--round-change {
+        background: rgba(124, 58, 237, 0.1);
+        border: 1px dashed rgba(124, 58, 237, 0.4);
+        justify-content: center;
+        font-weight: 800;
+        color: var(--color-primary);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        padding: 6px;
+        margin: 8px 0;
+        border-left: none;
+        width: 100%;
+      }
+
+      .log-item__main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .log-item__char {
+        font-weight: 700;
+        color: var(--color-primary);
+      }
+
+      .log-item__notation {
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+      }
+
+      .log-item__total {
+        font-weight: 900;
+        font-size: 1.1rem;
+      }
+
+      .log-item__time {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+      }
+
+      /* Damage Effects */
+      .floating-text {
+        position: fixed;
+        pointer-events: none;
+        z-index: 9999;
+        font-family: var(--font-display);
+        font-size: 5rem;
+        font-weight: 900;
+        text-shadow:
+          0 0 20px rgba(0, 0, 0, 0.9),
+          4px 4px 0 rgba(0, 0, 0, 1);
+        animation: floatUpFade 1.8s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+      }
+
+      @keyframes floatUpFade {
+        0% {
+          transform: scale(0.4) translateY(0);
+          opacity: 0;
+        }
+        15% {
+          transform: scale(1.3) translateY(-40px);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1) translateY(-200px);
+          opacity: 0;
+        }
+      }
+
+      .banner--damage {
+        animation: banner-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 30px rgba(239, 68, 68, 0.5) !important;
+      }
+
+      .banner--heal {
+        animation: banner-heal 0.5s ease-out both;
+        border-color: #10b981 !important;
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.5) !important;
+      }
+
+      @keyframes banner-shake {
+        10%,
+        90% {
+          transform: translate3d(-2px, 0, 0);
+        }
+        20%,
+        80% {
+          transform: translate3d(4px, 0, 0);
+        }
+        30%,
+        50%,
+        70% {
+          transform: translate3d(-6px, 0, 0);
+        }
+        40%,
+        60% {
+          transform: translate3d(6px, 0, 0);
+        }
+      }
+
+      @keyframes banner-heal {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .status-msg {
+        font-size: 1.5rem;
+        color: var(--color-text-muted);
+        font-weight: 300;
+        text-align: center;
+        padding: 20px;
+      }
+
+      /* ── Idle screen ── */
+      #idle-screen {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background: var(--color-bg);
+        z-index: 10;
+      }
+
+      #idle-screen.hidden {
+        display: none;
+      }
+
+      .idle-icon {
+        font-size: 5rem;
+        opacity: 0.25;
+        animation: idle-pulse 3s ease-in-out infinite;
+        user-select: none;
+      }
+
+      @keyframes idle-pulse {
+        0%,
+        100% {
+          opacity: 0.2;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(1.06);
+        }
+      }
+
+      .idle-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--color-text);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-align: center;
+      }
+
+      .idle-subtitle {
+        font-size: 1rem;
+        color: var(--color-text-muted);
+        font-weight: 300;
+        text-align: center;
+        max-width: 420px;
+        line-height: 1.6;
+      }
+
+      .idle-dots {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .idle-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--color-primary);
+        opacity: 0.3;
+        animation: dot-blink 1.4s ease-in-out infinite;
+      }
+
+      .idle-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .idle-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes dot-blink {
+        0%,
+        80%,
+        100% {
+          opacity: 0.2;
+          transform: scale(0.85);
+        }
+        40% {
+          opacity: 0.9;
+          transform: scale(1.15);
+        }
+      }
+
+      /* ── Scene screen ── */
+      #scene-screen {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: 10;
+        /* Center the title in the visible area between the header (80px)
                and the rolls log footer (250px). The bg image still fills the
                whole viewport because of inset: 0. */
-            padding-top: 80px;
-            padding-bottom: 250px;
-            box-sizing: border-box;
-        }
+        padding-top: 80px;
+        padding-bottom: 250px;
+        box-sizing: border-box;
+      }
 
-        .scene-content {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+      .scene-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
 
-        #scene-screen.hidden { display: none; }
+      #scene-screen.hidden {
+        display: none;
+      }
 
-        #scene-screen::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-                180deg,
-                rgba(15,15,20,0.5) 0%,
-                rgba(15,15,20,0.25) 40%,
-                rgba(15,15,20,0.65) 100%
-            );
-        }
+      #scene-screen::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(15, 15, 20, 0.5) 0%,
+          rgba(15, 15, 20, 0.25) 40%,
+          rgba(15, 15, 20, 0.65) 100%
+        );
+      }
 
-        .scene-name {
-            position: relative;
-            font-size: 3.5rem;
-            font-weight: 900;
-            color: #fff;
-            text-align: center;
-            letter-spacing: 0.04em;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.8);
-            padding: 0 40px;
-        }
+      .scene-name {
+        position: relative;
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: #fff;
+        text-align: center;
+        letter-spacing: 0.04em;
+        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
+        padding: 0 40px;
+      }
 
-        .scene-description {
-            /* Anchored just below the title (which is the only flex item that
+      .scene-description {
+        /* Anchored just below the title (which is the only flex item that
                participates in the vertical centering). The description grows
                downward without ever pushing the title up — this keeps the
                title pinned to the geometric center of the visible area. */
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            margin-top: 24px;
-            font-size: 1.1rem;
-            color: rgba(255,255,255,0.8);
-            font-weight: 300;
-            text-align: center;
-            max-width: 600px;
-            width: max-content;
-            line-height: 1.7;
-            text-shadow: 0 1px 8px rgba(0,0,0,0.9);
-            padding: 0 40px;
-            box-sizing: border-box;
-        }
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 24px;
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 300;
+        text-align: center;
+        max-width: 600px;
+        width: max-content;
+        line-height: 1.7;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+        padding: 0 40px;
+        box-sizing: border-box;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="turn-overlay" class="turn-overlay">
-        <div class="turn-overlay__content">
-            <div class="turn-overlay__round" id="turn-overlay-round">Rodada 1</div>
-            <div class="turn-overlay__title">Turno de</div>
-            <div class="turn-overlay__name" id="turn-overlay-name">---</div>
-        </div>
+      <div class="turn-overlay__content">
+        <div class="turn-overlay__round" id="turn-overlay-round">Rodada 1</div>
+        <div class="turn-overlay__title">Turno de</div>
+        <div class="turn-overlay__name" id="turn-overlay-name">---</div>
+      </div>
     </div>
 
     <div id="dice-box"></div>
@@ -874,710 +995,760 @@
     <audio id="encounter-music" loop preload="auto"></audio>
     <audio id="sfx-player" preload="auto"></audio>
     <div id="music-controls" class="music-controls" hidden>
-        <button type="button" id="music-mute-btn" class="music-controls__btn" title="Mute">🔊</button>
-        <span class="music-controls__icon" title="Música">🎵</span>
-        <input type="range" id="music-volume" class="music-controls__volume" min="0" max="100" value="60">
-        <span class="music-controls__icon" title="Efeitos">⚔️</span>
-        <input type="range" id="sfx-volume" class="music-controls__volume" min="0" max="100" value="80">
+      <button type="button" id="music-mute-btn" class="music-controls__btn" title="Mute">🔊</button>
+      <span class="music-controls__icon" title="Música">🎵</span>
+      <input
+        type="range"
+        id="music-volume"
+        class="music-controls__volume"
+        min="0"
+        max="100"
+        value="60"
+      />
+      <span class="music-controls__icon" title="Efeitos">⚔️</span>
+      <input
+        type="range"
+        id="sfx-volume"
+        class="music-controls__volume"
+        min="0"
+        max="100"
+        value="80"
+      />
     </div>
-    <button type="button" id="music-unlock-btn" class="music-unlock" hidden>▶ Habilitar áudio</button>
+    <button type="button" id="music-unlock-btn" class="music-unlock" hidden>
+      ▶ Habilitar áudio
+    </button>
 
     <div class="header">
-        <div class="round-badge" id="round-info">Desconectado</div>
-        <div id="last-roll-container" class="last-roll-panel" style="display: none;">
-            <div class="last-roll__label">Última Rolagem</div>
-            <div id="last-roll-name" style="font-weight: 700; color: var(--color-primary);">Mestre</div>
-            <div id="last-roll-value" class="last-roll__value">20</div>
-        </div>
-        <div class="connection-badge" id="conn-badge">
-            <div class="connection-dot"></div>
-            <span id="conn-text">OFFLINE</span>
-        </div>
+      <div class="round-badge" id="round-info">Desconectado</div>
+      <div id="last-roll-container" class="last-roll-panel" style="display: none">
+        <div class="last-roll__label">Última Rolagem</div>
+        <div id="last-roll-name" style="font-weight: 700; color: var(--color-primary)">Mestre</div>
+        <div id="last-roll-value" class="last-roll__value">20</div>
+      </div>
+      <div class="connection-badge" id="conn-badge">
+        <div class="connection-dot"></div>
+        <span id="conn-text">OFFLINE</span>
+      </div>
     </div>
-    
+
     <!-- Idle screen: shown while no encounter or scene is active -->
     <div id="idle-screen">
-        <div class="idle-icon">⚔️</div>
-        <div class="idle-title">A sessão ainda não começou</div>
-        <div class="idle-subtitle">O Mestre está preparando a próxima cena.<br>Aguarde e prepare-se para a aventura.</div>
-        <div class="idle-dots">
-            <div class="idle-dot"></div>
-            <div class="idle-dot"></div>
-            <div class="idle-dot"></div>
-        </div>
+      <div class="idle-icon">⚔️</div>
+      <div class="idle-title">A sessão ainda não começou</div>
+      <div class="idle-subtitle">
+        O Mestre está preparando a próxima cena.<br />Aguarde e prepare-se para a aventura.
+      </div>
+      <div class="idle-dots">
+        <div class="idle-dot"></div>
+        <div class="idle-dot"></div>
+        <div class="idle-dot"></div>
+      </div>
     </div>
 
     <!-- Scene screen: shown when the DM activates a scene -->
     <div id="scene-screen" class="hidden">
-        <div class="scene-content">
-            <div class="scene-name" id="scene-name-display"></div>
-            <div class="scene-description" id="scene-desc-display"></div>
-        </div>
+      <div class="scene-content">
+        <div class="scene-name" id="scene-name-display"></div>
+        <div class="scene-description" id="scene-desc-display"></div>
+      </div>
     </div>
 
     <div class="main-content">
-        <div class="combat-container" id="combat-container" style="display:none">
-        </div>
+      <div class="combat-container" id="combat-container" style="display: none"></div>
     </div>
 
     <div class="footer">
-        <div class="log-container">
-            <div class="log-header">
-                <span>📜 LOG DE ROLAGENS</span>
-                <div style="flex: 1; height: 1px; background: var(--color-border);"></div>
-            </div>
-            <div class="log-list" id="roll-log">
-                <!-- Logs populated via JS -->
-            </div>
+      <div class="log-container">
+        <div class="log-header">
+          <span>📜 LOG DE ROLAGENS</span>
+          <div style="flex: 1; height: 1px; background: var(--color-border)"></div>
         </div>
+        <div class="log-list" id="roll-log">
+          <!-- Logs populated via JS -->
+        </div>
+      </div>
     </div>
 
     <script type="module">
-        import DiceBox from '/dice-box-threejs/dist/dice-box-threejs.es.js';
+      import DiceBox from "/dice-box-threejs/dist/dice-box-threejs.es.js";
 
-        const socket = io({
-            reconnectionAttempts: 10,
-            timeout: 10000
-        });
-        
-        const container = document.getElementById('combat-container');
-        const roundInfo = document.getElementById('round-info');
-        const rollLog = document.getElementById('roll-log');
-        const lastRollContainer = document.getElementById('last-roll-container');
-        const turnOverlay = document.getElementById('turn-overlay');
-        const turnOverlayRound = document.getElementById('turn-overlay-round');
-        const turnOverlayName = document.getElementById('turn-overlay-name');
-        const lastRollName = document.getElementById('last-roll-name');
-        const lastRollValue = document.getElementById('last-roll-value');
-        const connBadge = document.getElementById('conn-badge');
-        const connText = document.getElementById('conn-text');
-        const idleScreen = document.getElementById('idle-screen');
-        const sceneScreen = document.getElementById('scene-screen');
-        const sceneNameDisplay = document.getElementById('scene-name-display');
-        const sceneDescDisplay = document.getElementById('scene-desc-display');
+      const socket = io({
+        reconnectionAttempts: 10,
+        timeout: 10000,
+      });
 
-        let lastCombatState = null;
-        let lastCombatStatus = null;
-        let currentRound = null;
-        let currentTurnParticipantId = null;
-        let diceBox = null;
-        let isDiceReady = false;
-        let clearDiceTimer = null;
+      const container = document.getElementById("combat-container");
+      const roundInfo = document.getElementById("round-info");
+      const rollLog = document.getElementById("roll-log");
+      const lastRollContainer = document.getElementById("last-roll-container");
+      const turnOverlay = document.getElementById("turn-overlay");
+      const turnOverlayRound = document.getElementById("turn-overlay-round");
+      const turnOverlayName = document.getElementById("turn-overlay-name");
+      const lastRollName = document.getElementById("last-roll-name");
+      const lastRollValue = document.getElementById("last-roll-value");
+      const connBadge = document.getElementById("conn-badge");
+      const connText = document.getElementById("conn-text");
+      const idleScreen = document.getElementById("idle-screen");
+      const sceneScreen = document.getElementById("scene-screen");
+      const sceneNameDisplay = document.getElementById("scene-name-display");
+      const sceneDescDisplay = document.getElementById("scene-desc-display");
 
-        function showView(view) {
-            idleScreen.classList.toggle('hidden', view !== 'idle');
-            sceneScreen.classList.toggle('hidden', view !== 'scene');
-            container.style.display = view === 'combat' ? '' : 'none';
-            if (view !== 'combat') {
-                roundInfo.textContent = view === 'idle' ? 'Aguardando' : 'Cena';
-                lastRollContainer.style.display = 'none';
-            }
+      let lastCombatState = null;
+      let lastCombatStatus = null;
+      let currentRound = null;
+      let currentTurnParticipantId = null;
+      let diceBox = null;
+      let isDiceReady = false;
+      let clearDiceTimer = null;
+
+      function showView(view) {
+        idleScreen.classList.toggle("hidden", view !== "idle");
+        sceneScreen.classList.toggle("hidden", view !== "scene");
+        container.style.display = view === "combat" ? "" : "none";
+        if (view !== "combat") {
+          roundInfo.textContent = view === "idle" ? "Aguardando" : "Cena";
+          lastRollContainer.style.display = "none";
         }
+      }
 
-        // Start in idle state (server is always running)
-        showView('idle');
+      // Start in idle state (server is always running)
+      showView("idle");
 
-        // ============================================
-        // SFX (combat sound effects, player-side only)
-        // ============================================
-        const sfxPlayer = document.getElementById('sfx-player');
-        const SFX = {
-            combatStart: '/sfx/combate_inicia.mp3',
-            newRound:    '/sfx/nova_rodada.mp3',
-            newTurn:     '/sfx/novo_turno.mp3',
-            damage:      '/sfx/aplicar_dano.mp3',
-            heal:        '/sfx/aplicar_cura.mp3',
-        };
-        let sfxUnlocked = false;
+      // ============================================
+      // SFX (combat sound effects, player-side only)
+      // ============================================
+      const sfxPlayer = document.getElementById("sfx-player");
+      const SFX = {
+        combatStart: "/sfx/combate_inicia.mp3",
+        newRound: "/sfx/nova_rodada.mp3",
+        newTurn: "/sfx/novo_turno.mp3",
+        damage: "/sfx/aplicar_dano.mp3",
+        heal: "/sfx/aplicar_cura.mp3",
+      };
+      let sfxUnlocked = false;
 
-        function playSfx(key) {
-            if (!SFX[key]) return;
-            if (!sfxUnlocked) {
-                console.warn('[SFX] disparo bloqueado (áudio não desbloqueado):', key);
-                return;
-            }
-            console.log('[SFX] tocando:', key, SFX[key]);
-            sfxPlayer.src = SFX[key];
-            try { sfxPlayer.currentTime = 0; } catch (_) { /* ignore */ }
-            sfxPlayer.play().catch((err) => {
-                console.warn('[SFX] play() falhou:', key, err);
-            });
+      function playSfx(key) {
+        if (!SFX[key]) return;
+        if (!sfxUnlocked) {
+          console.warn("[SFX] disparo bloqueado (áudio não desbloqueado):", key);
+          return;
         }
-
-        // Unlock the SFX channel by playing a real SFX file (muted) during a user gesture.
-        // Using a real source (not an empty audio element) is what genuinely releases the
-        // browser's autoplay restriction for subsequent .play() calls.
-        function unlockSfx() {
-            if (sfxUnlocked) return Promise.resolve();
-            const probeUrl = SFX.combatStart;
-            const wasMuted = sfxPlayer.muted;
-            sfxPlayer.muted = true;
-            sfxPlayer.src = probeUrl;
-            return sfxPlayer.play()
-                .then(() => {
-                    sfxPlayer.pause();
-                    try { sfxPlayer.currentTime = 0; } catch (_) { /* ignore */ }
-                    sfxPlayer.muted = wasMuted;
-                    sfxUnlocked = true;
-                    musicControls.hidden = false;
-                    console.log('[SFX] canal desbloqueado');
-                })
-                .catch((err) => {
-                    sfxPlayer.muted = wasMuted;
-                    console.warn('[SFX] desbloqueio falhou, será retentado no próximo gesto:', err);
-                });
+        console.log("[SFX] tocando:", key, SFX[key]);
+        sfxPlayer.src = SFX[key];
+        try {
+          sfxPlayer.currentTime = 0;
+        } catch (_) {
+          /* ignore */
         }
-
-        // Fallback: any user interaction unlocks SFX, covering cases where the explicit
-        // unlock button is dismissed or never clicked.
-        ['pointerdown', 'keydown', 'touchstart'].forEach((evt) => {
-            window.addEventListener(evt, unlockSfx, { passive: true });
+        sfxPlayer.play().catch((err) => {
+          console.warn("[SFX] play() falhou:", key, err);
         });
+      }
 
-        // ============================================
-        // Music playback (encounter background music)
-        // ============================================
-        const musicEl = document.getElementById('encounter-music');
-        const musicControls = document.getElementById('music-controls');
-        const musicMuteBtn = document.getElementById('music-mute-btn');
-        const musicVolume = document.getElementById('music-volume');
-        const sfxVolume = document.getElementById('sfx-volume');
-        const musicUnlockBtn = document.getElementById('music-unlock-btn');
-
-        const STORAGE_VOLUME_KEY = 'dmc.player.music.volume';
-        const STORAGE_MUTED_KEY = 'dmc.player.music.muted';
-        const STORAGE_SFX_VOLUME_KEY = 'dmc.player.sfx.volume';
-
-        const clamp01 = (v) => Math.max(0, Math.min(1, v));
-
-        const storedVolume = parseFloat(localStorage.getItem(STORAGE_VOLUME_KEY));
-        const storedMuted = localStorage.getItem(STORAGE_MUTED_KEY) === '1';
-        const storedSfxVolume = parseFloat(localStorage.getItem(STORAGE_SFX_VOLUME_KEY));
-        const initialVolume = Number.isFinite(storedVolume) ? storedVolume : 0.6;
-        // SFX defaults to music volume + 0.2 (clamped) on first load.
-        const initialSfxVolume = Number.isFinite(storedSfxVolume)
-            ? storedSfxVolume
-            : clamp01(initialVolume + 0.2);
-        musicEl.volume = clamp01(initialVolume);
-        musicEl.muted = storedMuted;
-        musicVolume.value = String(Math.round(musicEl.volume * 100));
-        musicMuteBtn.textContent = musicEl.muted ? '🔇' : '🔊';
-        sfxPlayer.volume = clamp01(initialSfxVolume);
-        sfxPlayer.muted = musicEl.muted;
-        sfxVolume.value = String(Math.round(sfxPlayer.volume * 100));
-
-        musicVolume.addEventListener('input', () => {
-            const v = parseInt(musicVolume.value, 10) / 100;
-            musicEl.volume = v;
-            localStorage.setItem(STORAGE_VOLUME_KEY, String(v));
-            if (musicEl.muted && v > 0) {
-                musicEl.muted = false;
-                sfxPlayer.muted = false;
-                localStorage.setItem(STORAGE_MUTED_KEY, '0');
-                musicMuteBtn.textContent = '🔊';
+      // Unlock the SFX channel by playing a real SFX file (muted) during a user gesture.
+      // Using a real source (not an empty audio element) is what genuinely releases the
+      // browser's autoplay restriction for subsequent .play() calls.
+      function unlockSfx() {
+        if (sfxUnlocked) return Promise.resolve();
+        const probeUrl = SFX.combatStart;
+        const wasMuted = sfxPlayer.muted;
+        sfxPlayer.muted = true;
+        sfxPlayer.src = probeUrl;
+        return sfxPlayer
+          .play()
+          .then(() => {
+            sfxPlayer.pause();
+            try {
+              sfxPlayer.currentTime = 0;
+            } catch (_) {
+              /* ignore */
             }
-        });
-
-        sfxVolume.addEventListener('input', () => {
-            const v = parseInt(sfxVolume.value, 10) / 100;
-            sfxPlayer.volume = v;
-            localStorage.setItem(STORAGE_SFX_VOLUME_KEY, String(v));
-            if (sfxPlayer.muted && v > 0) {
-                sfxPlayer.muted = false;
-                musicEl.muted = false;
-                localStorage.setItem(STORAGE_MUTED_KEY, '0');
-                musicMuteBtn.textContent = '🔊';
-            }
-        });
-
-        musicMuteBtn.addEventListener('click', () => {
-            musicEl.muted = !musicEl.muted;
-            sfxPlayer.muted = musicEl.muted;
-            localStorage.setItem(STORAGE_MUTED_KEY, musicEl.muted ? '1' : '0');
-            musicMuteBtn.textContent = musicEl.muted ? '🔇' : '🔊';
-        });
-
-        musicUnlockBtn.addEventListener('click', () => {
-            unlockSfx().finally(() => {
-                if (sfxUnlocked && !musicEl.src) {
-                    musicUnlockBtn.hidden = true;
-                }
-            });
-            if (musicEl.src) {
-                musicEl.play()
-                    .then(() => { musicUnlockBtn.hidden = true; })
-                    .catch((err) => console.warn('Falha ao iniciar áudio:', err));
-            }
-        });
-
-        function applyMusic(srcUrl) {
-            if (!srcUrl) {
-                if (!musicEl.paused) musicEl.pause();
-                musicEl.removeAttribute('src');
-                musicEl.load();
-                // Keep controls visible if SFX is active (slider still relevant);
-                // only fully hide them when there is neither music nor SFX in use.
-                musicControls.hidden = !sfxUnlocked;
-                musicUnlockBtn.hidden = true;
-                return;
-            }
-
-            const absoluteUrl = new URL(srcUrl, window.location.href).href;
-            if (musicEl.src !== absoluteUrl) {
-                musicEl.src = absoluteUrl;
-                musicEl.load();
-            }
-
+            sfxPlayer.muted = wasMuted;
+            sfxUnlocked = true;
             musicControls.hidden = false;
+            console.log("[SFX] canal desbloqueado");
+          })
+          .catch((err) => {
+            sfxPlayer.muted = wasMuted;
+            console.warn("[SFX] desbloqueio falhou, será retentado no próximo gesto:", err);
+          });
+      }
 
-            const playPromise = musicEl.play();
-            if (playPromise && typeof playPromise.then === 'function') {
-                playPromise
-                    .then(() => {
-                        // Music autoplay succeeded → permissive autoplay policy.
-                        // SFX channel is implicitly free; unlock it silently so the next
-                        // playSfx() call doesn't no-op.
-                        unlockSfx().finally(() => {
-                            if (sfxUnlocked) musicUnlockBtn.hidden = true;
-                        });
-                    })
-                    .catch((err) => {
-                        console.warn('Autoplay bloqueado, exibindo botão de desbloqueio:', err);
-                        musicUnlockBtn.hidden = false;
-                    });
-            }
+      // Fallback: any user interaction unlocks SFX, covering cases where the explicit
+      // unlock button is dismissed or never clicked.
+      ["pointerdown", "keydown", "touchstart"].forEach((evt) => {
+        window.addEventListener(evt, unlockSfx, { passive: true });
+      });
+
+      // ============================================
+      // Music playback (encounter background music)
+      // ============================================
+      const musicEl = document.getElementById("encounter-music");
+      const musicControls = document.getElementById("music-controls");
+      const musicMuteBtn = document.getElementById("music-mute-btn");
+      const musicVolume = document.getElementById("music-volume");
+      const sfxVolume = document.getElementById("sfx-volume");
+      const musicUnlockBtn = document.getElementById("music-unlock-btn");
+
+      const STORAGE_VOLUME_KEY = "dmc.player.music.volume";
+      const STORAGE_MUTED_KEY = "dmc.player.music.muted";
+      const STORAGE_SFX_VOLUME_KEY = "dmc.player.sfx.volume";
+
+      const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+      const storedVolume = parseFloat(localStorage.getItem(STORAGE_VOLUME_KEY));
+      const storedMuted = localStorage.getItem(STORAGE_MUTED_KEY) === "1";
+      const storedSfxVolume = parseFloat(localStorage.getItem(STORAGE_SFX_VOLUME_KEY));
+      const initialVolume = Number.isFinite(storedVolume) ? storedVolume : 0.6;
+      // SFX defaults to music volume + 0.2 (clamped) on first load.
+      const initialSfxVolume = Number.isFinite(storedSfxVolume)
+        ? storedSfxVolume
+        : clamp01(initialVolume + 0.2);
+      musicEl.volume = clamp01(initialVolume);
+      musicEl.muted = storedMuted;
+      musicVolume.value = String(Math.round(musicEl.volume * 100));
+      musicMuteBtn.textContent = musicEl.muted ? "🔇" : "🔊";
+      sfxPlayer.volume = clamp01(initialSfxVolume);
+      sfxPlayer.muted = musicEl.muted;
+      sfxVolume.value = String(Math.round(sfxPlayer.volume * 100));
+
+      musicVolume.addEventListener("input", () => {
+        const v = parseInt(musicVolume.value, 10) / 100;
+        musicEl.volume = v;
+        localStorage.setItem(STORAGE_VOLUME_KEY, String(v));
+        if (musicEl.muted && v > 0) {
+          musicEl.muted = false;
+          sfxPlayer.muted = false;
+          localStorage.setItem(STORAGE_MUTED_KEY, "0");
+          musicMuteBtn.textContent = "🔊";
         }
+      });
 
-        function stopMusic() {
-            if (!musicEl.paused) musicEl.pause();
-            try { musicEl.currentTime = 0; } catch (_) { /* ignore */ }
+      sfxVolume.addEventListener("input", () => {
+        const v = parseInt(sfxVolume.value, 10) / 100;
+        sfxPlayer.volume = v;
+        localStorage.setItem(STORAGE_SFX_VOLUME_KEY, String(v));
+        if (sfxPlayer.muted && v > 0) {
+          sfxPlayer.muted = false;
+          musicEl.muted = false;
+          localStorage.setItem(STORAGE_MUTED_KEY, "0");
+          musicMuteBtn.textContent = "🔊";
+        }
+      });
+
+      musicMuteBtn.addEventListener("click", () => {
+        musicEl.muted = !musicEl.muted;
+        sfxPlayer.muted = musicEl.muted;
+        localStorage.setItem(STORAGE_MUTED_KEY, musicEl.muted ? "1" : "0");
+        musicMuteBtn.textContent = musicEl.muted ? "🔇" : "🔊";
+      });
+
+      musicUnlockBtn.addEventListener("click", () => {
+        unlockSfx().finally(() => {
+          if (sfxUnlocked && !musicEl.src) {
             musicUnlockBtn.hidden = true;
+          }
+        });
+        if (musicEl.src) {
+          musicEl
+            .play()
+            .then(() => {
+              musicUnlockBtn.hidden = true;
+            })
+            .catch((err) => console.warn("Falha ao iniciar áudio:", err));
+        }
+      });
+
+      function applyMusic(srcUrl) {
+        if (!srcUrl) {
+          if (!musicEl.paused) musicEl.pause();
+          musicEl.removeAttribute("src");
+          musicEl.load();
+          // Keep controls visible if SFX is active (slider still relevant);
+          // only fully hide them when there is neither music nor SFX in use.
+          musicControls.hidden = !sfxUnlocked;
+          musicUnlockBtn.hidden = true;
+          return;
         }
 
-        // Initialize DiceBox (dice-box-threejs supports predeterministic rolls
-        // via "1d20@17" syntax, so the player view can show the same numbers
-        // the master rolled).
-        async function initDice() {
+        const absoluteUrl = new URL(srcUrl, window.location.href).href;
+        if (musicEl.src !== absoluteUrl) {
+          musicEl.src = absoluteUrl;
+          musicEl.load();
+        }
+
+        musicControls.hidden = false;
+
+        const playPromise = musicEl.play();
+        if (playPromise && typeof playPromise.then === "function") {
+          playPromise
+            .then(() => {
+              // Music autoplay succeeded → permissive autoplay policy.
+              // SFX channel is implicitly free; unlock it silently so the next
+              // playSfx() call doesn't no-op.
+              unlockSfx().finally(() => {
+                if (sfxUnlocked) musicUnlockBtn.hidden = true;
+              });
+            })
+            .catch((err) => {
+              console.warn("Autoplay bloqueado, exibindo botão de desbloqueio:", err);
+              musicUnlockBtn.hidden = false;
+            });
+        }
+      }
+
+      function stopMusic() {
+        if (!musicEl.paused) musicEl.pause();
+        try {
+          musicEl.currentTime = 0;
+        } catch (_) {
+          /* ignore */
+        }
+        musicUnlockBtn.hidden = true;
+      }
+
+      // Initialize DiceBox (dice-box-threejs supports predeterministic rolls
+      // via "1d20@17" syntax, so the player view can show the same numbers
+      // the master rolled).
+      async function initDice() {
+        try {
+          diceBox = new DiceBox("#dice-box", {
+            framerate: 1 / 60,
+            sounds: false,
+            shadows: true,
+            theme_surface: "green-felt",
+            theme_colorset: "white",
+            theme_material: "plastic",
+            gravity_multiplier: 400,
+            light_intensity: 0.7,
+            baseScale: 140,
+            strength: 4,
+          });
+          await diceBox.initialize();
+          isDiceReady = true;
+          console.log("DiceBox-threejs pronto na visão do jogador");
+        } catch (e) {
+          console.error("Erro ao iniciar DiceBox:", e);
+        }
+      }
+
+      initDice();
+
+      // ---- Pool paralelo (espelha o master): permite múltiplas animações
+      // 3D simultâneas no player view, sem clobbar quando vários eventos
+      // dice-roll chegam em sequência. ----
+      const PARALLEL_DICE_LIMIT = 4;
+      const parallelDicePool = [];
+
+      async function createParallelDiceSlot(idx) {
+        // Reserva o slot ANTES do await pra evitar criação duplicada
+        // se acquireParallelDiceSlot for chamado durante o init.
+        parallelDicePool[idx] = { id: idx, busy: true, initializing: true };
+
+        const container = document.createElement("div");
+        container.id = `dice-box-parallel-${idx}`;
+        container.className = "dice-box-parallel-slot";
+        document.body.appendChild(container);
+
+        const db = new DiceBox(`#dice-box-parallel-${idx}`, {
+          framerate: 1 / 60,
+          sounds: false,
+          shadows: false,
+          theme_surface: "green-felt",
+          theme_colorset: "white",
+          theme_material: "plastic",
+          gravity_multiplier: 400,
+          light_intensity: 0.7,
+          baseScale: 140,
+          strength: 4,
+        });
+        try {
+          await db.initialize();
+        } catch (err) {
+          console.error("[Player] Falha ao inicializar slot paralelo:", err);
+          parallelDicePool[idx] = null;
+          container.remove();
+          return null;
+        }
+        if (db.desk) db.desk.visible = false;
+
+        const slot = { id: idx, container, diceBox: db, busy: false };
+        parallelDicePool[idx] = slot;
+        return slot;
+      }
+
+      // Pré-aquece o pool em background SERIAL com pequeno stagger entre
+      // slots — evita pico de compilação de shaders simultânea (que
+      // congelava a main thread por ~900ms num único frame).
+      (async () => {
+        for (let i = 0; i < PARALLEL_DICE_LIMIT; i++) {
+          await createParallelDiceSlot(i);
+          await new Promise((resolve) => {
+            if (typeof window.requestIdleCallback === "function") {
+              window.requestIdleCallback(resolve, { timeout: 100 });
+            } else {
+              setTimeout(resolve, 50);
+            }
+          });
+        }
+        console.log(
+          `[Player] Parallel dice pool ready (${parallelDicePool.filter(Boolean).length} slots)`
+        );
+      })();
+
+      function findFreeParallelSlot() {
+        // Ignora slots ainda inicializando (sem diceBox).
+        return parallelDicePool.find((s) => s && !s.busy && s.diceBox) || null;
+      }
+
+      async function acquireParallelDiceSlot() {
+        let slot = findFreeParallelSlot();
+        if (slot) return slot;
+        if (parallelDicePool.filter(Boolean).length < PARALLEL_DICE_LIMIT) {
+          const idx = parallelDicePool.findIndex((s) => !s);
+          slot = await createParallelDiceSlot(idx >= 0 ? idx : parallelDicePool.length);
+          if (slot) return slot;
+        }
+        // Tudo ocupado/inicializando: espera o próximo a liberar.
+        return new Promise((resolve) => {
+          const tick = () => {
+            const free = findFreeParallelSlot();
+            if (free) return resolve(free);
+            setTimeout(tick, 80);
+          };
+          tick();
+        });
+      }
+
+      function releaseParallelDiceSlot(slot) {
+        if (!slot) return;
+        try {
+          slot.diceBox.clearDice?.();
+        } catch (_) {}
+        slot.busy = false;
+      }
+
+      socket.on("connect", () => {
+        connBadge.classList.add("connection-badge--online");
+        connText.textContent = "ONLINE";
+        if (!lastCombatState || lastCombatState.status !== "active") {
+          showView("idle");
+        }
+        if (!sfxUnlocked) {
+          musicUnlockBtn.hidden = false;
+        }
+      });
+
+      socket.on("disconnect", () => {
+        connBadge.classList.remove("connection-badge--online");
+        connText.textContent = "DESCONECTADO";
+        roundInfo.textContent = "Desconectado";
+        lastRollContainer.style.display = "none";
+      });
+
+      function applyBackground(url) {
+        console.log("[applyBackground]", url);
+        if (url) {
+          document.body.style.setProperty("--encounter-bg-url", `url('${url}')`);
+          document.body.classList.add("has-bg");
+        } else {
+          document.body.style.removeProperty("--encounter-bg-url");
+          document.body.classList.remove("has-bg");
+        }
+      }
+
+      socket.on("combat-update", (data) => {
+        const prevStatus = lastCombatStatus;
+        lastCombatState = data;
+        lastCombatStatus = data ? data.status : null;
+
+        if (!data || data.status !== "active") {
+          showView("idle");
+          applyBackground(null);
+          stopMusic();
+          return;
+        }
+
+        // Check for turn or round change
+        const activeParticipant = data.participants[data.currentTurnIndex];
+        const turnId = activeParticipant ? activeParticipant.id : null;
+
+        // SFX: only the most-specific transition fires
+        // (combatStart > newRound > newTurn).
+        if (prevStatus !== "active") {
+          playSfx("combatStart");
+        } else if (data.currentRound !== currentRound) {
+          playSfx("newRound");
+        } else if (turnId !== currentTurnParticipantId) {
+          playSfx("newTurn");
+        }
+
+        if (turnId !== currentTurnParticipantId || data.currentRound !== currentRound) {
+          currentTurnParticipantId = turnId;
+          currentRound = data.currentRound;
+          showTurnTransition(activeParticipant ? activeParticipant.name : "---", data.currentRound);
+        }
+
+        showView("combat");
+        applyBackground(data.backgroundImage);
+        applyMusic(data.musicFile);
+        renderCombat(data);
+        renderLog(data.rollHistory);
+      });
+
+      socket.on("scene-update", (data) => {
+        if (!data || data.status !== "active") {
+          showView("idle");
+          applyBackground(null);
+          stopMusic();
+          return;
+        }
+
+        if (sceneNameDisplay) sceneNameDisplay.textContent = data.name || "";
+        if (sceneDescDisplay) sceneDescDisplay.textContent = data.description || "";
+
+        // Apply background directly on the scene screen element
+        if (data.backgroundImage) {
+          sceneScreen.style.backgroundImage = `url('${data.backgroundImage}')`;
+        } else {
+          sceneScreen.style.backgroundImage = "";
+        }
+
+        applyMusic(data.musicFile);
+        showView("scene");
+      });
+
+      socket.on("combat-action", (data) => {
+        console.log("Ação de combate recebida:", data);
+        if (data.type === "damage" || data.type === "heal") {
+          showDamageEffect(data.targetId, data.amount, data.type);
+          playSfx(data.type === "heal" ? "heal" : "damage");
+        }
+      });
+
+      // Roll result panel (mirrors the master's dice toast)
+      const playerRollPanel = document.getElementById("player-roll-panel");
+      const playerRollChar = document.getElementById("player-roll-char");
+      const playerRollNotation = document.getElementById("player-roll-notation");
+      const playerRollTotal = document.getElementById("player-roll-total");
+      const playerRollBreakdown = document.getElementById("player-roll-breakdown");
+      let playerRollHideTimer = null;
+
+      function showPlayerRollPanel({ characterName, results, themeColor }) {
+        if (!playerRollPanel || !results) return;
+
+        const sets = Array.isArray(results.sets) ? results.sets : [];
+        const total = results.total != null ? results.total : 0;
+
+        // Notation like "1d20" or "2d6+1d4"
+        const notationStr = sets.map((s) => `${s.num}${s.type}`).join("+");
+
+        // Breakdown like "[15, 3] = 18"
+        const allValues = sets.flatMap((s) => (s.rolls || []).map((r) => r.value));
+        const breakdown = allValues.length > 1 ? `[${allValues.join(", ")}] = ${total}` : "";
+
+        playerRollChar.textContent = characterName || "Mestre";
+        playerRollNotation.textContent = notationStr;
+        playerRollTotal.textContent = String(total);
+        playerRollBreakdown.textContent = breakdown;
+
+        // Use the affinity color as the accent of the panel
+        playerRollPanel.style.setProperty("--accent-color", themeColor || "#7c3aed");
+
+        playerRollPanel.hidden = false;
+        void playerRollPanel.offsetWidth;
+        playerRollPanel.classList.add("player-roll-panel--visible");
+
+        if (playerRollHideTimer) clearTimeout(playerRollHideTimer);
+        playerRollHideTimer = setTimeout(() => {
+          playerRollPanel.classList.remove("player-roll-panel--visible");
+          setTimeout(() => {
+            playerRollPanel.hidden = true;
+          }, 300);
+        }, 4500);
+      }
+
+      socket.on("dice-roll", async (rollData) => {
+        console.log("[Player] dice-roll RECEBIDO | payload=", rollData);
+
+        const notationStr = Array.isArray(rollData.notation)
+          ? rollData.notation.join("+")
+          : String(rollData.notation || "");
+
+        // Adquire um slot paralelo livre (cria sob demanda até PARALLEL_DICE_LIMIT).
+        const slot = await acquireParallelDiceSlot();
+        if (!slot) {
+          console.error("[Player] Sem slot paralelo disponível para rolagem.");
+          return;
+        }
+
+        slot.busy = true;
+        try {
+          if (rollData.themeColor && slot.diceBox.updateConfig) {
             try {
-                diceBox = new DiceBox("#dice-box", {
-                    framerate: 1 / 60,
-                    sounds: false,
-                    shadows: true,
-                    theme_surface: "green-felt",
-                    theme_colorset: "white",
-                    theme_material: "plastic",
-                    gravity_multiplier: 400,
-                    light_intensity: 0.7,
-                    baseScale: 140,
-                    strength: 4,
-                });
-                await diceBox.initialize();
-                isDiceReady = true;
-                console.log("DiceBox-threejs pronto na visão do jogador");
+              await slot.diceBox.updateConfig({
+                theme_customColorset: {
+                  background: [rollData.themeColor],
+                  foreground: "#ffffff",
+                  material: "plastic",
+                  edges: "#000000",
+                  texture: "none",
+                },
+              });
             } catch (e) {
-                console.error("Erro ao iniciar DiceBox:", e);
+              console.warn("[Player] Falha ao aplicar cor:", e);
             }
+          }
+
+          slot.diceBox.strength = 3 + Math.random() * 4;
+          const results = await slot.diceBox.roll(notationStr);
+
+          showPlayerRollPanel({
+            characterName: rollData.characterName,
+            results: results,
+            themeColor: rollData.themeColor,
+          });
+        } catch (err) {
+          console.error("[Player] Erro ao executar rolagem no slot paralelo:", err);
+        } finally {
+          // Mantém os dados visíveis por um instante antes de limpar o slot.
+          setTimeout(() => releaseParallelDiceSlot(slot), 2500);
         }
+      });
 
-        initDice();
-
-        // ---- Pool paralelo (espelha o master): permite múltiplas animações
-        // 3D simultâneas no player view, sem clobbar quando vários eventos
-        // dice-roll chegam em sequência. ----
-        const PARALLEL_DICE_LIMIT = 4;
-        const parallelDicePool = [];
-
-        async function createParallelDiceSlot(idx) {
-            // Reserva o slot ANTES do await pra evitar criação duplicada
-            // se acquireParallelDiceSlot for chamado durante o init.
-            parallelDicePool[idx] = { id: idx, busy: true, initializing: true };
-
-            const container = document.createElement('div');
-            container.id = `dice-box-parallel-${idx}`;
-            container.className = 'dice-box-parallel-slot';
-            document.body.appendChild(container);
-
-            const db = new DiceBox(`#dice-box-parallel-${idx}`, {
-                framerate: 1 / 60,
-                sounds: false,
-                shadows: false,
-                theme_surface: "green-felt",
-                theme_colorset: "white",
-                theme_material: "plastic",
-                gravity_multiplier: 400,
-                light_intensity: 0.7,
-                baseScale: 140,
-                strength: 4,
-            });
-            try {
-                await db.initialize();
-            } catch (err) {
-                console.error("[Player] Falha ao inicializar slot paralelo:", err);
-                parallelDicePool[idx] = null;
-                container.remove();
-                return null;
-            }
-            if (db.desk) db.desk.visible = false;
-
-            const slot = { id: idx, container, diceBox: db, busy: false };
-            parallelDicePool[idx] = slot;
-            return slot;
-        }
-
-        // Pré-aquece o pool em background SERIAL com pequeno stagger entre
-        // slots — evita pico de compilação de shaders simultânea (que
-        // congelava a main thread por ~900ms num único frame).
-        (async () => {
-            for (let i = 0; i < PARALLEL_DICE_LIMIT; i++) {
-                await createParallelDiceSlot(i);
-                await new Promise((resolve) => {
-                    if (typeof window.requestIdleCallback === "function") {
-                        window.requestIdleCallback(resolve, { timeout: 100 });
-                    } else {
-                        setTimeout(resolve, 50);
-                    }
-                });
-            }
-            console.log(`[Player] Parallel dice pool ready (${parallelDicePool.filter(Boolean).length} slots)`);
-        })();
-
-        function findFreeParallelSlot() {
-            // Ignora slots ainda inicializando (sem diceBox).
-            return parallelDicePool.find((s) => s && !s.busy && s.diceBox) || null;
-        }
-
-        async function acquireParallelDiceSlot() {
-            let slot = findFreeParallelSlot();
-            if (slot) return slot;
-            if (parallelDicePool.filter(Boolean).length < PARALLEL_DICE_LIMIT) {
-                const idx = parallelDicePool.findIndex((s) => !s);
-                slot = await createParallelDiceSlot(idx >= 0 ? idx : parallelDicePool.length);
-                if (slot) return slot;
-            }
-            // Tudo ocupado/inicializando: espera o próximo a liberar.
-            return new Promise((resolve) => {
-                const tick = () => {
-                    const free = findFreeParallelSlot();
-                    if (free) return resolve(free);
-                    setTimeout(tick, 80);
-                };
-                tick();
-            });
-        }
-
-        function releaseParallelDiceSlot(slot) {
-            if (!slot) return;
-            try { slot.diceBox.clearDice?.(); } catch (_) {}
-            slot.busy = false;
-        }
-
-        socket.on('connect', () => {
-            connBadge.classList.add('connection-badge--online');
-            connText.textContent = 'ONLINE';
-            if (!lastCombatState || lastCombatState.status !== 'active') {
-                showView('idle');
-            }
-            if (!sfxUnlocked) {
-                musicUnlockBtn.hidden = false;
-            }
+      function renderCombat(data) {
+        roundInfo.textContent = `Rodada ${data.currentRound}`;
+        // Sort: participants without initiative go to the end
+        const sorted = [...data.participants].sort((a, b) => {
+          const aInit = a.initiative == null ? -Infinity : a.initiative;
+          const bInit = b.initiative == null ? -Infinity : b.initiative;
+          return bInit - aInit;
         });
 
-        socket.on('disconnect', () => {
-            connBadge.classList.remove('connection-badge--online');
-            connText.textContent = 'DESCONECTADO';
-            roundInfo.textContent = 'Desconectado';
-            lastRollContainer.style.display = 'none';
-        });
+        container.innerHTML = sorted
+          .map((p, index) => {
+            const isActive = index === data.currentTurnIndex;
+            const hasActed = p.has_acted && !isActive;
+            const ds = p.deathSaves;
+            const isDead = ds && ds.dead;
+            const showSaves = ds && (ds.active || ds.stabilized || ds.dead);
 
-        function applyBackground(url) {
-            console.log("[applyBackground]", url);
-            if (url) {
-                document.body.style.setProperty('--encounter-bg-url', `url('${url}')`);
-                document.body.classList.add('has-bg');
-            } else {
-                document.body.style.removeProperty('--encounter-bg-url');
-                document.body.classList.remove('has-bg');
-            }
-        }
-
-        socket.on('combat-update', (data) => {
-            const prevStatus = lastCombatStatus;
-            lastCombatState = data;
-            lastCombatStatus = data ? data.status : null;
-
-            if (!data || data.status !== 'active') {
-                showView('idle');
-                applyBackground(null);
-                stopMusic();
-                return;
-            }
-
-            // Check for turn or round change
-            const activeParticipant = data.participants[data.currentTurnIndex];
-            const turnId = activeParticipant ? activeParticipant.id : null;
-
-            // SFX: only the most-specific transition fires
-            // (combatStart > newRound > newTurn).
-            if (prevStatus !== 'active') {
-                playSfx('combatStart');
-            } else if (data.currentRound !== currentRound) {
-                playSfx('newRound');
-            } else if (turnId !== currentTurnParticipantId) {
-                playSfx('newTurn');
-            }
-
-            if (turnId !== currentTurnParticipantId || data.currentRound !== currentRound) {
-                currentTurnParticipantId = turnId;
-                currentRound = data.currentRound;
-                showTurnTransition(activeParticipant ? activeParticipant.name : '---', data.currentRound);
-            }
-
-            showView('combat');
-            applyBackground(data.backgroundImage);
-            applyMusic(data.musicFile);
-            renderCombat(data);
-            renderLog(data.rollHistory);
-        });
-
-        socket.on('scene-update', (data) => {
-            if (!data || data.status !== 'active') {
-                showView('idle');
-                applyBackground(null);
-                stopMusic();
-                return;
-            }
-
-            if (sceneNameDisplay) sceneNameDisplay.textContent = data.name || '';
-            if (sceneDescDisplay) sceneDescDisplay.textContent = data.description || '';
-
-            // Apply background directly on the scene screen element
-            if (data.backgroundImage) {
-                sceneScreen.style.backgroundImage = `url('${data.backgroundImage}')`;
-            } else {
-                sceneScreen.style.backgroundImage = '';
-            }
-
-            applyMusic(data.musicFile);
-            showView('scene');
-        });
-
-        socket.on('combat-action', (data) => {
-            console.log("Ação de combate recebida:", data);
-            if (data.type === 'damage' || data.type === 'heal') {
-                showDamageEffect(data.targetId, data.amount, data.type);
-                playSfx(data.type === 'heal' ? 'heal' : 'damage');
-            }
-        });
-
-        // Roll result panel (mirrors the master's dice toast)
-        const playerRollPanel = document.getElementById('player-roll-panel');
-        const playerRollChar = document.getElementById('player-roll-char');
-        const playerRollNotation = document.getElementById('player-roll-notation');
-        const playerRollTotal = document.getElementById('player-roll-total');
-        const playerRollBreakdown = document.getElementById('player-roll-breakdown');
-        let playerRollHideTimer = null;
-
-        function showPlayerRollPanel({ characterName, results, themeColor }) {
-            if (!playerRollPanel || !results) return;
-
-            const sets = Array.isArray(results.sets) ? results.sets : [];
-            const total = (results.total != null) ? results.total : 0;
-
-            // Notation like "1d20" or "2d6+1d4"
-            const notationStr = sets.map(s => `${s.num}${s.type}`).join('+');
-
-            // Breakdown like "[15, 3] = 18"
-            const allValues = sets.flatMap(s => (s.rolls || []).map(r => r.value));
-            const breakdown = allValues.length > 1
-                ? `[${allValues.join(', ')}] = ${total}`
-                : '';
-
-            playerRollChar.textContent = characterName || 'Mestre';
-            playerRollNotation.textContent = notationStr;
-            playerRollTotal.textContent = String(total);
-            playerRollBreakdown.textContent = breakdown;
-
-            // Use the affinity color as the accent of the panel
-            playerRollPanel.style.setProperty('--accent-color', themeColor || '#7c3aed');
-
-            playerRollPanel.hidden = false;
-            void playerRollPanel.offsetWidth;
-            playerRollPanel.classList.add('player-roll-panel--visible');
-
-            if (playerRollHideTimer) clearTimeout(playerRollHideTimer);
-            playerRollHideTimer = setTimeout(() => {
-                playerRollPanel.classList.remove('player-roll-panel--visible');
-                setTimeout(() => { playerRollPanel.hidden = true; }, 300);
-            }, 4500);
-        }
-
-        socket.on('dice-roll', async (rollData) => {
-            console.log("[Player] dice-roll RECEBIDO | payload=", rollData);
-
-            const notationStr = Array.isArray(rollData.notation)
-                ? rollData.notation.join("+")
-                : String(rollData.notation || "");
-
-            // Adquire um slot paralelo livre (cria sob demanda até PARALLEL_DICE_LIMIT).
-            const slot = await acquireParallelDiceSlot();
-            if (!slot) {
-                console.error("[Player] Sem slot paralelo disponível para rolagem.");
-                return;
-            }
-
-            slot.busy = true;
-            try {
-                if (rollData.themeColor && slot.diceBox.updateConfig) {
-                    try {
-                        await slot.diceBox.updateConfig({
-                            theme_customColorset: {
-                                background: [rollData.themeColor],
-                                foreground: "#ffffff",
-                                material: "plastic",
-                                edges: "#000000",
-                                texture: "none",
-                            },
-                        });
-                    } catch (e) {
-                        console.warn("[Player] Falha ao aplicar cor:", e);
-                    }
-                }
-
-                slot.diceBox.strength = 3 + Math.random() * 4;
-                const results = await slot.diceBox.roll(notationStr);
-
-                showPlayerRollPanel({
-                    characterName: rollData.characterName,
-                    results: results,
-                    themeColor: rollData.themeColor,
-                });
-            } catch (err) {
-                console.error("[Player] Erro ao executar rolagem no slot paralelo:", err);
-            } finally {
-                // Mantém os dados visíveis por um instante antes de limpar o slot.
-                setTimeout(() => releaseParallelDiceSlot(slot), 2500);
-            }
-        });
-
-        function renderCombat(data) {
-            roundInfo.textContent = `Rodada ${data.currentRound}`;
-            // Sort: participants without initiative go to the end
-            const sorted = [...data.participants].sort((a, b) => {
-                const aInit = a.initiative == null ? -Infinity : a.initiative;
-                const bInit = b.initiative == null ? -Infinity : b.initiative;
-                return bInit - aInit;
-            });
-
-            container.innerHTML = sorted.map((p, index) => {
-                const isActive = index === data.currentTurnIndex;
-                const hasActed = p.has_acted && !isActive;
-                const ds = p.deathSaves;
-                const isDead = ds && ds.dead;
-                const showSaves = ds && (ds.active || ds.stabilized || ds.dead);
-
-                const savesHtml = showSaves ? `
+            const savesHtml = showSaves
+              ? `
                     <div class="death-saves">
-                        ${[0,1,2].map(i =>
-                            `<span class="death-save-marker death-save-marker--success ${i < ds.successes ? 'filled' : ''}"></span>`
-                        ).join('')}
+                        ${[0, 1, 2]
+                          .map(
+                            (i) =>
+                              `<span class="death-save-marker death-save-marker--success ${i < ds.successes ? "filled" : ""}"></span>`
+                          )
+                          .join("")}
                         <span class="death-save-divider"></span>
-                        ${[0,1,2].map(i =>
-                            `<span class="death-save-marker death-save-marker--failure ${i < ds.failures ? 'filled' : ''}"></span>`
-                        ).join('')}
+                        ${[0, 1, 2]
+                          .map(
+                            (i) =>
+                              `<span class="death-save-marker death-save-marker--failure ${i < ds.failures ? "filled" : ""}"></span>`
+                          )
+                          .join("")}
                     </div>
-                ` : '';
+                `
+              : "";
 
-                // Visibility-aware fields
-                const nameHtml = p.name != null
-                    ? `<div class="banner__name">${p.name}</div>`
-                    : `<div class="banner__name banner__name--hidden">???</div>`;
+            // Visibility-aware fields
+            const nameHtml =
+              p.name != null
+                ? `<div class="banner__name">${p.name}</div>`
+                : `<div class="banner__name banner__name--hidden">???</div>`;
 
-                const initiativeHtml = p.initiative != null
-                    ? `<div class="banner__initiative">${p.initiative}</div>`
-                    : '';
+            const initiativeHtml =
+              p.initiative != null ? `<div class="banner__initiative">${p.initiative}</div>` : "";
 
-                const hasHp = p.hp != null && p.current_hp != null;
-                const hasCa = p.ca != null;
-                const hpLow = hasHp && p.hp > 0 && (p.current_hp / p.hp) <= 0.25;
-                const hpHtml = hasHp
-                    ? `<span class="banner__hp ${hpLow ? 'banner__hp--low' : ''}"><span class="banner__hp-icon">❤</span>${p.current_hp}/${p.hp}</span>`
-                    : '';
-                const caHtml = hasCa
-                    ? `<span class="banner__ca">🛡️${p.ca}</span>`
-                    : '';
-                const statsHtml = (hasHp || hasCa)
-                    ? `<div class="banner__stats">${hpHtml}${caHtml}</div>`
-                    : '';
+            const hasHp = p.hp != null && p.current_hp != null;
+            const hasCa = p.ca != null;
+            const hpLow = hasHp && p.hp > 0 && p.current_hp / p.hp <= 0.25;
+            const hpHtml = hasHp
+              ? `<span class="banner__hp ${hpLow ? "banner__hp--low" : ""}"><span class="banner__hp-icon">❤</span>${p.current_hp}/${p.hp}</span>`
+              : "";
+            const caHtml = hasCa ? `<span class="banner__ca">🛡️${p.ca}</span>` : "";
+            const statsHtml =
+              hasHp || hasCa ? `<div class="banner__stats">${hpHtml}${caHtml}</div>` : "";
 
-                return `
-                    <div class="banner ${isActive ? 'banner--active' : ''} ${hasActed ? 'banner--acted' : ''} ${isDead ? 'banner--dead' : ''}" data-id="${p.id}">
+            return `
+                    <div class="banner ${isActive ? "banner--active" : ""} ${hasActed ? "banner--acted" : ""} ${isDead ? "banner--dead" : ""}" data-id="${p.id}">
                         <div class="banner__affinity affinity--${p.affinity}"></div>
-                        ${p.image ? `
+                        ${
+                          p.image
+                            ? `
                             <div class="banner__image-container">
                                 <img src="${p.image}" class="banner__img" />
                             </div>
-                        ` : ''}
+                        `
+                            : ""
+                        }
                         ${nameHtml}
                         ${statsHtml}
                         ${savesHtml}
                         ${initiativeHtml}
                     </div>
                 `;
-            }).join('');
+          })
+          .join("");
+      }
+
+      function showDamageEffect(targetId, amount, type) {
+        const banner = document.querySelector(`.banner[data-id="${targetId}"]`);
+        if (!banner) {
+          console.warn(`Alvo da animação não encontrado: ${targetId}`);
+          return;
         }
 
-        function showDamageEffect(targetId, amount, type) {
-            const banner = document.querySelector(`.banner[data-id="${targetId}"]`);
-            if (!banner) {
-                console.warn(`Alvo da animação não encontrado: ${targetId}`);
-                return;
-            }
+        // Add animation class
+        const animClass = type === "damage" ? "banner--damage" : "banner--heal";
+        banner.classList.add(animClass);
+        setTimeout(() => banner.classList.remove(animClass), 600);
 
-            // Add animation class
-            const animClass = type === 'damage' ? 'banner--damage' : 'banner--heal';
-            banner.classList.add(animClass);
-            setTimeout(() => banner.classList.remove(animClass), 600);
+        // Create floating text
+        const rect = banner.getBoundingClientRect();
+        const float = document.createElement("div");
+        float.className = "floating-text";
+        float.textContent = type === "damage" ? `-${amount}` : `+${amount}`;
+        float.style.color = type === "damage" ? "#ef4444" : "#10b981";
 
-            // Create floating text
-            const rect = banner.getBoundingClientRect();
-            const float = document.createElement('div');
-            float.className = 'floating-text';
-            float.textContent = type === 'damage' ? `-${amount}` : `+${amount}`;
-            float.style.color = type === 'damage' ? '#ef4444' : '#10b981';
-            
-            // Position at center of banner
-            float.style.left = `${rect.left + rect.width / 2}px`;
-            float.style.top = `${rect.top + rect.height / 2}px`;
-            
-            document.body.appendChild(float);
-            setTimeout(() => float.remove(), 2000);
+        // Position at center of banner
+        float.style.left = `${rect.left + rect.width / 2}px`;
+        float.style.top = `${rect.top + rect.height / 2}px`;
+
+        document.body.appendChild(float);
+        setTimeout(() => float.remove(), 2000);
+      }
+
+      function renderLog(history) {
+        if (!history || history.length === 0) {
+          rollLog.innerHTML =
+            '<div style="color: var(--color-text-muted); font-size: 0.9rem; font-style: italic;">Nenhuma rolagem ainda.</div>';
+          lastRollContainer.style.display = "none";
+          return;
         }
 
-        function renderLog(history) {
-            if (!history || history.length === 0) {
-                rollLog.innerHTML = '<div style="color: var(--color-text-muted); font-size: 0.9rem; font-style: italic;">Nenhuma rolagem ainda.</div>';
-                lastRollContainer.style.display = 'none';
-                return;
-            }
+        const last = history[0];
+        lastRollName.textContent = last.characterName || "Mestre";
+        lastRollValue.textContent = last.total;
+        lastRollContainer.style.display = "flex";
 
-            const last = history[0];
-            lastRollName.textContent = last.characterName || 'Mestre';
-            lastRollValue.textContent = last.total;
-            lastRollContainer.style.display = 'flex';
-
-            rollLog.innerHTML = history.map(roll => {
-                if (roll.type === 'round-change') {
-                    return `
+        rollLog.innerHTML = history
+          .map((roll) => {
+            if (roll.type === "round-change") {
+              return `
                         <div class="log-item log-item--round-change">
                             ⚔️ RODADA ${roll.round} INICIADA
                         </div>
                     `;
-                }
-                
-                return `
-                <div class="log-item log-item--roll log-item--${roll.affinity || 'neutral'}">
+            }
+
+            return `
+                <div class="log-item log-item--roll log-item--${roll.affinity || "neutral"}">
                     <div class="log-item__main">
-                        <span class="log-item__char">${roll.characterName || 'Mestre'}</span>
+                        <span class="log-item__char">${roll.characterName || "Mestre"}</span>
                         <span class="log-item__notation">${roll.notation}</span>
                         <span class="log-item__details">${roll.details}</span>
                     </div>
@@ -1587,18 +1758,19 @@
                     </div>
                 </div>
             `;
-            }).join('');
-        }
+          })
+          .join("");
+      }
 
-        function showTurnTransition(name, round) {
-            turnOverlayRound.textContent = `Rodada ${round}`;
-            turnOverlayName.textContent = name;
-            turnOverlay.classList.add('active');
-            
-            setTimeout(() => {
-                turnOverlay.classList.remove('active');
-            }, 2100);
-        }
+      function showTurnTransition(name, round) {
+        turnOverlayRound.textContent = `Rodada ${round}`;
+        turnOverlayName.textContent = name;
+        turnOverlay.classList.add("active");
+
+        setTimeout(() => {
+          turnOverlay.classList.remove("active");
+        }, 2100);
+      }
     </script>
-</body>
+  </body>
 </html>

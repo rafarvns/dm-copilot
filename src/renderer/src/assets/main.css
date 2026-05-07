@@ -1,5 +1,12 @@
 /* ===== DM Copilot - Main Styles ===== */
 
+/* Canonical design tokens + brand @font-face — see tokens.css and
+   design-system/project/README.md. The :root below currently overrides
+   tokens.css for any conflicting variable; trim duplicates as features
+   migrate. New tokens (affinity colors, --color-primary-deep, brand
+   fonts) live in tokens.css and are available everywhere. */
+@import "./tokens.css";
+
 /* --- CSS Custom Properties (Theme) --- */
 :root {
   /* Cores primárias */
@@ -704,7 +711,6 @@ select:focus {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -810,7 +816,9 @@ select:focus {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-1) var(--space-3);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .campaigns-search:focus-within {
@@ -847,7 +855,9 @@ select:focus {
   font-size: var(--text-sm);
   outline: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .campaigns-filter:focus {
@@ -1257,7 +1267,9 @@ select:focus {
   color: var(--color-text);
   font-size: var(--text-sm);
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .form-input:focus,
@@ -1451,7 +1463,6 @@ select:focus {
 }
 
 @keyframes loadingBounce {
-
   0%,
   80%,
   100% {
@@ -2012,13 +2023,15 @@ select:focus {
   font-weight: 600;
 }
 
-.dice-roller-toggle input { display: none; }
+.dice-roller-toggle input {
+  display: none;
+}
 
 .dice-roller-toggle__track {
   position: relative;
   width: 38px;
   height: 20px;
-  background: #6b21a8;          /* purple = Mestre default */
+  background: #6b21a8; /* purple = Mestre default */
   border-radius: 999px;
   transition: background 0.2s ease;
   flex-shrink: 0;
@@ -2449,7 +2462,9 @@ select:focus {
   flex-direction: column;
   gap: var(--space-2);
   position: relative;
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .participant-card--with-img {
@@ -2539,21 +2554,21 @@ select:focus {
   transition: all 0.2s;
 }
 
-.affinity-pill--ally input:checked+span {
+.affinity-pill--ally input:checked + span {
   background: rgba(39, 174, 96, 0.2);
   border-color: var(--success);
   color: var(--success);
   box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);
 }
 
-.affinity-pill--neutral input:checked+span {
+.affinity-pill--neutral input:checked + span {
   background: rgba(241, 196, 15, 0.2);
   border-color: var(--warning);
   color: var(--warning);
   box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
 }
 
-.affinity-pill--enemy input:checked+span {
+.affinity-pill--enemy input:checked + span {
   background: rgba(231, 76, 60, 0.2);
   border-color: var(--danger);
   color: var(--danger);
@@ -2940,7 +2955,7 @@ select:focus {
   transform: scale(0.8);
   transition: all 0.2s ease;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .combat-banner:hover .combat-banner__remove {
@@ -2981,15 +2996,21 @@ select:focus {
   border: 2px solid currentColor;
   background: transparent;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
 }
 
 .death-save-marker:hover {
   transform: scale(1.2);
 }
 
-.death-save-marker--success { color: #10b981; }
-.death-save-marker--failure { color: #ef4444; }
+.death-save-marker--success {
+  color: #10b981;
+}
+.death-save-marker--failure {
+  color: #ef4444;
+}
 
 .death-save-marker.filled {
   background: currentColor;
@@ -2999,7 +3020,7 @@ select:focus {
 .death-save-divider {
   width: 1px;
   height: 14px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   margin: 0 2px;
 }
 
@@ -3011,7 +3032,7 @@ select:focus {
 }
 
 .combat-banner--dead::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='%23ffffff'><path d='M32 4C18 4 8 14 8 28c0 8 4 14 10 19v9c0 2 2 4 4 4h4v-6h4v6h4v-6h4v6h4c2 0 4-2 4-4v-9c6-5 10-11 10-19C56 14 46 4 32 4zm-10 24c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zm20 0c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zM26 38l6-8 6 8h-12z'/></svg>");
@@ -3319,7 +3340,7 @@ select:focus {
 }
 
 .visibility-grid--inherit::before {
-  content: 'Pré-visualização (herdado da campanha) — clique em qualquer caixa para sobrescrever';
+  content: "Pré-visualização (herdado da campanha) — clique em qualquer caixa para sobrescrever";
   display: block;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
@@ -3346,8 +3367,12 @@ select:focus {
   min-height: 1.2em;
 }
 
-.form-help--error { color: #ef4444; }
-.form-help--ok { color: #10b981; }
+.form-help--error {
+  color: #ef4444;
+}
+.form-help--ok {
+  color: #10b981;
+}
 
 /* --- Encounter Detail View Background --- */
 .overlay-view.encounter-detail-view--has-bg {
@@ -3381,8 +3406,14 @@ select:focus {
 }
 
 @keyframes scene-viewer-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .scene-viewer__hero {
@@ -3404,7 +3435,12 @@ select:focus {
   inset: 0;
   background:
     radial-gradient(ellipse at top, rgba(124, 58, 237, 0.22) 0%, rgba(15, 15, 20, 0) 60%),
-    linear-gradient(180deg, rgba(15, 15, 20, 0.45) 0%, rgba(15, 15, 20, 0.78) 70%, var(--color-bg) 100%);
+    linear-gradient(
+      180deg,
+      rgba(15, 15, 20, 0.45) 0%,
+      rgba(15, 15, 20, 0.78) 70%,
+      var(--color-bg) 100%
+    );
   pointer-events: none;
 }
 
@@ -3438,7 +3474,9 @@ select:focus {
   color: var(--color-text);
   font-size: 1.1rem;
   cursor: pointer;
-  transition: background 200ms ease, border-color 200ms ease;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease;
 }
 
 .scene-viewer__back:hover {
@@ -3597,7 +3635,9 @@ select:focus {
   font-family: inherit;
   resize: vertical;
   outline: none;
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .scene-viewer__notes-edit:focus {
@@ -3640,7 +3680,10 @@ select:focus {
   font-size: 0.92rem;
   text-decoration: none;
   cursor: pointer;
-  transition: background 180ms ease, border-color 180ms ease, transform 120ms ease;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 120ms ease;
 }
 
 .scene-viewer__chip:hover {
@@ -3681,4 +3724,144 @@ select:focus {
   background: rgba(10, 10, 14, 0.65);
   backdrop-filter: blur(12px);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== Lucide SVG Icons =====
+   Substituem emojis-como-ícone em toda a UI. O helper em core/icons.js
+   converte <i data-icon="..."> em <svg class="icon ..."> preservando as
+   classes existentes (.btn__icon, .sidebar__link-icon, etc).
+*/
+
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: -0.15em;
+  stroke: currentColor;
+  fill: none;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.icon--sm {
+  width: 14px;
+  height: 14px;
+}
+
+.icon--lg {
+  width: 20px;
+  height: 20px;
+}
+
+.icon--xl {
+  width: 32px;
+  height: 32px;
+}
+
+.icon--xxl {
+  width: 48px;
+  height: 48px;
+}
+
+/* Status circles (combat affinity buttons) */
+.status-icon--ally {
+  color: var(--color-accent-emerald);
+  fill: currentColor;
+}
+
+.status-icon--neutral {
+  color: var(--color-accent-gold);
+  fill: currentColor;
+}
+
+.status-icon--enemy {
+  color: var(--color-accent-rose);
+  fill: currentColor;
+}
+
+/* When SVG replaces the emoji container element (estratégia A),
+   it inherits the original class. These rules override the default 16px. */
+svg.icon.sidebar__link-icon {
+  width: 18px;
+  height: 18px;
+}
+
+svg.icon.toast__icon {
+  width: 18px;
+  height: 18px;
+}
+
+svg.icon.campaigns-search__icon {
+  width: 14px;
+  height: 14px;
+}
+
+svg.icon.campaign-detail__meta-icon {
+  width: 16px;
+  height: 16px;
+}
+
+svg.icon.scene-viewer__music-icon {
+  width: 14px;
+  height: 14px;
+}
+
+svg.icon.btn__icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* When SVG sits inside a decorated container (estratégia B), size via descendant. */
+.sidebar__logo-icon .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text);
+}
+
+.welcome__emblem .icon {
+  width: 44px;
+  height: 44px;
+  color: var(--color-text);
+}
+
+.feature-card__icon .icon {
+  width: 32px;
+  height: 32px;
+  color: var(--color-accent-gold);
+}
+
+.empty-state__icon .icon {
+  width: 56px;
+  height: 56px;
+  opacity: 0.6;
+}
+
+.campaigns-header__icon .icon {
+  width: 28px;
+  height: 28px;
+  color: var(--color-accent-gold);
+}
+
+.image-placeholder .icon {
+  width: 48px;
+  height: 48px;
+}
+
+.overlay-icon .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.character-card__avatar-placeholder .icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Inline icons inside section titles (e.g. .scene-viewer__section-title with leading icon) */
+.scene-viewer__section-title .icon,
+.scene-viewer__panel-title .icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 0.4em;
+  vertical-align: -0.2em;
 }

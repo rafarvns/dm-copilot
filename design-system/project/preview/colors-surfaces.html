@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 18px 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; box-sizing: border-box; }
+  .sw { display:flex; flex-direction:column; gap:6px; }
+  .chip { height: 70px; border-radius: var(--radius-md); border: 1px solid var(--color-border); }
+  .lbl { display:flex; flex-direction:column; gap:2px; font-size:11px; font-family: var(--font-body); }
+  .lbl b { color: var(--color-text); font-weight:600; }
+  .hex { font-family: var(--font-mono); color: var(--color-text-muted); font-size: 10px; }
+</style></head>
+<body>
+  <div class="sw"><div class="chip" style="background:#0f0f14;"></div><div class="lbl"><b>bg</b><span class="hex">#0f0f14</span></div></div>
+  <div class="sw"><div class="chip" style="background:#1a1a24;"></div><div class="lbl"><b>surface</b><span class="hex">#1a1a24</span></div></div>
+  <div class="sw"><div class="chip" style="background:#22222e;"></div><div class="lbl"><b>surface-hover</b><span class="hex">#22222e</span></div></div>
+  <div class="sw"><div class="chip" style="background:#2a2a38;"></div><div class="lbl"><b>surface-active</b><span class="hex">#2a2a38</span></div></div>
+  <div class="sw"><div class="chip" style="background:#2e2e3e;"></div><div class="lbl"><b>border</b><span class="hex">#2e2e3e</span></div></div>
+  <div class="sw"><div class="chip" style="background:#e2e2ea;"></div><div class="lbl"><b>text</b><span class="hex">#e2e2ea</span></div></div>
+  <div class="sw"><div class="chip" style="background:#9393a8;"></div><div class="lbl"><b>text-secondary</b><span class="hex">#9393a8</span></div></div>
+  <div class="sw"><div class="chip" style="background:#636380;"></div><div class="lbl"><b>text-muted</b><span class="hex">#636380</span></div></div>
+</body></html>

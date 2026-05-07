@@ -24,7 +24,7 @@ function createCampaign(db, campaignData) {
     id: result.lastInsertRowid,
     ...campaignData,
     created_at: now,
-    updated_at: now
+    updated_at: now,
   };
 }
 
@@ -51,16 +51,16 @@ function updateCampaign(db, id, campaignData) {
   const values = [];
 
   const columnMap = {
-    name: 'name',
-    description: 'description',
-    system: 'system',
-    combat_visibility: 'combat_visibility'
+    name: "name",
+    description: "description",
+    system: "system",
+    combat_visibility: "combat_visibility",
   };
 
   for (const [key, column] of Object.entries(columnMap)) {
     if (campaignData[key] !== undefined) {
       fields.push(`${column} = ?`);
-      values.push(campaignData[key] === '' && key !== 'name' ? null : campaignData[key]);
+      values.push(campaignData[key] === "" && key !== "name" ? null : campaignData[key]);
     }
   }
 
@@ -110,5 +110,5 @@ module.exports = {
   updateCampaign,
   deleteCampaign,
   countCampaigns,
-  campaignExists
+  campaignExists,
 };

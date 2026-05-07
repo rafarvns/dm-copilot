@@ -30,7 +30,9 @@
     <div id="encounter-detail-view" class="overlay-view hidden">
       <div class="overlay-view__header">
         <div class="overlay-view__title-group">
-          <button class="btn-icon" id="btn-close-encounter-detail" title="Voltar">⬅️</button>
+          <button class="btn-icon" id="btn-close-encounter-detail" title="Voltar">
+            <i data-icon="arrow-left"></i>
+          </button>
           <div id="last-roll-display" class="last-roll-display hidden">
             <span class="last-roll-display__label">Último Resultado:</span>
             <span class="last-roll-display__value">0</span>
@@ -48,42 +50,66 @@
           <div class="dice-toolbar" id="dice-toolbar">
             <div class="dice-buttons">
               <button class="dice-btn" data-dice="d4" title="d4">
-                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d4.png" alt="d4"></span>
+                <span class="dice-btn__icon"
+                  ><img src="./src/assets/images/dices/d4.png" alt="d4"
+                /></span>
                 <span class="dice-btn__pill">0</span>
               </button>
               <button class="dice-btn" data-dice="d6" title="d6">
-                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d6.png" alt="d6"></span>
+                <span class="dice-btn__icon"
+                  ><img src="./src/assets/images/dices/d6.png" alt="d6"
+                /></span>
                 <span class="dice-btn__pill">0</span>
               </button>
               <button class="dice-btn" data-dice="d8" title="d8">
-                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d8.png" alt="d8"></span>
+                <span class="dice-btn__icon"
+                  ><img src="./src/assets/images/dices/d8.png" alt="d8"
+                /></span>
                 <span class="dice-btn__pill">0</span>
               </button>
               <button class="dice-btn" data-dice="d10" title="d10">
-                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d10"></span>
+                <span class="dice-btn__icon"
+                  ><img src="./src/assets/images/dices/d10.png" alt="d10"
+                /></span>
                 <span class="dice-btn__pill">0</span>
               </button>
               <button class="dice-btn" data-dice="d12" title="d12">
-                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d12.png" alt="d12"></span>
+                <span class="dice-btn__icon"
+                  ><img src="./src/assets/images/dices/d12.png" alt="d12"
+                /></span>
                 <span class="dice-btn__pill">0</span>
               </button>
               <button class="dice-btn" data-dice="d20" title="d20">
-                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d20.png" alt="d20"></span>
+                <span class="dice-btn__icon"
+                  ><img src="./src/assets/images/dices/d20.png" alt="d20"
+                /></span>
                 <span class="dice-btn__pill">0</span>
               </button>
               <button class="dice-btn" data-dice="d100" title="d100">
-                <span class="dice-btn__icon"><img src="./src/assets/images/dices/d10.png" alt="d100"></span>
+                <span class="dice-btn__icon"
+                  ><img src="./src/assets/images/dices/d10.png" alt="d100"
+                /></span>
                 <span class="dice-btn__pill">0</span>
               </button>
             </div>
 
             <div class="dice-bonus">
               <span class="dice-bonus__label">+</span>
-              <input type="number" id="dice-bonus-input" class="dice-bonus__input" value="0" placeholder="0">
+              <input
+                type="number"
+                id="dice-bonus-input"
+                class="dice-bonus__input"
+                value="0"
+                placeholder="0"
+              />
             </div>
 
-            <button class="btn btn--icon-only ml-2" id="btn-dice-history" title="Histórico de Rolagens">
-              <span class="btn__icon">⏳</span>
+            <button
+              class="btn btn--icon-only ml-2"
+              id="btn-dice-history"
+              title="Histórico de Rolagens"
+            >
+              <i class="btn__icon" data-icon="hourglass"></i>
             </button>
 
             <label class="dice-roller-toggle" title="Quem está rolando">
@@ -97,7 +123,7 @@
 
             <div class="dice-roll-container">
               <button class="btn btn--primary btn--roll" id="btn-roll-dice">
-                <span class="btn__icon">💥</span> ROLL
+                <i class="btn__icon" data-icon="zap"></i> ROLL
               </button>
               <div id="dice-roll-queue" class="dice-roll-queue hidden">
                 <span class="queue-count">0</span> em espera
@@ -111,18 +137,22 @@
         <div class="combat-controls" id="combat-controls">
           <div class="combat-controls__status">
             <button class="btn btn--primary" id="btn-start-combat">
-              <span class="btn__icon">⚔️</span> Iniciar Encontro
+              <i class="btn__icon" data-icon="swords"></i> Iniciar Encontro
             </button>
             <button class="btn btn--danger hidden" id="btn-end-combat">
-              <span class="btn__icon">🏳️</span> Finalizar Encontro
+              <i class="btn__icon" data-icon="flag"></i> Finalizar Encontro
             </button>
             <button class="btn btn--secondary btn--sm" id="btn-add-participant-main">
-              <span class="btn__icon">➕</span> Add
+              <i class="btn__icon" data-icon="plus"></i> Add
             </button>
             <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
-              <span class="btn__icon">✏️</span> Editar
+              <i class="btn__icon" data-icon="pencil"></i> Editar
             </button>
-            <div id="combat-server-link" class="combat-server-link hidden" title="Clique para copiar">
+            <div
+              id="combat-server-link"
+              class="combat-server-link hidden"
+              title="Clique para copiar"
+            >
               Link: <span id="player-link-text" class="player-link-copyable"></span>
             </div>
           </div>
@@ -138,20 +168,21 @@
             </span>
             <div class="initiative-bar__actions">
               <button class="btn btn--secondary" id="btn-roll-all-npc-initiative">
-                <span class="btn__icon">🎲</span> Rolar Iniciativa de Inimigos &amp; Neutros
+                <i class="btn__icon" data-icon="dices"></i> Rolar Iniciativa de Inimigos &amp;
+                Neutros
               </button>
               <button class="btn btn--secondary" id="btn-roll-all-ally-initiative">
-                <span class="btn__icon">🎲</span> Rolar Iniciativa dos Aliados Restantes
+                <i class="btn__icon" data-icon="dices"></i> Rolar Iniciativa dos Aliados Restantes
               </button>
             </div>
           </div>
           <div class="combat-arena__banners" id="combat-banners"></div>
           <div class="combat-arena__actions">
             <button class="btn btn--secondary" id="btn-prev-turn">
-              <span class="btn__icon">⬅️</span> Turno Anterior
+              <i class="btn__icon" data-icon="arrow-left"></i> Turno Anterior
             </button>
             <button class="btn btn--primary btn--lg" id="btn-next-turn">
-              Próximo Turno <span class="btn__icon">➡️</span>
+              Próximo Turno <i class="btn__icon" data-icon="arrow-right"></i>
             </button>
           </div>
         </div>
@@ -192,8 +223,17 @@
         <form id="campaign-form" class="campaign-form" novalidate>
           <input type="hidden" id="campaign-id" />
           <div class="form-group">
-            <label for="campaign-name" class="form-label">Nome da Campanha <span class="form-required">*</span></label>
-            <input type="text" id="campaign-name" class="form-input" required placeholder="Ex: A Mina do Rei Anão" autocomplete="off" />
+            <label for="campaign-name" class="form-label"
+              >Nome da Campanha <span class="form-required">*</span></label
+            >
+            <input
+              type="text"
+              id="campaign-name"
+              class="form-input"
+              required
+              placeholder="Ex: A Mina do Rei Anão"
+              autocomplete="off"
+            />
             <span class="form-error" id="error-name"></span>
           </div>
           <div class="form-group">
@@ -210,15 +250,28 @@
           </div>
           <div class="form-group">
             <label for="campaign-description" class="form-label">Descrição</label>
-            <textarea id="campaign-description" class="form-textarea" rows="4" placeholder="Descreva a premissa, cenário e o tom da campanha..."></textarea>
+            <textarea
+              id="campaign-description"
+              class="form-textarea"
+              rows="4"
+              placeholder="Descreva a premissa, cenário e o tom da campanha..."
+            ></textarea>
           </div>
 
           <fieldset class="form-group visibility-grid" id="campaign-visibility-grid">
             <legend class="form-label">Visibilidade na tela do jogador</legend>
-            <p class="form-help">Define quais dados ficam visíveis para os jogadores durante o combate. Imagem e cor (afinidade) sempre aparecem.</p>
+            <p class="form-help">
+              Define quais dados ficam visíveis para os jogadores durante o combate. Imagem e cor
+              (afinidade) sempre aparecem.
+            </p>
             <table class="visibility-table">
               <thead>
-                <tr><th></th><th>Aliados</th><th>Neutros</th><th>Inimigos</th></tr>
+                <tr>
+                  <th></th>
+                  <th>Aliados</th>
+                  <th>Neutros</th>
+                  <th>Inimigos</th>
+                </tr>
               </thead>
               <tbody>
                 <tr>
@@ -252,7 +305,7 @@
           <div class="modal__footer">
             <button type="button" class="btn btn--secondary" id="btn-cancel-form">Cancelar</button>
             <button type="submit" class="btn btn--primary" id="btn-save-form">
-              <span class="btn__icon">💾</span> Salvar
+              <i class="btn__icon" data-icon="save"></i> Salvar
             </button>
           </div>
         </form>
@@ -273,7 +326,7 @@
         <div class="modal__footer">
           <button class="btn btn--secondary" id="btn-confirm-cancel">Cancelar</button>
           <button class="btn btn--danger" id="btn-confirm-ok">
-            <span class="btn__icon">🗑️</span> Excluir
+            <i class="btn__icon" data-icon="trash-2"></i> Excluir
           </button>
         </div>
       </div>
@@ -291,22 +344,35 @@
           <input type="hidden" id="character-id" />
           <div class="character-image-upload">
             <div class="character-image-preview" id="char-image-preview">
-              <span class="image-placeholder" id="char-image-placeholder">👤</span>
+              <span class="image-placeholder" id="char-image-placeholder"
+                ><i data-icon="user"></i
+              ></span>
               <img id="char-image-display" src="" alt="" class="hidden" />
               <div class="image-overlay">
-                <span class="overlay-icon">📷</span>
+                <span class="overlay-icon"><i data-icon="camera"></i></span>
               </div>
             </div>
             <input type="file" id="character-image-input" class="hidden" accept="image/*" />
           </div>
           <div class="form-group">
-            <label for="character-name" class="form-label">Nome do Personagem <span class="form-required">*</span></label>
-            <input type="text" id="character-name" class="form-input" required placeholder="Ex: Grog, o Bárbaro" autocomplete="off" />
+            <label for="character-name" class="form-label"
+              >Nome do Personagem <span class="form-required">*</span></label
+            >
+            <input
+              type="text"
+              id="character-name"
+              class="form-input"
+              required
+              placeholder="Ex: Grog, o Bárbaro"
+              autocomplete="off"
+            />
             <span class="form-error" id="error-char-name"></span>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="character-system" class="form-label">Sistema <span class="form-required">*</span></label>
+              <label for="character-system" class="form-label"
+                >Sistema <span class="form-required">*</span></label
+              >
               <select id="character-system" class="form-select" required>
                 <option value="">Selecione...</option>
                 <option value="D&D 5e">D&D 5e</option>
@@ -333,12 +399,19 @@
           </div>
           <div class="form-group">
             <label for="character-description" class="form-label">Descrição / Bio</label>
-            <textarea id="character-description" class="form-textarea" rows="4" placeholder="Descreva o personagem, personalidade, equipamentos..."></textarea>
+            <textarea
+              id="character-description"
+              class="form-textarea"
+              rows="4"
+              placeholder="Descreva o personagem, personalidade, equipamentos..."
+            ></textarea>
           </div>
           <div class="modal__footer">
-            <button type="button" class="btn btn--secondary" id="btn-cancel-char-form">Cancelar</button>
+            <button type="button" class="btn btn--secondary" id="btn-cancel-char-form">
+              Cancelar
+            </button>
             <button type="submit" class="btn btn--primary" id="btn-save-char-form">
-              <span class="btn__icon">💾</span> Salvar
+              <i class="btn__icon" data-icon="save"></i> Salvar
             </button>
           </div>
         </form>
@@ -354,7 +427,10 @@
           <button class="modal__close" id="btn-close-link-char-modal">&times;</button>
         </div>
         <div class="link-char-list-container">
-          <p class="mb-3">Selecione personagens do sistema <strong id="link-char-system-name">...</strong> para adicionar:</p>
+          <p class="mb-3">
+            Selecione personagens do sistema <strong id="link-char-system-name">...</strong> para
+            adicionar:
+          </p>
           <div id="available-chars-list" class="available-chars-list"></div>
           <div id="available-chars-empty" class="text-center py-4 hidden">
             <p class="text-muted">Nenhum personagem disponível para este sistema.</p>
@@ -377,8 +453,17 @@
         <form id="encounter-form">
           <input type="hidden" id="encounter-id" />
           <div class="form-group">
-            <label for="encounter-name" class="form-label">Nome do Encontro <span class="form-required">*</span></label>
-            <input type="text" id="encounter-name" class="form-input" required placeholder="Ex: Emboscada na Floresta" autocomplete="off" />
+            <label for="encounter-name" class="form-label"
+              >Nome do Encontro <span class="form-required">*</span></label
+            >
+            <input
+              type="text"
+              id="encounter-name"
+              class="form-input"
+              required
+              placeholder="Ex: Emboscada na Floresta"
+              autocomplete="off"
+            />
             <span class="form-error" id="error-encounter-name"></span>
           </div>
           <div class="form-row">
@@ -394,11 +479,21 @@
           </div>
           <div class="form-group">
             <label for="encounter-location" class="form-label">Local do Encontro</label>
-            <textarea id="encounter-location" class="form-textarea" rows="2" placeholder="Ex: Clareira próxima à estrada leste"></textarea>
+            <textarea
+              id="encounter-location"
+              class="form-textarea"
+              rows="2"
+              placeholder="Ex: Clareira próxima à estrada leste"
+            ></textarea>
           </div>
           <div class="form-group">
             <label for="encounter-description" class="form-label">Notas Adicionais</label>
-            <textarea id="encounter-description" class="form-textarea" rows="3" placeholder="Informações táticas, tesouros, etc."></textarea>
+            <textarea
+              id="encounter-description"
+              class="form-textarea"
+              rows="3"
+              placeholder="Informações táticas, tesouros, etc."
+            ></textarea>
           </div>
 
           <div class="form-group">
@@ -406,9 +501,15 @@
             <input type="hidden" id="encounter-background-image" />
 
             <div class="encounter-bg-tabs">
-              <button type="button" class="encounter-bg-tab active" data-bg-tab="bg-gallery">Galeria</button>
-              <button type="button" class="encounter-bg-tab" data-bg-tab="bg-upload">Carregar</button>
-              <button type="button" class="encounter-bg-tab" data-bg-tab="bg-none">Sem imagem</button>
+              <button type="button" class="encounter-bg-tab active" data-bg-tab="bg-gallery">
+                Galeria
+              </button>
+              <button type="button" class="encounter-bg-tab" data-bg-tab="bg-upload">
+                Carregar
+              </button>
+              <button type="button" class="encounter-bg-tab" data-bg-tab="bg-none">
+                Sem imagem
+              </button>
             </div>
 
             <div class="encounter-bg-panel" id="bg-gallery">
@@ -420,7 +521,7 @@
             <div class="encounter-bg-panel hidden" id="bg-upload">
               <input type="file" id="encounter-bg-file" accept="image/*" class="hidden" />
               <button type="button" class="btn btn--secondary" id="btn-encounter-bg-upload">
-                <span class="btn__icon">📁</span> Escolher arquivo
+                <i class="btn__icon" data-icon="folder-open"></i> Escolher arquivo
               </button>
               <span id="encounter-bg-upload-name" class="text-muted ml-2"></span>
             </div>
@@ -438,8 +539,21 @@
           <div class="form-group">
             <label for="encounter-music-url" class="form-label">Música de Fundo (YouTube)</label>
             <div class="encounter-music-row">
-              <input type="url" id="encounter-music-url" class="form-input" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" />
-              <button type="button" class="btn btn--secondary" id="btn-encounter-music-remove" hidden>Remover</button>
+              <input
+                type="url"
+                id="encounter-music-url"
+                class="form-input"
+                placeholder="https://www.youtube.com/watch?v=..."
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                class="btn btn--secondary"
+                id="btn-encounter-music-remove"
+                hidden
+              >
+                Remover
+              </button>
             </div>
             <span id="encounter-music-status" class="form-help"></span>
             <input type="hidden" id="encounter-music-file" />
@@ -454,7 +568,12 @@
             <div id="encounter-visibility-grid" class="visibility-grid--inherit">
               <table class="visibility-table">
                 <thead>
-                  <tr><th></th><th>Aliados</th><th>Neutros</th><th>Inimigos</th></tr>
+                  <tr>
+                    <th></th>
+                    <th>Aliados</th>
+                    <th>Neutros</th>
+                    <th>Inimigos</th>
+                  </tr>
                 </thead>
                 <tbody>
                   <tr>
@@ -487,9 +606,11 @@
           </fieldset>
 
           <div class="modal__footer">
-            <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">Cancelar</button>
+            <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">
+              Cancelar
+            </button>
             <button type="submit" class="btn btn--primary" id="btn-save-encounter-form">
-              <span class="btn__icon">💾</span> Salvar
+              <i class="btn__icon" data-icon="save"></i> Salvar
             </button>
           </div>
         </form>
@@ -503,13 +624,23 @@
           <div class="scene-viewer__hero-overlay"></div>
           <div class="scene-viewer__hero-content">
             <div class="scene-viewer__topbar">
-              <button class="btn-icon scene-viewer__back" id="btn-close-scene-detail" title="Voltar">⬅️</button>
+              <button
+                class="btn-icon scene-viewer__back"
+                id="btn-close-scene-detail"
+                title="Voltar"
+              >
+                <i data-icon="arrow-left"></i>
+              </button>
               <div class="scene-viewer__topbar-actions">
                 <button class="btn btn--secondary" id="btn-edit-scene-current">
-                  <span class="btn__icon">✏️</span> Editar
+                  <i class="btn__icon" data-icon="pencil"></i> Editar
                 </button>
-                <button class="btn btn--primary" id="btn-present-scene" title="Em breve: enviar cena para a tela dos jogadores">
-                  <span class="btn__icon">🎬</span> Apresentar aos Jogadores
+                <button
+                  class="btn btn--primary"
+                  id="btn-present-scene"
+                  title="Em breve: enviar cena para a tela dos jogadores"
+                >
+                  <i class="btn__icon" data-icon="monitor-play"></i> Apresentar aos Jogadores
                 </button>
               </div>
             </div>
@@ -519,7 +650,7 @@
               <span class="scene-viewer__eyebrow">Cena</span>
               <h1 class="scene-viewer__title" id="view-scene-name">Nome da Cena</h1>
               <div class="scene-viewer__music-pill hidden" id="view-scene-music-pill">
-                <span class="scene-viewer__music-icon">🎵</span>
+                <i class="scene-viewer__music-icon" data-icon="music"></i>
                 <span class="scene-viewer__music-label">Trilha sonora pronta</span>
               </div>
             </div>
@@ -535,30 +666,46 @@
 
             <div class="scene-viewer__section">
               <div class="scene-viewer__notes-header">
-                <h3 class="scene-viewer__section-title">📝 Anotações do Mestre</h3>
+                <h3 class="scene-viewer__section-title">
+                  <i data-icon="notebook-pen"></i> Anotações do Mestre
+                </h3>
                 <div class="scene-viewer__notes-actions">
-                  <button class="btn btn--secondary btn--sm" id="btn-edit-scene-notes">Editar</button>
-                  <button class="btn btn--primary btn--sm hidden" id="btn-save-scene-notes">Salvar</button>
-                  <button class="btn btn--secondary btn--sm hidden" id="btn-cancel-scene-notes">Cancelar</button>
+                  <button class="btn btn--secondary btn--sm" id="btn-edit-scene-notes">
+                    Editar
+                  </button>
+                  <button class="btn btn--primary btn--sm hidden" id="btn-save-scene-notes">
+                    Salvar
+                  </button>
+                  <button class="btn btn--secondary btn--sm hidden" id="btn-cancel-scene-notes">
+                    Cancelar
+                  </button>
                 </div>
               </div>
               <div class="scene-viewer__notes-display" id="view-scene-notes-display">
-                <p class="scene-viewer__notes-empty">Nenhuma anotação ainda. Clique em <strong>Editar</strong> para escrever lembretes, ganchos da cena, segredos do mestre etc.</p>
+                <p class="scene-viewer__notes-empty">
+                  Nenhuma anotação ainda. Clique em <strong>Editar</strong> para escrever lembretes,
+                  ganchos da cena, segredos do mestre etc.
+                </p>
               </div>
-              <textarea id="view-scene-notes-edit" class="scene-viewer__notes-edit hidden" rows="10" placeholder="Escreva suas anotações para esta cena..."></textarea>
+              <textarea
+                id="view-scene-notes-edit"
+                class="scene-viewer__notes-edit hidden"
+                rows="10"
+                placeholder="Escreva suas anotações para esta cena..."
+              ></textarea>
             </div>
           </section>
 
           <aside class="scene-viewer__sidebar">
             <div class="scene-viewer__panel">
-              <h4 class="scene-viewer__panel-title">🎭 Cenas Conectadas</h4>
+              <h4 class="scene-viewer__panel-title"><i data-icon="drama"></i> Cenas Conectadas</h4>
               <div class="scene-viewer__chips" id="view-scene-linked-scenes">
                 <span class="scene-viewer__empty">Nenhuma ligação.</span>
               </div>
             </div>
 
             <div class="scene-viewer__panel">
-              <h4 class="scene-viewer__panel-title">⚔️ Encontros</h4>
+              <h4 class="scene-viewer__panel-title"><i data-icon="swords"></i> Encontros</h4>
               <div class="scene-viewer__chips" id="view-scene-linked-encounters">
                 <span class="scene-viewer__empty">Nenhum encontro vinculado.</span>
               </div>
@@ -579,13 +726,30 @@
         <form id="scene-form">
           <input type="hidden" id="scene-id" />
           <div class="form-group">
-            <label for="scene-name" class="form-label">Nome da Cena <span class="form-required">*</span></label>
-            <input type="text" id="scene-name" class="form-input" required placeholder="Ex: A Taverna do Javali Dourado" autocomplete="off" />
+            <label for="scene-name" class="form-label"
+              >Nome da Cena <span class="form-required">*</span></label
+            >
+            <input
+              type="text"
+              id="scene-name"
+              class="form-input"
+              required
+              placeholder="Ex: A Taverna do Javali Dourado"
+              autocomplete="off"
+            />
             <span class="form-error" id="error-scene-name"></span>
           </div>
           <div class="form-group">
-            <label for="scene-description" class="form-label">Descrição <span class="form-required">*</span></label>
-            <textarea id="scene-description" class="form-textarea" rows="4" required placeholder="Atmosfera, personagens presentes, gancho da cena..."></textarea>
+            <label for="scene-description" class="form-label"
+              >Descrição <span class="form-required">*</span></label
+            >
+            <textarea
+              id="scene-description"
+              class="form-textarea"
+              rows="4"
+              required
+              placeholder="Atmosfera, personagens presentes, gancho da cena..."
+            ></textarea>
             <span class="form-error" id="error-scene-description"></span>
           </div>
 
@@ -593,11 +757,18 @@
             <label class="form-label">Imagem (opcional)</label>
             <input type="hidden" id="scene-background-image" />
             <input type="file" id="scene-bg-file" accept="image/*" class="hidden" />
-            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
               <button type="button" class="btn btn--secondary" id="btn-scene-bg-upload">
-                <span class="btn__icon">📁</span> Escolher arquivo
+                <i class="btn__icon" data-icon="folder-open"></i> Escolher arquivo
               </button>
-              <button type="button" class="btn btn--secondary btn--sm" id="btn-scene-bg-clear" hidden>Remover</button>
+              <button
+                type="button"
+                class="btn btn--secondary btn--sm"
+                id="btn-scene-bg-clear"
+                hidden
+              >
+                Remover
+              </button>
               <span id="scene-bg-upload-name" class="text-muted ml-2"></span>
             </div>
             <div id="scene-bg-preview-wrapper" class="encounter-bg-preview-wrapper hidden mt-2">
@@ -607,31 +778,47 @@
           </div>
 
           <div class="form-group">
-            <label for="scene-music-url" class="form-label">Música de Fundo (YouTube, opcional)</label>
+            <label for="scene-music-url" class="form-label"
+              >Música de Fundo (YouTube, opcional)</label
+            >
             <div class="encounter-music-row">
-              <input type="url" id="scene-music-url" class="form-input" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" />
-              <button type="button" class="btn btn--secondary" id="btn-scene-music-remove" hidden>Remover</button>
+              <input
+                type="url"
+                id="scene-music-url"
+                class="form-input"
+                placeholder="https://www.youtube.com/watch?v=..."
+                autocomplete="off"
+              />
+              <button type="button" class="btn btn--secondary" id="btn-scene-music-remove" hidden>
+                Remover
+              </button>
             </div>
             <span id="scene-music-status" class="form-help"></span>
             <input type="hidden" id="scene-music-file" />
           </div>
 
           <div class="form-group">
-            <label for="scene-related-scenes" class="form-label">Cenas relacionadas (opcional)</label>
+            <label for="scene-related-scenes" class="form-label"
+              >Cenas relacionadas (opcional)</label
+            >
             <select id="scene-related-scenes" class="form-select" multiple size="5"></select>
             <span class="form-help text-muted">Segure Ctrl (ou ⌘) para selecionar várias.</span>
           </div>
 
           <div class="form-group">
-            <label for="scene-related-encounters" class="form-label">Encontros relacionados (opcional)</label>
+            <label for="scene-related-encounters" class="form-label"
+              >Encontros relacionados (opcional)</label
+            >
             <select id="scene-related-encounters" class="form-select" multiple size="5"></select>
             <span class="form-help text-muted">Segure Ctrl (ou ⌘) para selecionar vários.</span>
           </div>
 
           <div class="modal__footer">
-            <button type="button" class="btn btn--secondary" id="btn-cancel-scene-form">Cancelar</button>
+            <button type="button" class="btn btn--secondary" id="btn-cancel-scene-form">
+              Cancelar
+            </button>
             <button type="submit" class="btn btn--primary" id="btn-save-scene-form">
-              <span class="btn__icon">💾</span> Salvar
+              <i class="btn__icon" data-icon="save"></i> Salvar
             </button>
           </div>
         </form>
@@ -670,7 +857,12 @@
         </div>
         <div class="tab-content" id="tab-db-chars">
           <div class="search-box mb-3">
-            <input type="text" id="db-char-search" class="form-input" placeholder="Buscar personagem..." />
+            <input
+              type="text"
+              id="db-char-search"
+              class="form-input"
+              placeholder="Buscar personagem..."
+            />
           </div>
           <div id="db-participant-list" class="participant-selection-list"></div>
         </div>
@@ -678,7 +870,13 @@
           <form id="quick-add-form" class="mt-3">
             <div class="form-group">
               <label class="form-label">Nome <span class="form-required">*</span></label>
-              <input type="text" id="quick-name" class="form-input" required placeholder="Ex: Orc Comum" />
+              <input
+                type="text"
+                id="quick-name"
+                class="form-input"
+                required
+                placeholder="Ex: Orc Comum"
+              />
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -699,7 +897,12 @@
         </div>
         <div class="tab-content hidden" id="tab-dnd-api">
           <div class="search-box mb-3">
-            <input type="text" id="api-monster-search" class="form-input" placeholder="Buscar monstro (em inglês)..." />
+            <input
+              type="text"
+              id="api-monster-search"
+              class="form-input"
+              placeholder="Buscar monstro (em inglês)..."
+            />
           </div>
           <div id="api-monster-list" class="participant-selection-list">
             <p class="text-center text-muted p-4">Digite o nome do monstro para buscar na API...</p>
@@ -719,12 +922,24 @@
         <div class="modal__body">
           <p id="death-save-prompt" class="mb-4">Resultado da rolagem (d20):</p>
           <div class="form-group">
-            <input type="number" id="input-death-save-value" class="form-input" min="1" max="20" step="1" value="10" />
+            <input
+              type="number"
+              id="input-death-save-value"
+              class="form-input"
+              min="1"
+              max="20"
+              step="1"
+              value="10"
+            />
           </div>
-          <p class="form-help">≥10 = sucesso · &lt;10 = falha · 1 = duas falhas · 20 = recupera 1 HP</p>
+          <p class="form-help">
+            ≥10 = sucesso · &lt;10 = falha · 1 = duas falhas · 20 = recupera 1 HP
+          </p>
         </div>
         <div class="modal__footer">
-          <button class="btn btn--secondary" id="btn-roll-death-save">🎲 Rolar (d20)</button>
+          <button class="btn btn--secondary" id="btn-roll-death-save">
+            <i class="btn__icon" data-icon="dices"></i> Rolar (d20)
+          </button>
           <button class="btn btn--primary" id="btn-confirm-death-save">Confirmar</button>
         </div>
       </div>

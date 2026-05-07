@@ -1,6 +1,6 @@
-import template from './characters.html?raw';
-import './characters.css';
-import charactersView from '../../views/characters-view.js';
+import template from "./characters.html?raw";
+import "./characters.css";
+import charactersView from "../../views/characters-view.js";
 
 export default class CharactersFeature {
   constructor() {

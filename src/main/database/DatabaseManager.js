@@ -63,7 +63,7 @@ class DatabaseManager {
       return;
     }
 
-    const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith(".js"));
+    const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".js"));
 
     for (const file of files) {
       const migration = require(path.join(migrationsDir, file));
@@ -86,7 +86,7 @@ class DatabaseManager {
       `);
 
       const appliedRows = this.db.prepare("SELECT version FROM schema_migrations").all();
-      const appliedVersionNumbers = appliedRows.map(row => row.version);
+      const appliedVersionNumbers = appliedRows.map((row) => row.version);
 
       for (const migration of this.migrations) {
         if (!appliedVersionNumbers.includes(migration.version)) {
@@ -94,9 +94,9 @@ class DatabaseManager {
 
           const runMigration = this.db.transaction(() => {
             migration.up(this.db);
-            this.db.prepare(
-              "INSERT INTO schema_migrations (version, migrated_at) VALUES (?, ?)"
-            ).run(migration.version, new Date().toISOString());
+            this.db
+              .prepare("INSERT INTO schema_migrations (version, migrated_at) VALUES (?, ?)")
+              .run(migration.version, new Date().toISOString());
           });
 
           runMigration();
@@ -151,8 +151,8 @@ class DatabaseManager {
       throw new Error("Database not initialized");
     }
 
-    const backupPath = destinationPath ||
-      path.join(app.getPath("userData"), `backup-${Date.now()}.db`);
+    const backupPath =
+      destinationPath || path.join(app.getPath("userData"), `backup-${Date.now()}.db`);
 
     this.db.backup(backupPath);
     console.log(`Database backed up to: ${backupPath}`);

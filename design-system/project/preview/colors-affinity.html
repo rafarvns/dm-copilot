@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; background: var(--color-bg); padding: 18px 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; box-sizing: border-box; font-family: var(--font-body); }
+  .grp { border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .head { padding: 10px 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; border-bottom: 2px solid; }
+  .ally { background: rgba(34,197,94,0.10); color:#4ade80; border-bottom-color:#22c55e; }
+  .neutral { background: rgba(234,179,8,0.10); color:#fde047; border-bottom-color:#eab308; }
+  .enemy { background: rgba(239,68,68,0.10); color:#f87171; border-bottom-color:#ef4444; }
+  .body { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--color-text-secondary); background: #1a1a24; }
+  .body code { font-family: var(--font-mono); color: var(--color-text-muted); font-size: 10px; }
+</style></head>
+<body>
+  <div class="grp"><div class="head ally">Aliados</div><div class="body"><span>border <code>#22c55e</code></span><span>fg <code>#4ade80</code></span><span>tint <code>10% alpha</code></span></div></div>
+  <div class="grp"><div class="head neutral">Neutros</div><div class="body"><span>border <code>#eab308</code></span><span>fg <code>#fde047</code></span><span>tint <code>10% alpha</code></span></div></div>
+  <div class="grp"><div class="head enemy">Inimigos</div><div class="body"><span>border <code>#ef4444</code></span><span>fg <code>#f87171</code></span><span>tint <code>10% alpha</code></span></div></div>
+</body></html>

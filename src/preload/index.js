@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld("dmCopilot", {
   db: {
     init: () => ipcRenderer.invoke("db-init"),
     isReady: () => ipcRenderer.invoke("db-is-ready"),
-    
+
     // Campaigns
     campaigns: {
       create: (data) => ipcRenderer.invoke("db-campaigns-create", data),
@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       update: (id, data) => ipcRenderer.invoke("db-campaigns-update", id, data),
       delete: (id) => ipcRenderer.invoke("db-campaigns-delete", id),
     },
-    
+
     // Characters
     characters: {
       create: (data) => ipcRenderer.invoke("db-characters-create", data),
@@ -33,12 +33,15 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       getById: (id) => ipcRenderer.invoke("db-characters-read-id", id),
       update: (id, data) => ipcRenderer.invoke("db-characters-update", id, data),
       delete: (id) => ipcRenderer.invoke("db-characters-delete", id),
-      linkToCampaign: (charId, campId) => ipcRenderer.invoke("db-characters-link-campaign", charId, campId),
-      unlinkFromCampaign: (charId, campId) => ipcRenderer.invoke("db-characters-unlink-campaign", charId, campId),
-      getAvailableForCampaign: (campId, system) => ipcRenderer.invoke("db-characters-available-campaign", campId, system),
+      linkToCampaign: (charId, campId) =>
+        ipcRenderer.invoke("db-characters-link-campaign", charId, campId),
+      unlinkFromCampaign: (charId, campId) =>
+        ipcRenderer.invoke("db-characters-unlink-campaign", charId, campId),
+      getAvailableForCampaign: (campId, system) =>
+        ipcRenderer.invoke("db-characters-available-campaign", campId, system),
       saveImage: (data) => ipcRenderer.invoke("app-save-character-image", data),
     },
-    
+
     // Encounters
     encounters: {
       create: (data) => ipcRenderer.invoke("db-encounters-create", data),
@@ -71,7 +74,7 @@ contextBridge.exposeInMainWorld("dmCopilot", {
         ipcRenderer.invoke("app-download-scene-music", { url, sceneId }),
       deleteMusic: (fileName) => ipcRenderer.invoke("app-delete-scene-music", fileName),
     },
-    
+
     // Notes
     notes: {
       create: (data) => ipcRenderer.invoke("db-notes-create", data),
@@ -87,7 +90,7 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       getAll: (options) => ipcRenderer.invoke("db-dice-rolls-read-all", options),
       clear: () => ipcRenderer.invoke("db-dice-rolls-clear"),
     },
-    
+
     // Backup
     backup: (path) => ipcRenderer.invoke("db-backup", path),
   },
@@ -122,6 +125,7 @@ contextBridge.exposeInMainWorld("dmCopilot", {
     stopServer: () => ipcRenderer.invoke("combat-server-stop"),
     getInfo: () => ipcRenderer.invoke("combat-server-get-info"),
     broadcast: (event, data) => ipcRenderer.send("combat-server-broadcast", { event, data }),
-    onPlayerConnected: (callback) => ipcRenderer.on("player-connected", (event, socketId) => callback(socketId)),
+    onPlayerConnected: (callback) =>
+      ipcRenderer.on("player-connected", (event, socketId) => callback(socketId)),
   },
 });

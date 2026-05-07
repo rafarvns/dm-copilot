@@ -11,19 +11,13 @@ function createNote(db, noteData) {
   `);
 
   const now = new Date().toISOString();
-  const result = stmt.run(
-    noteData.campaign_id,
-    noteData.title,
-    noteData.content || null,
-    now,
-    now
-  );
+  const result = stmt.run(noteData.campaign_id, noteData.title, noteData.content || null, now, now);
 
   return {
     id: result.lastInsertRowid,
     ...noteData,
     created_at: now,
-    updated_at: now
+    updated_at: now,
   };
 }
 
@@ -35,7 +29,9 @@ function getNoteById(db, id) {
 }
 
 function getNotesByCampaign(db, campaignId) {
-  return db.prepare(`SELECT * FROM notes WHERE campaign_id = ? ORDER BY updated_at DESC`).all(campaignId);
+  return db
+    .prepare(`SELECT * FROM notes WHERE campaign_id = ? ORDER BY updated_at DESC`)
+    .all(campaignId);
 }
 
 function getAllNotes(db) {
@@ -53,13 +49,7 @@ function updateNote(db, id, noteData) {
   `);
 
   const now = new Date().toISOString();
-  const result = stmt.run(
-    noteData.campaign_id,
-    noteData.title,
-    noteData.content || null,
-    now,
-    id
-  );
+  const result = stmt.run(noteData.campaign_id, noteData.title, noteData.content || null, now, id);
 
   return result.changes > 0;
 }
@@ -76,7 +66,9 @@ function deleteNote(db, id) {
 // COUNT
 // ============================================
 function countNotesByCampaign(db, campaignId) {
-  const row = db.prepare(`SELECT COUNT(*) as count FROM notes WHERE campaign_id = ?`).get(campaignId);
+  const row = db
+    .prepare(`SELECT COUNT(*) as count FROM notes WHERE campaign_id = ?`)
+    .get(campaignId);
   return row.count;
 }
 
@@ -87,5 +79,5 @@ module.exports = {
   getAllNotes,
   updateNote,
   deleteNote,
-  countNotesByCampaign
+  countNotesByCampaign,
 };

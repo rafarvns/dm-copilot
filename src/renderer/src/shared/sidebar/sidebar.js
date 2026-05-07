@@ -1,5 +1,5 @@
-import template from './sidebar.html?raw';
-import './sidebar.css';
+import template from "./sidebar.html?raw";
+import "./sidebar.css";
 
 export default class SidebarComponent {
   mount(container) {
@@ -7,8 +7,8 @@ export default class SidebarComponent {
   }
 
   updateActiveLink(viewName) {
-    document.querySelectorAll('.sidebar__link[data-view]').forEach((l) => {
-      l.classList.toggle('sidebar__link--active', l.dataset.view === viewName);
+    document.querySelectorAll(".sidebar__link[data-view]").forEach((l) => {
+      l.classList.toggle("sidebar__link--active", l.dataset.view === viewName);
     });
   }
 }

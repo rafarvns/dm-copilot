@@ -8,7 +8,13 @@ import DiceBox from "@3d-dice/dice-box-threejs";
 export default class DiceView {
   constructor() {
     this.diceCounts = {
-      d4: 0, d6: 0, d8: 0, d10: 0, d12: 0, d20: 0, d100: 0
+      d4: 0,
+      d6: 0,
+      d8: 0,
+      d10: 0,
+      d12: 0,
+      d20: 0,
+      d100: 0,
     };
     this.diceBox = null;
     this.isRolling = false;
@@ -53,7 +59,7 @@ export default class DiceView {
       btnClearHistory: document.getElementById("btn-clear-dice-history"),
       btnCloseHistory: document.getElementById("btn-close-dice-history"),
       btnCloseHistoryFooter: document.getElementById("btn-close-dice-history-footer"),
-      historyOverlay: document.getElementById("dice-history-modal-overlay")
+      historyOverlay: document.getElementById("dice-history-modal-overlay"),
     };
   }
 
@@ -232,12 +238,12 @@ export default class DiceView {
 
   bindEvents() {
     // Dice Selection
-    this.DOM.diceBtns.forEach(btn => {
+    this.DOM.diceBtns.forEach((btn) => {
       btn.addEventListener("click", () => {
         const type = btn.dataset.dice;
         this.incrementDice(type, btn);
       });
-      
+
       // Right click to decrement
       btn.addEventListener("contextmenu", (e) => {
         e.preventDefault();
@@ -251,7 +257,7 @@ export default class DiceView {
 
     // History Button
     this.DOM.btnHistory?.addEventListener("click", () => this.openHistory());
-    
+
     // Modal Close
     this.DOM.btnCloseHistory?.addEventListener("click", () => this.closeHistory());
     this.DOM.btnCloseHistoryFooter?.addEventListener("click", () => this.closeHistory());
@@ -259,7 +265,7 @@ export default class DiceView {
     this.DOM.modalHistory?.addEventListener("click", (e) => {
       if (e.target === this.DOM.modalHistory) this.closeHistory();
     });
-    
+
     // Clear History
     this.DOM.btnClearHistory?.addEventListener("click", () => this.clearHistory());
 
@@ -282,7 +288,7 @@ export default class DiceView {
   updateBtnUI(type, btn) {
     const count = this.diceCounts[type];
     const pill = btn.querySelector(".dice-btn__pill");
-    
+
     if (count > 0) {
       btn.classList.add("dice-btn--active");
       pill.textContent = count;
@@ -297,7 +303,7 @@ export default class DiceView {
     if (!notation) return;
 
     const bonus = parseInt(this.DOM.bonusInput?.value || 0);
-    
+
     // Roll mode: toggle ON → roll as the active character (uses their color
     // and name in history); toggle OFF (default) → roll as the master (purple,
     // no character name).
@@ -309,15 +315,15 @@ export default class DiceView {
       const activeChar = window.encountersView.combatView.getActiveParticipant();
       if (activeChar) {
         characterName = activeChar.name;
-        if (activeChar.affinity === 'ally') themeColor = "#10b981";
-        else if (activeChar.affinity === 'neutral') themeColor = "#f59e0b";
-        else if (activeChar.affinity === 'enemy') themeColor = "#ef4444";
+        if (activeChar.affinity === "ally") themeColor = "#10b981";
+        else if (activeChar.affinity === "neutral") themeColor = "#f59e0b";
+        else if (activeChar.affinity === "enemy") themeColor = "#ef4444";
       }
     }
 
     // Add to queue
     this.queue.push({ notation, bonus, themeColor, characterName });
-    
+
     // Reset UI immediately so user can select more
     this.resetCounts();
     this.updateQueueUI();
@@ -332,8 +338,11 @@ export default class DiceView {
     if (!this.DOM.queueIndicator) return;
 
     // We show (total queue - 1) as "pending" because the 0th is current
-    const pending = this.queue.length > (this.isRolling ? 1 : 0) ? this.queue.length - (this.isRolling ? 1 : 0) : 0;
-    
+    const pending =
+      this.queue.length > (this.isRolling ? 1 : 0)
+        ? this.queue.length - (this.isRolling ? 1 : 0)
+        : 0;
+
     if (pending > 0) {
       this.DOM.queueIndicator.classList.remove("hidden");
       this.DOM.queueCount.textContent = pending;
@@ -437,7 +446,8 @@ export default class DiceView {
         });
 
         for (const spec of currentRoll.specs) {
-          const fullNotation = `[${spec.characterName}] ${spec.label || ""} ${spec.notation}`.trim();
+          const fullNotation =
+            `[${spec.characterName}] ${spec.label || ""} ${spec.notation}`.trim();
           try {
             await window.dmCopilot.db.diceRolls.save({
               notation: fullNotation,
@@ -465,7 +475,12 @@ export default class DiceView {
         }
       } else {
         // Single roll path — displayResults persiste e loga internamente.
-        this.displayResults(adaptedResults, currentRoll.bonus, currentRoll.characterName, currentRoll.label);
+        this.displayResults(
+          adaptedResults,
+          currentRoll.bonus,
+          currentRoll.characterName,
+          currentRoll.label
+        );
 
         try {
           currentRoll.onComplete?.(currentRoll.total);
@@ -479,7 +494,6 @@ export default class DiceView {
       this.toastTimeout = setTimeout(() => {
         this.hideToast();
       }, 3000);
-
     } catch (error) {
       console.error("Queue roll failed:", error);
     } finally {
@@ -513,7 +527,13 @@ export default class DiceView {
    * (disponível imediatamente para atualizar UI), `done` é a Promise que
    * resolve quando a animação 3D daquela rolagem termina.
    */
-  rollProgrammatic({ notation = "1d20", characterName = null, affinity = null, bonus = 0, label = null } = {}) {
+  rollProgrammatic({
+    notation = "1d20",
+    characterName = null,
+    affinity = null,
+    bonus = 0,
+    label = null,
+  } = {}) {
     const themeColor = this.colorForAffinity(affinity);
     const presetNotation = this.generatePresetNotation(notation);
     const total = this.extractPresetTotal(presetNotation);
@@ -529,7 +549,13 @@ export default class DiceView {
         await new Promise((resolve) => {
           this.queue.push({
             kind: "single",
-            notation, presetNotation, bonus, themeColor, characterName, label, total,
+            notation,
+            presetNotation,
+            bonus,
+            themeColor,
+            characterName,
+            label,
+            total,
             onComplete: () => resolve(),
           });
           this.updateQueueUI();
@@ -623,7 +649,10 @@ export default class DiceView {
     let bestCount = -1;
     const priority = { enemy: 3, neutral: 2, ally: 1, master: 0 };
     for (const [a, c] of counts) {
-      if (c > bestCount || (c === bestCount && (priority[a] || 0) > (priority[bestAffinity] || 0))) {
+      if (
+        c > bestCount ||
+        (c === bestCount && (priority[a] || 0) > (priority[bestAffinity] || 0))
+      ) {
         bestAffinity = a;
         bestCount = c;
       }
@@ -641,7 +670,9 @@ export default class DiceView {
   extractPresetTotal(presetNotation) {
     let total = 0;
     String(presetNotation).replace(/@([\d,]+)/g, (_, vals) => {
-      vals.split(",").forEach((v) => { total += parseInt(v, 10) || 0; });
+      vals.split(",").forEach((v) => {
+        total += parseInt(v, 10) || 0;
+      });
       return _;
     });
     return total;
@@ -692,22 +723,33 @@ export default class DiceView {
 
     const resultsArray = Array.isArray(results) ? results : [results];
 
-    resultsArray.forEach(group => {
-      const groupType = group.die || (group.sides ? 'd' + group.sides : (group.rolls && group.rolls[0]?.sides ? 'd' + group.rolls[0].sides : 'd20'));
+    resultsArray.forEach((group) => {
+      const groupType =
+        group.die ||
+        (group.sides
+          ? "d" + group.sides
+          : group.rolls && group.rolls[0]?.sides
+            ? "d" + group.rolls[0].sides
+            : "d20");
       let groupNotation = group.notation || `${group.rolls?.length || 1}${groupType}`;
-      
+
       // Limpa nomes entre colchetes da notação para evitar duplicidade no log
-      groupNotation = groupNotation.replace(/\[.*?\]\s*/g, '');
-      
+      groupNotation = groupNotation.replace(/\[.*?\]\s*/g, "");
+
       notationParts.push(groupNotation);
 
       if (group.rolls && Array.isArray(group.rolls)) {
-        group.rolls.forEach(die => {
-          if (typeof die.value === 'number') {
+        group.rolls.forEach((die) => {
+          if (typeof die.value === "number") {
             diceTotal += die.value;
-            const type = die.die || (die.sides ? 'd' + die.sides : null) || group.die || (group.sides ? 'd' + group.sides : null) || "d20";
-            const iconPath = `./src/assets/images/dices/${type === 'd100' ? 'd10' : type}.png`;
-            
+            const type =
+              die.die ||
+              (die.sides ? "d" + die.sides : null) ||
+              group.die ||
+              (group.sides ? "d" + group.sides : null) ||
+              "d20";
+            const iconPath = `./src/assets/images/dices/${type === "d100" ? "d10" : type}.png`;
+
             individualHTML.push(`
               <span class="result-die">
                 <img src="${iconPath}" class="result-die__icon">
@@ -716,10 +758,10 @@ export default class DiceView {
             `);
           }
         });
-      } else if (typeof group.value === 'number') {
+      } else if (typeof group.value === "number") {
         diceTotal += group.value;
-        const type = group.die || (group.sides ? 'd' + group.sides : null) || "d20";
-        const iconPath = `./src/assets/images/dices/${type === 'd100' ? 'd10' : type}.png`;
+        const type = group.die || (group.sides ? "d" + group.sides : null) || "d20";
+        const iconPath = `./src/assets/images/dices/${type === "d100" ? "d10" : type}.png`;
         individualHTML.push(`
           <span class="result-die">
             <img src="${iconPath}" class="result-die__icon">
@@ -732,9 +774,10 @@ export default class DiceView {
     const finalTotal = diceTotal + bonus;
     const diceDetailsHTML = individualHTML.join('<span class="result-sep">+</span>');
 
-    const fullDetailsHTML = bonus !== 0
-      ? `<span class="result-group">[ ${diceDetailsHTML} ]</span> <span class="result-modifier">${bonus >= 0 ? "+" : "-"} ${Math.abs(bonus)}</span>`
-      : `<span class="result-group">[ ${diceDetailsHTML} ]</span>`;
+    const fullDetailsHTML =
+      bonus !== 0
+        ? `<span class="result-group">[ ${diceDetailsHTML} ]</span> <span class="result-modifier">${bonus >= 0 ? "+" : "-"} ${Math.abs(bonus)}</span>`
+        : `<span class="result-group">[ ${diceDetailsHTML} ]</span>`;
 
     // Para batches, o toast mostra uma linha por personagem em vez do total agregado.
     if (batchLines && batchLines.length > 0) {
@@ -756,7 +799,8 @@ export default class DiceView {
         this.DOM.lastRollValue.textContent = label || "Lote";
         this.DOM.lastRollDetails.innerHTML = batchLines.join(" · ");
       } else {
-        this.DOM.lastRollValue.textContent = (characterName ? `[${characterName}] ` : '') + finalTotal;
+        this.DOM.lastRollValue.textContent =
+          (characterName ? `[${characterName}] ` : "") + finalTotal;
         this.DOM.lastRollDetails.innerHTML = fullDetailsHTML;
       }
     }
@@ -773,7 +817,7 @@ export default class DiceView {
         notation: fullNotation,
         total: finalTotal,
         details: fullDetailsHTML,
-        bonus: bonus
+        bonus: bonus,
       });
     } catch (err) {
       console.error("Failed to save roll to history:", err);
@@ -782,10 +826,10 @@ export default class DiceView {
     // Log to combat view if active
     if (window.encountersView?.combatView?.isActive) {
       window.encountersView.combatView.logRoll({
-        characterName: characterName || 'Mestre',
+        characterName: characterName || "Mestre",
         notation: labeledNotation,
         total: finalTotal,
-        details: fullDetailsHTML
+        details: fullDetailsHTML,
       });
     }
   }
@@ -804,17 +848,20 @@ export default class DiceView {
   async loadHistory(page = 1) {
     const limit = 10;
     const offset = (page - 1) * limit;
-    
+
     try {
       const { rolls, total } = await window.dmCopilot.db.diceRolls.getAll({ limit, offset });
-      
+
       if (rolls.length === 0) {
-        this.DOM.historyList.innerHTML = '<p class="text-center text-muted p-4">Nenhuma rolagem encontrada.</p>';
-        this.DOM.historyPagination.innerHTML = '';
+        this.DOM.historyList.innerHTML =
+          '<p class="text-center text-muted p-4">Nenhuma rolagem encontrada.</p>';
+        this.DOM.historyPagination.innerHTML = "";
         return;
       }
 
-      this.DOM.historyList.innerHTML = rolls.map(roll => `
+      this.DOM.historyList.innerHTML = rolls
+        .map(
+          (roll) => `
         <div class="dice-history-item">
           <div class="history-item__total">${roll.total}</div>
           <div class="history-item__content">
@@ -825,30 +872,32 @@ export default class DiceView {
             <div class="history-item__details">${roll.details}</div>
           </div>
         </div>
-      `).join('');
+      `
+        )
+        .join("");
 
       // Pagination
       const totalPages = Math.ceil(total / limit);
       this.renderPagination(page, totalPages);
-
     } catch (err) {
       console.error("Failed to load history:", err);
-      this.DOM.historyList.innerHTML = '<p class="text-center text-danger p-4">Erro ao carregar histórico.</p>';
+      this.DOM.historyList.innerHTML =
+        '<p class="text-center text-danger p-4">Erro ao carregar histórico.</p>';
     }
   }
 
   renderPagination(currentPage, totalPages) {
     if (totalPages <= 1) {
-      this.DOM.historyPagination.innerHTML = '';
+      this.DOM.historyPagination.innerHTML = "";
       return;
     }
 
     let html = `
-      <button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="window.diceView.loadHistory(${currentPage - 1})">Anterior</button>
+      <button class="pagination-btn" ${currentPage === 1 ? "disabled" : ""} onclick="window.diceView.loadHistory(${currentPage - 1})">Anterior</button>
       <span class="pagination-info">Página ${currentPage} de ${totalPages}</span>
-      <button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.diceView.loadHistory(${currentPage + 1})">Próxima</button>
+      <button class="pagination-btn" ${currentPage === totalPages ? "disabled" : ""} onclick="window.diceView.loadHistory(${currentPage + 1})">Próxima</button>
     `;
-    
+
     this.DOM.historyPagination.innerHTML = html;
   }
 
@@ -880,9 +929,15 @@ export default class DiceView {
 
   resetCounts() {
     this.diceCounts = {
-      d4: 0, d6: 0, d8: 0, d10: 0, d12: 0, d20: 0, d100: 0
+      d4: 0,
+      d6: 0,
+      d8: 0,
+      d10: 0,
+      d12: 0,
+      d20: 0,
+      d100: 0,
     };
-    this.DOM.diceBtns.forEach(btn => {
+    this.DOM.diceBtns.forEach((btn) => {
       const type = btn.dataset.dice;
       this.updateBtnUI(type, btn);
     });

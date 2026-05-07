@@ -1,5 +1,5 @@
-import template from './status-bar.html?raw';
-import './status-bar.css';
+import template from "./status-bar.html?raw";
+import "./status-bar.css";
 
 export default class StatusBarComponent {
   mount(container) {
@@ -7,7 +7,7 @@ export default class StatusBarComponent {
   }
 
   setVersion(version) {
-    const el = document.getElementById('version-info');
+    const el = document.getElementById("version-info");
     if (el) el.textContent = `v${version}`;
   }
 }

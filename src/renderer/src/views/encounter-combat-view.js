@@ -4,9 +4,10 @@
  */
 
 import { showToast } from "../core/toast.js";
+import { icon } from "../core/icons.js";
 import {
   resolveEffectiveVisibility,
-  applyVisibilityToParticipant
+  applyVisibilityToParticipant,
 } from "../core/combat-visibility.js";
 
 export default class EncounterCombatView {
@@ -52,13 +53,13 @@ export default class EncounterCombatView {
       btnRollDeathSave: document.getElementById("btn-roll-death-save"),
       btnCloseDeathSave: document.getElementById("btn-close-death-save-modal"),
       deathSaveModalOverlay: document.getElementById("death-save-modal-overlay"),
-      
+
       // Sections
       sections: {
         allies: document.getElementById("section-allies"),
         neutrals: document.getElementById("section-neutrals"),
-        enemies: document.getElementById("section-enemies")
-      }
+        enemies: document.getElementById("section-enemies"),
+      },
     };
   }
 
@@ -91,10 +92,13 @@ export default class EncounterCombatView {
 
     // Show server link immediately (server auto-starts with the app)
     if (window.dmCopilot?.combat) {
-      window.dmCopilot.combat.getInfo().then(({ ip, port }) => {
-        if (this.DOM.linkText) this.DOM.linkText.textContent = `http://${ip}:${port}`;
-        this.DOM.serverLink?.classList.remove("hidden");
-      }).catch(() => {});
+      window.dmCopilot.combat
+        .getInfo()
+        .then(({ ip, port }) => {
+          if (this.DOM.linkText) this.DOM.linkText.textContent = `http://${ip}:${port}`;
+          this.DOM.serverLink?.classList.remove("hidden");
+        })
+        .catch(() => {});
     }
   }
 
@@ -103,7 +107,9 @@ export default class EncounterCombatView {
     if (!this.currentEncounter) return;
 
     try {
-      this.currentCampaign = await window.dmCopilot.db.campaigns.getById(this.currentEncounter.campaign_id);
+      this.currentCampaign = await window.dmCopilot.db.campaigns.getById(
+        this.currentEncounter.campaign_id
+      );
     } catch (err) {
       console.warn("Falha ao carregar campanha para visibility config:", err);
       this.currentCampaign = null;
@@ -119,8 +125,8 @@ export default class EncounterCombatView {
     // (aliados → neutros → inimigos, conforme o gather) até que
     // todas as iniciativas sejam definidas pelo mestre.
     await window.presentationController.requestPresentation({
-      type: 'combat',
-      label: this.currentEncounter.name || 'Combate',
+      type: "combat",
+      label: this.currentEncounter.name || "Combate",
       start: () => this._activateCombat(),
       stop: () => this._stopCombatInternal(),
     });
@@ -135,9 +141,9 @@ export default class EncounterCombatView {
         description: c.description,
         difficulty: c.difficulty,
         monsters: this.participants,
-        status: 'active',
+        status: "active",
         current_round: 1,
-        current_turn_index: 0
+        current_turn_index: 0,
       });
     } catch (err) {
       console.error("Failed to update encounter status:", err);
@@ -163,7 +169,7 @@ export default class EncounterCombatView {
     this.DOM.btnEnd.classList.remove("hidden");
     this.DOM.roundDisplay.classList.remove("hidden");
     this.DOM.arena.classList.remove("hidden");
-    Object.values(this.DOM.sections).forEach(s => s.classList.add("hidden"));
+    Object.values(this.DOM.sections).forEach((s) => s.classList.add("hidden"));
 
     this.renderBanners();
     this.updateInitiativePhaseUI();
@@ -180,9 +186,7 @@ export default class EncounterCombatView {
 
   allInitiativesSet() {
     if (!this.participants || this.participants.length === 0) return false;
-    return this.participants.every(
-      (p) => p.initiative !== null && p.initiative !== undefined
-    );
+    return this.participants.every((p) => p.initiative !== null && p.initiative !== undefined);
   }
 
   gatherParticipants() {
@@ -190,31 +194,33 @@ export default class EncounterCombatView {
     const lists = document.querySelectorAll(".encounter-section__list");
     const sourceList = this.encountersView?.participants || [];
 
-    lists.forEach(list => {
+    lists.forEach((list) => {
       const affinity = list.dataset.affinity;
       const cards = list.querySelectorAll(".participant-card");
 
-      cards.forEach(card => {
+      cards.forEach((card) => {
         const imgEl = card.querySelector(".participant-card__img");
         const cardId = card.dataset.id;
-        const original = sourceList.find(p => p.tempId === cardId || p.id === cardId);
+        const original = sourceList.find((p) => p.tempId === cardId || p.id === cardId);
 
         // Read live values directly from the DOM inputs — this is the source
         // of truth the user sees on screen, and avoids cases where the backing
         // object got out of sync.
         const acInputEl = card.querySelector('input[data-field="ac"]');
         const hpInputEl = card.querySelector('input[data-field="current_hp"]');
-        const hpMaxEl = card.querySelector('.stat-control__max');
+        const hpMaxEl = card.querySelector(".stat-control__max");
 
         const domAc = acInputEl ? parseInt(acInputEl.value, 10) : NaN;
         const domCurHp = hpInputEl ? parseInt(hpInputEl.value, 10) : NaN;
         const domMaxHp = hpMaxEl ? parseInt(hpMaxEl.textContent, 10) : NaN;
 
-        const ca = !isNaN(domAc) ? domAc : (Number(original?.ac) || 10);
-        const maxHp = !isNaN(domMaxHp) ? domMaxHp : (Number(original?.hp) || 0);
+        const ca = !isNaN(domAc) ? domAc : Number(original?.ac) || 10;
+        const maxHp = !isNaN(domMaxHp) ? domMaxHp : Number(original?.hp) || 0;
         const currentHp = !isNaN(domCurHp)
           ? domCurHp
-          : (original?.current_hp !== undefined ? Number(original.current_hp) : maxHp);
+          : original?.current_hp !== undefined
+            ? Number(original.current_hp)
+            : maxHp;
 
         participants.push({
           id: cardId,
@@ -226,7 +232,7 @@ export default class EncounterCombatView {
           hp: maxHp,
           current_hp: currentHp,
           ca: ca,
-          deathSaves: this.makeEmptyDeathSaves()
+          deathSaves: this.makeEmptyDeathSaves(),
         });
       });
     });
@@ -240,7 +246,7 @@ export default class EncounterCombatView {
       successes: 0,
       failures: 0,
       stabilized: false,
-      dead: false
+      dead: false,
     };
   }
 
@@ -294,7 +300,10 @@ export default class EncounterCombatView {
       // Recuperação miraculosa: HP=1 e sai do estado
       participant.current_hp = 1;
       participant.deathSaves = this.makeEmptyDeathSaves();
-      showToast(`✨ ${participant.name} teve uma recuperação miraculosa! (1 HP)`, 'success');
+      showToast(
+        `${icon("sparkles")} ${participant.name} teve uma recuperação miraculosa! (1 HP)`,
+        "success"
+      );
       return;
     }
 
@@ -309,11 +318,11 @@ export default class EncounterCombatView {
     if (ds.successes >= 3) {
       ds.stabilized = true;
       ds.active = false;
-      showToast(`🛡️ ${participant.name} foi estabilizado`, 'success');
+      showToast(`${icon("shield")} ${participant.name} foi estabilizado`, "success");
     } else if (ds.failures >= 3) {
       ds.dead = true;
       ds.active = false;
-      showToast(`💀 ${participant.name} morreu`, 'error');
+      showToast(`${icon("skull")} ${participant.name} morreu`, "error");
     }
   }
 
@@ -335,7 +344,7 @@ export default class EncounterCombatView {
       hp: maxHp,
       current_hp: currentHp,
       ca: ca,
-      deathSaves: this.makeEmptyDeathSaves()
+      deathSaves: this.makeEmptyDeathSaves(),
     };
 
     const currentActiveId = this.participants[this.currentTurnIndex]?.id;
@@ -346,7 +355,7 @@ export default class EncounterCombatView {
     this.initiativeLocked = false;
 
     if (currentActiveId) {
-      this.currentTurnIndex = this.participants.findIndex(p => p.id === currentActiveId);
+      this.currentTurnIndex = this.participants.findIndex((p) => p.id === currentActiveId);
       if (this.currentTurnIndex < 0) this.currentTurnIndex = 0;
     }
 
@@ -360,50 +369,65 @@ export default class EncounterCombatView {
 
   renderBanners() {
     const phase = this.initiativeLocked;
-    this.DOM.banners.innerHTML = this.participants.map((p, index) => {
-      const isActive = phase && index === this.currentTurnIndex;
-      const hasActed = phase && p.has_acted && !isActive;
-      const ds = p.deathSaves;
-      const isDead = ds?.dead;
-      const showSaves = ds && (ds.active || ds.stabilized || ds.dead);
+    this.DOM.banners.innerHTML = this.participants
+      .map((p, index) => {
+        const isActive = phase && index === this.currentTurnIndex;
+        const hasActed = phase && p.has_acted && !isActive;
+        const ds = p.deathSaves;
+        const isDead = ds?.dead;
+        const showSaves = ds && (ds.active || ds.stabilized || ds.dead);
 
-      const savesHtml = showSaves ? `
+        const savesHtml = showSaves
+          ? `
         <div class="death-saves" data-id="${p.id}">
-          ${[0, 1, 2].map(i => `
-            <span class="death-save-marker death-save-marker--success ${i < ds.successes ? 'filled' : ''}"
+          ${[0, 1, 2]
+            .map(
+              (i) => `
+            <span class="death-save-marker death-save-marker--success ${i < ds.successes ? "filled" : ""}"
                   data-id="${p.id}" data-kind="success" data-index="${i}" title="Sucesso ${i + 1}"></span>
-          `).join('')}
+          `
+            )
+            .join("")}
           <span class="death-save-divider"></span>
-          ${[0, 1, 2].map(i => `
-            <span class="death-save-marker death-save-marker--failure ${i < ds.failures ? 'filled' : ''}"
+          ${[0, 1, 2]
+            .map(
+              (i) => `
+            <span class="death-save-marker death-save-marker--failure ${i < ds.failures ? "filled" : ""}"
                   data-id="${p.id}" data-kind="failure" data-index="${i}" title="Falha ${i + 1}"></span>
-          `).join('')}
+          `
+            )
+            .join("")}
         </div>
-      ` : '';
+      `
+          : "";
 
-      const initValue = p.initiative ?? "";
-      const initiativeHtml = !this.initiativeLocked
-        ? `
+        const initValue = p.initiative ?? "";
+        const initiativeHtml = !this.initiativeLocked
+          ? `
           <div class="combat-banner__initiative-edit" data-id="${p.id}">
             <input type="number" class="initiative-input" placeholder="—"
                    data-id="${p.id}" min="0" max="40" step="1" value="${initValue}" />
             <button class="btn btn--icon-only btn--sm initiative-roll-btn"
                     data-id="${p.id}" title="Rolar d20">
-              <span class="btn__icon">🎲</span>
+              ${icon("dices")}
             </button>
           </div>
         `
-        : `<div class="combat-banner__initiative" data-id="${p.id}">${p.initiative}</div>`;
+          : `<div class="combat-banner__initiative" data-id="${p.id}">${p.initiative}</div>`;
 
-      return `
-        <div class="combat-banner ${isActive ? 'combat-banner--active' : ''} ${hasActed ? 'combat-banner--acted' : ''} ${isDead ? 'combat-banner--dead' : ''}" data-id="${p.id}">
+        return `
+        <div class="combat-banner ${isActive ? "combat-banner--active" : ""} ${hasActed ? "combat-banner--acted" : ""} ${isDead ? "combat-banner--dead" : ""}" data-id="${p.id}">
           <button class="combat-banner__remove" data-id="${p.id}" title="Remover da luta">×</button>
           <div class="combat-banner__affinity combat-banner__affinity--${p.affinity}"></div>
-          ${p.image ? `
+          ${
+            p.image
+              ? `
             <div class="combat-banner__image-container">
               <img src="${p.image}" class="combat-banner__img" />
             </div>
-          ` : ''}
+          `
+              : ""
+          }
           <div class="combat-banner__name">${p.name}</div>
           ${savesHtml}
           <div class="combat-banner__actions">
@@ -412,72 +436,77 @@ export default class EncounterCombatView {
           ${initiativeHtml}
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
     // Bind damage inputs
-    this.DOM.banners.querySelectorAll('.damage-input').forEach(input => {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
+    this.DOM.banners.querySelectorAll(".damage-input").forEach((input) => {
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
           const rawValue = input.value.trim();
           if (!rawValue) return;
 
-          let type = 'damage';
+          let type = "damage";
           let amount = 0;
 
-          if (rawValue.startsWith('+')) {
-            type = 'heal';
+          if (rawValue.startsWith("+")) {
+            type = "heal";
             amount = parseInt(rawValue.substring(1));
-          } else if (rawValue.startsWith('-')) {
-            type = 'damage';
+          } else if (rawValue.startsWith("-")) {
+            type = "damage";
             amount = parseInt(rawValue.substring(1));
           } else {
-            type = 'damage';
+            type = "damage";
             amount = parseInt(rawValue);
           }
 
           if (!isNaN(amount)) {
             this.triggerDamageEffect(input.dataset.id, amount, type);
-            input.value = '';
+            input.value = "";
           }
         }
       });
     });
 
     // Bind remove buttons
-    this.DOM.banners.querySelectorAll('.combat-banner__remove').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    this.DOM.banners.querySelectorAll(".combat-banner__remove").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.removeParticipantFromCombat(btn.dataset.id);
       });
     });
 
     // Bind death save markers (manual edit by clicking)
-    this.DOM.banners.querySelectorAll('.death-save-marker').forEach(marker => {
-      marker.addEventListener('click', (e) => {
+    this.DOM.banners.querySelectorAll(".death-save-marker").forEach((marker) => {
+      marker.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggleDeathSaveMarker(marker.dataset.id, marker.dataset.kind, parseInt(marker.dataset.index, 10));
+        this.toggleDeathSaveMarker(
+          marker.dataset.id,
+          marker.dataset.kind,
+          parseInt(marker.dataset.index, 10)
+        );
       });
     });
 
     // Bind initiative inputs (Enter confirms manual value)
-    this.DOM.banners.querySelectorAll('.initiative-input').forEach(input => {
+    this.DOM.banners.querySelectorAll(".initiative-input").forEach((input) => {
       const commit = () => {
-        if (input.value === '') return;
+        if (input.value === "") return;
         const raw = parseInt(input.value, 10);
         if (Number.isNaN(raw)) return;
-        const p = this.participants.find(x => x.id === input.dataset.id);
+        const p = this.participants.find((x) => x.id === input.dataset.id);
         if (p && p.initiative === raw) return; // valor inalterado, evita re-render
         this.setManualInitiative(input.dataset.id, raw);
       };
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') commit();
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") commit();
       });
-      input.addEventListener('blur', commit);
+      input.addEventListener("blur", commit);
     });
 
     // Bind individual roll buttons (rolls a single d20 with 3D animation)
-    this.DOM.banners.querySelectorAll('.initiative-roll-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    this.DOM.banners.querySelectorAll(".initiative-roll-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.rollSingleInitiative(btn.dataset.id);
       });
@@ -485,10 +514,10 @@ export default class EncounterCombatView {
   }
 
   toggleDeathSaveMarker(id, kind, index) {
-    const participant = this.participants.find(p => p.id === id);
+    const participant = this.participants.find((p) => p.id === id);
     if (!participant || !participant.deathSaves) return;
     const ds = participant.deathSaves;
-    const field = kind === 'success' ? 'successes' : 'failures';
+    const field = kind === "success" ? "successes" : "failures";
     const target = index + 1; // clicar no marcador i preenche até i (i+1 marcadores no total)
 
     // Toggle: se já está cheio até index, esvazia até index; senão preenche até index+1
@@ -509,7 +538,7 @@ export default class EncounterCombatView {
   }
 
   removeParticipantFromCombat(id) {
-    const index = this.participants.findIndex(p => p.id === id);
+    const index = this.participants.findIndex((p) => p.id === id);
     if (index === -1) return;
 
     if (!confirm(`Remover ${this.participants[index].name} desta luta?`)) return;
@@ -524,7 +553,7 @@ export default class EncounterCombatView {
         // They were the last ones, go to start
         this.currentTurnIndex = 0;
       }
-      // If we are at the end, maybe we need to handle round change? 
+      // If we are at the end, maybe we need to handle round change?
       // For now, let's just keep the index and the next person in list will be active.
     }
 
@@ -543,46 +572,48 @@ export default class EncounterCombatView {
   triggerDamageEffect(id, amount, type) {
     console.log(`Disparando efeito de ${type} (${amount}) para: ${id}`);
 
-    const participant = this.participants.find(p => p.id === id);
+    const participant = this.participants.find((p) => p.id === id);
     if (participant) {
       const maxHp = Number(participant.hp) || 0;
       const currentHp = Number(participant.current_hp) || 0;
 
-      if (type === 'damage') {
+      if (type === "damage") {
         participant.current_hp = Math.max(0, currentHp - amount);
-      } else if (type === 'heal') {
+      } else if (type === "heal") {
         const cap = maxHp > 0 ? maxHp : currentHp + amount;
         participant.current_hp = Math.min(cap, currentHp + amount);
       }
 
       // Cura tira do estado de death save automaticamente
-      if (type === 'heal' && participant.current_hp > 0 && participant.deathSaves?.active) {
+      if (type === "heal" && participant.current_hp > 0 && participant.deathSaves?.active) {
         participant.deathSaves = this.makeEmptyDeathSaves();
-        showToast(`${participant.name} recuperou e saiu do teste de morte`, 'success');
+        showToast(`${participant.name} recuperou e saiu do teste de morte`, "success");
       }
     }
 
     // Broadcast action for animation
-    window.dmCopilot.combat.broadcast('combat-action', {
+    window.dmCopilot.combat.broadcast("combat-action", {
       type: type,
       targetId: id,
-      amount: amount
+      amount: amount,
     });
 
     // Check if ally fell to 0 HP — prompt for death save
     if (
       participant &&
-      type === 'damage' &&
+      type === "damage" &&
       participant.current_hp === 0 &&
-      participant.affinity === 'ally' &&
+      participant.affinity === "ally" &&
       !participant.deathSaves?.active &&
       !participant.deathSaves?.dead &&
       !participant.deathSaves?.stabilized
     ) {
-      const start = window.confirm(`${participant.name} caiu a 0 HP. Iniciar teste de resistência contra morte?`);
+      const start = window.confirm(
+        `${participant.name} caiu a 0 HP. Iniciar teste de resistência contra morte?`
+      );
       if (start) {
         participant.deathSaves = { ...this.makeEmptyDeathSaves(), active: true };
-        showToast(`Teste de resistência iniciado para ${participant.name}`, 'info');
+        showToast(`Teste de resistência iniciado para ${participant.name}`, "info");
       }
     }
 
@@ -610,12 +641,12 @@ export default class EncounterCombatView {
 
     // Em fase de iniciativa: mostra a barra e esconde os controles de turno
     const pendingNpcs = this.participants.filter(
-      (p) => (p.affinity === 'enemy' || p.affinity === 'neutral') &&
-             (p.initiative === null || p.initiative === undefined)
+      (p) =>
+        (p.affinity === "enemy" || p.affinity === "neutral") &&
+        (p.initiative === null || p.initiative === undefined)
     ).length;
     const pendingAllies = this.participants.filter(
-      (p) => p.affinity === 'ally' &&
-             (p.initiative === null || p.initiative === undefined)
+      (p) => p.affinity === "ally" && (p.initiative === null || p.initiative === undefined)
     ).length;
 
     this.DOM.initiativeBar.classList.remove("hidden");
@@ -627,14 +658,11 @@ export default class EncounterCombatView {
     }
     if (this.DOM.initiativeBarHint) {
       if (pendingNpcs > 0 && pendingAllies > 0) {
-        this.DOM.initiativeBarHint.textContent =
-          `Faltam ${pendingNpcs} NPC(s) e ${pendingAllies} jogador(es) para definir iniciativa.`;
+        this.DOM.initiativeBarHint.textContent = `Faltam ${pendingNpcs} NPC(s) e ${pendingAllies} jogador(es) para definir iniciativa.`;
       } else if (pendingNpcs > 0) {
-        this.DOM.initiativeBarHint.textContent =
-          `Falta(m) ${pendingNpcs} NPC(s) para rolar iniciativa.`;
+        this.DOM.initiativeBarHint.textContent = `Falta(m) ${pendingNpcs} NPC(s) para rolar iniciativa.`;
       } else if (pendingAllies > 0) {
-        this.DOM.initiativeBarHint.textContent =
-          `Aguardando iniciativa dos jogadores (${pendingAllies}).`;
+        this.DOM.initiativeBarHint.textContent = `Aguardando iniciativa dos jogadores (${pendingAllies}).`;
       } else {
         this.DOM.initiativeBarHint.textContent = "Pronto para iniciar os turnos!";
       }
@@ -705,12 +733,10 @@ export default class EncounterCombatView {
     if (!this.isActive || this.initiativeLocked) return;
 
     const enemies = this.participants.filter(
-      (p) => p.affinity === 'enemy' &&
-             (p.initiative === null || p.initiative === undefined)
+      (p) => p.affinity === "enemy" && (p.initiative === null || p.initiative === undefined)
     );
     const neutrals = this.participants.filter(
-      (p) => p.affinity === 'neutral' &&
-             (p.initiative === null || p.initiative === undefined)
+      (p) => p.affinity === "neutral" && (p.initiative === null || p.initiative === undefined)
     );
 
     if (enemies.length === 0 && neutrals.length === 0) return;
@@ -725,8 +751,8 @@ export default class EncounterCombatView {
 
     // Inimigos rolam juntos (vermelho), depois neutros juntos (laranja).
     // Cada batch é UMA animação 3D só, com todos os dados caindo simultaneamente.
-    await this.rollAffinityBatch(enemies, 'enemy');
-    await this.rollAffinityBatch(neutrals, 'neutral');
+    await this.rollAffinityBatch(enemies, "enemy");
+    await this.rollAffinityBatch(neutrals, "neutral");
 
     this.renderBanners();
     this.updateInitiativePhaseUI();
@@ -737,8 +763,7 @@ export default class EncounterCombatView {
   async rollAllAllyInitiative() {
     if (!this.isActive || this.initiativeLocked) return;
     const allies = this.participants.filter(
-      (p) => p.affinity === 'ally' &&
-             (p.initiative === null || p.initiative === undefined)
+      (p) => p.affinity === "ally" && (p.initiative === null || p.initiative === undefined)
     );
     if (allies.length === 0) return;
 
@@ -749,7 +774,7 @@ export default class EncounterCombatView {
       return;
     }
 
-    await this.rollAffinityBatch(allies, 'ally');
+    await this.rollAffinityBatch(allies, "ally");
 
     this.renderBanners();
     this.updateInitiativePhaseUI();
@@ -760,13 +785,15 @@ export default class EncounterCombatView {
   async rollAffinityBatch(group, affinity) {
     if (!group || group.length === 0) return;
     const specs = group.map((p) => ({
-      notation: '1d20',
+      notation: "1d20",
       characterName: p.name,
       affinity,
-      label: 'Iniciativa',
+      label: "Iniciativa",
     }));
     const totals = await window.diceView.rollBatch(specs);
-    group.forEach((p, i) => { p.initiative = totals[i]; });
+    group.forEach((p, i) => {
+      p.initiative = totals[i];
+    });
   }
 
   async nextTurn() {
@@ -783,7 +810,7 @@ export default class EncounterCombatView {
       this.logRoundChange(this.currentRound);
 
       // Reset acted status for new round
-      this.participants.forEach(p => p.has_acted = 0);
+      this.participants.forEach((p) => (p.has_acted = 0));
     }
 
     this.renderBanners();
@@ -818,7 +845,7 @@ export default class EncounterCombatView {
 
     // Skip dead participants — only if there's at least one non-dead remaining
     if (active.deathSaves?.dead) {
-      const anyAlive = this.participants.some(p => !p.deathSaves?.dead);
+      const anyAlive = this.participants.some((p) => !p.deathSaves?.dead);
       if (anyAlive) {
         await this.nextTurn();
       }
@@ -839,20 +866,20 @@ export default class EncounterCombatView {
   }
 
   logDeathSave(participant, value) {
-    let detail = '';
-    if (value === 20) detail = 'recuperação miraculosa (HP=1)';
-    else if (value === 1) detail = '💀 falha crítica (2 falhas)';
-    else if (value >= 10) detail = '✓ sucesso';
-    else detail = '✗ falha';
+    let detail = "";
+    if (value === 20) detail = "recuperação miraculosa (HP=1)";
+    else if (value === 1) detail = "💀 falha crítica (2 falhas)";
+    else if (value >= 10) detail = "sucesso";
+    else detail = "falha";
 
     this.rollHistory.unshift({
-      type: 'death-save',
+      type: "death-save",
       characterName: participant.name,
-      notation: '1d20',
+      notation: "1d20",
       total: value,
       details: `Death Save — ${detail}`,
-      affinity: participant.affinity || 'ally',
-      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      affinity: participant.affinity || "ally",
+      timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
     });
     if (this.rollHistory.length > 50) this.rollHistory.length = 50;
   }
@@ -874,26 +901,29 @@ export default class EncounterCombatView {
     const visibility = resolveEffectiveVisibility(this.currentEncounter, this.currentCampaign);
 
     // Transform local-image:// protocol to http for players AND apply visibility filter
-    const processedParticipants = this.participants.map(p => {
+    const processedParticipants = this.participants.map((p) => {
       let imageUrl = p.image;
-      if (imageUrl && imageUrl.startsWith('local-image://')) {
-        imageUrl = `/images/${imageUrl.replace('local-image://', '')}`;
+      if (imageUrl && imageUrl.startsWith("local-image://")) {
+        imageUrl = `/images/${imageUrl.replace("local-image://", "")}`;
       }
       const filtered = applyVisibilityToParticipant(p, visibility[p.affinity]);
       return { ...filtered, image: imageUrl };
     });
 
     // Resolve encounter background to a URL the player view (Express) can serve
-    const bgValue = this.currentEncounter?.background_image || this.encountersView?.currentEncounter?.background_image;
+    const bgValue =
+      this.currentEncounter?.background_image ||
+      this.encountersView?.currentEncounter?.background_image;
     const backgroundImage = this.resolveBackgroundForPlayer(bgValue);
     console.log("[broadcastState] bgValue:", bgValue, "→ player URL:", backgroundImage);
 
     // Resolve encounter music file for the player view
-    const musicValue = this.currentEncounter?.music_file || this.encountersView?.currentEncounter?.music_file;
+    const musicValue =
+      this.currentEncounter?.music_file || this.encountersView?.currentEncounter?.music_file;
     const musicFile = musicValue ? `/music/${musicValue}` : null;
 
-    window.dmCopilot.combat.broadcast('combat-update', {
-      status: 'active',
+    window.dmCopilot.combat.broadcast("combat-update", {
+      status: "active",
       currentRound: this.currentRound,
       // Antes de travar a ordem de iniciativa, ninguém está "no turno".
       // Mandamos -1 para que o player view não destaque ninguém.
@@ -901,7 +931,7 @@ export default class EncounterCombatView {
       participants: processedParticipants,
       rollHistory: this.rollHistory,
       backgroundImage,
-      musicFile
+      musicFile,
     });
   }
 
@@ -932,7 +962,7 @@ export default class EncounterCombatView {
 
   async _stopCombatInternal() {
     try {
-      window.dmCopilot.combat.broadcast('combat-update', { status: 'inactive' });
+      window.dmCopilot.combat.broadcast("combat-update", { status: "inactive" });
     } catch (err) {
       console.warn("Falha ao broadcastar fim de combate:", err);
     }
@@ -948,7 +978,7 @@ export default class EncounterCombatView {
 
     try {
       await window.dmCopilot.db.encounters.update(this.currentEncounter.id, {
-        status: 'finished'
+        status: "finished",
       });
     } catch (err) {
       console.error("Error ending combat:", err);
@@ -984,7 +1014,8 @@ export default class EncounterCombatView {
       this.currentTurnIndex = encounter.current_turn_index || 0;
       this.rollHistory = Array.isArray(encounter.roll_history) ? encounter.roll_history : [];
       // initiativeLocked é DERIVADO: se todos têm initiative !== null, está travado.
-      this.initiativeLocked = this.participants.length > 0 &&
+      this.initiativeLocked =
+        this.participants.length > 0 &&
         this.participants.every((p) => p.initiative !== null && p.initiative !== undefined);
       this.isActive = true;
     }
@@ -1031,13 +1062,13 @@ export default class EncounterCombatView {
 
   logRoll(data) {
     // data: { characterName, notation, total, details }
-    const participant = this.participants.find(p => p.name === data.characterName);
-    const affinity = participant ? participant.affinity : 'neutral';
+    const participant = this.participants.find((p) => p.name === data.characterName);
+    const affinity = participant ? participant.affinity : "neutral";
 
     this.rollHistory.unshift({
       ...data,
       affinity,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
     });
 
     // Keep only last 20
@@ -1051,9 +1082,9 @@ export default class EncounterCombatView {
 
   logRoundChange(round) {
     this.rollHistory.unshift({
-      type: 'round-change',
+      type: "round-change",
       round: round,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
     });
 
     // Keep only last 20

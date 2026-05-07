@@ -7,7 +7,8 @@ const version = 8;
 const name = "Add dice roll history table";
 
 function up(db) {
-  db.prepare(`
+  db.prepare(
+    `
     CREATE TABLE IF NOT EXISTS dice_rolls (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       notation TEXT NOT NULL,
@@ -16,7 +17,8 @@ function up(db) {
       bonus INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-  `).run();
+  `
+  ).run();
 }
 
 function down(db) {

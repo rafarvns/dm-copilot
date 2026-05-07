@@ -6,17 +6,17 @@ export default class PresentationController {
   }
 
   _initModal() {
-    const modal = document.getElementById('modal-presentation-conflict');
-    const overlay = document.getElementById('presentation-conflict-overlay');
-    const btnReplace = document.getElementById('btn-presentation-conflict-replace');
-    const btnCancel = document.getElementById('btn-presentation-conflict-cancel');
+    const modal = document.getElementById("modal-presentation-conflict");
+    const overlay = document.getElementById("presentation-conflict-overlay");
+    const btnReplace = document.getElementById("btn-presentation-conflict-replace");
+    const btnCancel = document.getElementById("btn-presentation-conflict-cancel");
 
     this._modal = modal;
-    this._bodyEl = document.getElementById('presentation-conflict-body');
+    this._bodyEl = document.getElementById("presentation-conflict-body");
 
-    btnReplace?.addEventListener('click', () => this._onConfirm());
-    btnCancel?.addEventListener('click', () => this._onCancel());
-    overlay?.addEventListener('click', () => this._onCancel());
+    btnReplace?.addEventListener("click", () => this._onConfirm());
+    btnCancel?.addEventListener("click", () => this._onCancel());
+    overlay?.addEventListener("click", () => this._onCancel());
   }
 
   async requestPresentation({ type, label, start, stop }) {
@@ -47,7 +47,9 @@ export default class PresentationController {
     }
     if (this.current?.stop) {
       // Outra presentation ativa — encerra silenciosamente, sem modal.
-      try { this.current.stop(); } catch (err) {
+      try {
+        this.current.stop();
+      } catch (err) {
         console.warn("adoptPresentation: falha ao parar a presentation anterior:", err);
       }
     }
@@ -59,11 +61,11 @@ export default class PresentationController {
     if (this._bodyEl) {
       this._bodyEl.textContent = `Há uma apresentação em andamento: "${this.current.label}". Deseja substituí-la?`;
     }
-    this._modal?.classList.remove('hidden');
+    this._modal?.classList.remove("hidden");
   }
 
   async _onConfirm() {
-    this._modal?.classList.add('hidden');
+    this._modal?.classList.add("hidden");
     if (!this._pending) return;
 
     const pending = this._pending;
@@ -78,7 +80,7 @@ export default class PresentationController {
   }
 
   _onCancel() {
-    this._modal?.classList.add('hidden');
+    this._modal?.classList.add("hidden");
     this._pending = null;
   }
 }

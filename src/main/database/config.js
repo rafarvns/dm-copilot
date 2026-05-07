@@ -7,16 +7,16 @@
 const DB_CONFIG = {
   // Nome do arquivo do banco de dados
   filename: "dm-copilot.db",
-  
+
   // Versão atual do schema
   currentVersion: 1,
-  
+
   // Modo de journal (WAL para melhor concorrência)
   journalMode: "WAL",
-  
+
   // Habilitar foreign keys
   foreignKeys: true,
-  
+
   // Timeout para operações (ms)
   timeout: 5000,
 };

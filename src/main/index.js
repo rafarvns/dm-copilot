@@ -57,7 +57,7 @@ class CombatServer {
       const possiblePaths = [
         path.join(__dirname, "server", "player-view.html"),
         path.join(__dirname, "..", "..", "src", "main", "server", "player-view.html"),
-        path.join(app.getAppPath(), "src", "main", "server", "player-view.html")
+        path.join(app.getAppPath(), "src", "main", "server", "player-view.html"),
       ];
 
       for (const p of possiblePaths) {
@@ -67,9 +67,9 @@ class CombatServer {
       }
       res.status(404).send("Player view file not found");
     });
-    
+
     // Serve other static files if needed
-    const staticPath = fs.existsSync(path.join(__dirname, "server")) 
+    const staticPath = fs.existsSync(path.join(__dirname, "server"))
       ? path.join(__dirname, "server")
       : path.join(__dirname, "..", "..", "src", "main", "server");
     this.app.use(express.static(staticPath));
@@ -158,10 +158,10 @@ class CombatServer {
       }
 
       // Send current view state to the newly connected player
-      if (this.lastCombatUpdate?.status === 'active') {
-        socket.emit('combat-update', this.lastCombatUpdate);
-      } else if (this.lastSceneUpdate?.status === 'active') {
-        socket.emit('scene-update', this.lastSceneUpdate);
+      if (this.lastCombatUpdate?.status === "active") {
+        socket.emit("combat-update", this.lastCombatUpdate);
+      } else if (this.lastSceneUpdate?.status === "active") {
+        socket.emit("scene-update", this.lastSceneUpdate);
       }
 
       socket.on("disconnect", () => {
@@ -183,7 +183,9 @@ class CombatServer {
 
     this.server.once("error", (err) => {
       console.error(`[CombatServer] Failed to bind on port ${this.port}:`, err.code || err.message);
-      console.error(`[CombatServer] Likely cause: another instance of the app is still running and holding port ${this.port}. Close it (Task Manager → kill electron.exe) and restart.`);
+      console.error(
+        `[CombatServer] Likely cause: another instance of the app is still running and holding port ${this.port}. Close it (Task Manager → kill electron.exe) and restart.`
+      );
       this.isRunning = false;
     });
 
@@ -195,7 +197,7 @@ class CombatServer {
 
   stop() {
     if (!this.isRunning) return;
-    
+
     this.server.close(() => {
       this.isRunning = false;
       console.log("Combat server stopped");
@@ -204,14 +206,16 @@ class CombatServer {
 
   broadcast(event, data) {
     if (this.isRunning) {
-      if (event === 'combat-update') this.lastCombatUpdate = data;
-      if (event === 'scene-update')  this.lastSceneUpdate = data;
+      if (event === "combat-update") this.lastCombatUpdate = data;
+      if (event === "scene-update") this.lastSceneUpdate = data;
       const clientsCount = this.io?.sockets?.sockets?.size ?? 0;
-      if (event === 'dice-roll') {
-        console.log(`[Server] io.emit dice-roll → ${clientsCount} client(s) | notation=${JSON.stringify(data?.notation)}`);
+      if (event === "dice-roll") {
+        console.log(
+          `[Server] io.emit dice-roll → ${clientsCount} client(s) | notation=${JSON.stringify(data?.notation)}`
+        );
       }
       this.io.emit(event, data);
-    } else if (event === 'dice-roll') {
+    } else if (event === "dice-roll") {
       console.warn("[Server] dice-roll IGNORED — server not running");
     }
   }
@@ -279,7 +283,7 @@ class DatabaseManager {
       return;
     }
 
-    const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith(".js"));
+    const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".js"));
 
     for (const file of files) {
       const migration = require(path.join(migrationsDir, file));
@@ -302,7 +306,7 @@ class DatabaseManager {
       `);
 
       const appliedRows = this.db.prepare("SELECT version FROM schema_migrations").all();
-      const appliedVersionNumbers = appliedRows.map(row => row.version);
+      const appliedVersionNumbers = appliedRows.map((row) => row.version);
 
       for (const migration of this.migrations) {
         if (!appliedVersionNumbers.includes(migration.version)) {
@@ -310,9 +314,9 @@ class DatabaseManager {
 
           const runMigration = this.db.transaction(() => {
             migration.up(this.db);
-            this.db.prepare(
-              "INSERT INTO schema_migrations (version, migrated_at) VALUES (?, ?)"
-            ).run(migration.version, new Date().toISOString());
+            this.db
+              .prepare("INSERT INTO schema_migrations (version, migrated_at) VALUES (?, ?)")
+              .run(migration.version, new Date().toISOString());
           });
 
           runMigration();
@@ -367,8 +371,8 @@ class DatabaseManager {
       throw new Error("Database not initialized");
     }
 
-    const backupPath = destinationPath ||
-      path.join(app.getPath("userData"), `backup-${Date.now()}.db`);
+    const backupPath =
+      destinationPath || path.join(app.getPath("userData"), `backup-${Date.now()}.db`);
 
     this.db.backup(backupPath);
     console.log(`Database backed up to: ${backupPath}`);
@@ -421,7 +425,7 @@ const databaseManager = new DatabaseManager();
 function createWindow() {
   const iconPath = path.join(__dirname, "..", "assets", "icons", "logo_ico.ico");
   console.log("Icon path:", iconPath);
-  
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -670,7 +674,7 @@ ipcMain.handle("app-save-character-image", async (_event, imageData) => {
 
     // imageData chega como Buffer ou Uint8Array
     fs.writeFileSync(filePath, Buffer.from(imageData));
-    
+
     return `characters/${fileName}`;
   } catch (error) {
     console.error("Erro ao salvar imagem:", error);
@@ -1026,16 +1030,18 @@ ipcMain.handle("combat-server-stop", () => {
 });
 
 ipcMain.handle("combat-server-get-info", () => {
-  return { 
-    isRunning: combatServer.isRunning, 
-    ip: getNetworkIP(), 
-    port: combatServer.port 
+  return {
+    isRunning: combatServer.isRunning,
+    ip: getNetworkIP(),
+    port: combatServer.port,
   };
 });
 
 ipcMain.on("combat-server-broadcast", (_event, { event, data }) => {
   if (event === "dice-roll") {
-    console.log(`[Main IPC] combat-server-broadcast received: event=${event}, isRunning=${combatServer.isRunning}, notation=${JSON.stringify(data?.notation)}`);
+    console.log(
+      `[Main IPC] combat-server-broadcast received: event=${event}, isRunning=${combatServer.isRunning}, notation=${JSON.stringify(data?.notation)}`
+    );
   }
   combatServer.broadcast(event, data);
 });
@@ -1070,14 +1076,14 @@ ipcMain.on("window-close", () => {
 // ============================================
 app.whenReady().then(() => {
   // Registrar protocolo para imagens locais
-  protocol.registerFileProtocol('local-image', (request, callback) => {
-    const url = request.url.replace('local-image://', '');
+  protocol.registerFileProtocol("local-image", (request, callback) => {
+    const url = request.url.replace("local-image://", "");
     try {
       const decodedUrl = decodeURI(url);
-      const fullPath = path.join(app.getPath('userData'), 'images', decodedUrl);
+      const fullPath = path.join(app.getPath("userData"), "images", decodedUrl);
       return callback(fullPath);
     } catch (error) {
-      console.error('Erro no protocolo local-image:', error);
+      console.error("Erro no protocolo local-image:", error);
       return callback({ error: -6 }); // NET_ERROR(FILE_NOT_FOUND, -6)
     }
   });

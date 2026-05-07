@@ -1,6 +1,6 @@
-import template from './campaigns.html?raw';
-import './campaigns.css';
-import { CampaignsView } from '../../views/database-views.js';
+import template from "./campaigns.html?raw";
+import "./campaigns.css";
+import { CampaignsView } from "../../views/database-views.js";
 
 export default class CampaignsFeature {
   constructor() {

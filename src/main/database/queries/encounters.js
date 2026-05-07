@@ -29,7 +29,7 @@ function createEncounter(db, encounterData) {
   return {
     id: result.lastInsertRowid,
     ...encounterData,
-    created_at: now
+    created_at: now,
   };
 }
 
@@ -39,12 +39,18 @@ function createEncounter(db, encounterData) {
 function parseEncounterJsonFields(encounter) {
   if (!encounter) return encounter;
   if (encounter.monsters) {
-    try { encounter.monsters = JSON.parse(encounter.monsters); }
-    catch (_) { encounter.monsters = []; }
+    try {
+      encounter.monsters = JSON.parse(encounter.monsters);
+    } catch (_) {
+      encounter.monsters = [];
+    }
   }
   if (encounter.roll_history) {
-    try { encounter.roll_history = JSON.parse(encounter.roll_history); }
-    catch (_) { encounter.roll_history = []; }
+    try {
+      encounter.roll_history = JSON.parse(encounter.roll_history);
+    } catch (_) {
+      encounter.roll_history = [];
+    }
   } else {
     encounter.roll_history = [];
   }
@@ -57,7 +63,9 @@ function getEncounterById(db, id) {
 }
 
 function getEncountersByCampaign(db, campaignId) {
-  const rows = db.prepare(`SELECT * FROM encounters WHERE campaign_id = ? ORDER BY created_at DESC`).all(campaignId);
+  const rows = db
+    .prepare(`SELECT * FROM encounters WHERE campaign_id = ? ORDER BY created_at DESC`)
+    .all(campaignId);
   return rows.map(parseEncounterJsonFields);
 }
 
@@ -75,27 +83,27 @@ function updateEncounter(db, id, encounterData) {
 
   // Map of object keys to table columns
   const columnMap = {
-    campaign_id: 'campaign_id',
-    name: 'name',
-    description: 'description',
-    difficulty: 'difficulty',
-    location: 'location',
-    background_image: 'background_image',
-    music_url: 'music_url',
-    music_file: 'music_file',
-    combat_visibility_override: 'combat_visibility_override',
-    monsters: 'monsters',
-    status: 'status',
-    current_round: 'current_round',
-    current_turn_index: 'current_turn_index',
-    roll_history: 'roll_history'
+    campaign_id: "campaign_id",
+    name: "name",
+    description: "description",
+    difficulty: "difficulty",
+    location: "location",
+    background_image: "background_image",
+    music_url: "music_url",
+    music_file: "music_file",
+    combat_visibility_override: "combat_visibility_override",
+    monsters: "monsters",
+    status: "status",
+    current_round: "current_round",
+    current_turn_index: "current_turn_index",
+    roll_history: "roll_history",
   };
 
   for (const [key, column] of Object.entries(columnMap)) {
     if (encounterData[key] !== undefined) {
       fields.push(`${column} = ?`);
       let val = encounterData[key];
-      if ((key === 'monsters' || key === 'roll_history') && val !== null) {
+      if ((key === "monsters" || key === "roll_history") && val !== null) {
         val = JSON.stringify(val);
       }
       values.push(val);
@@ -112,7 +120,7 @@ function updateEncounter(db, id, encounterData) {
   const sql = `UPDATE encounters SET ${fields.join(", ")} WHERE id = ?`;
   console.log("SQL Update Encontro:", sql);
   console.log("Valores:", values);
-  
+
   const stmt = db.prepare(sql);
   const result = stmt.run(...values);
 
@@ -131,7 +139,9 @@ function deleteEncounter(db, id) {
 // COUNT
 // ============================================
 function countEncountersByCampaign(db, campaignId) {
-  const row = db.prepare(`SELECT COUNT(*) as count FROM encounters WHERE campaign_id = ?`).get(campaignId);
+  const row = db
+    .prepare(`SELECT COUNT(*) as count FROM encounters WHERE campaign_id = ?`)
+    .get(campaignId);
   return row.count;
 }
 
@@ -142,5 +152,5 @@ module.exports = {
   getAllEncounters,
   updateEncounter,
   deleteEncounter,
-  countEncountersByCampaign
+  countEncountersByCampaign,
 };
