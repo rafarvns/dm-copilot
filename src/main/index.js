@@ -451,8 +451,10 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 
-  // Show window when content is ready (prevents white flash)
+  // Maximize before showing so the window doesn't flash from windowed
+  // to maximized on first paint.
   mainWindow.once("ready-to-show", () => {
+    mainWindow.maximize();
     mainWindow.show();
   });
 
@@ -460,81 +462,8 @@ function createWindow() {
     mainWindow = null;
   });
 
-  // Build application menu
-  const menuTemplate = buildMenuTemplate();
-  const menu = Menu.buildFromTemplate(menuTemplate);
-  Menu.setApplicationMenu(menu);
-}
-
-// ============================================
-// Menu
-// ============================================
-function buildMenuTemplate() {
-  return [
-    {
-      label: "Arquivo",
-      submenu: [
-        {
-          label: "Nova Campanha",
-          accelerator: "CmdOrCtrl+N",
-          click: () => sendMenuAction("new-campaign"),
-        },
-        {
-          label: "Abrir Campanha",
-          accelerator: "CmdOrCtrl+O",
-          click: () => sendMenuAction("open-campaign"),
-        },
-        {
-          label: "Salvar Campanha",
-          accelerator: "CmdOrCtrl+S",
-          click: () => sendMenuAction("save-campaign"),
-        },
-        { type: "separator" },
-        { role: "quit", label: "Sair" },
-      ],
-    },
-    {
-      label: "Editar",
-      submenu: [
-        { role: "undo", label: "Desfazer" },
-        { role: "redo", label: "Refazer" },
-        { type: "separator" },
-        { role: "cut", label: "Recortar" },
-        { role: "copy", label: "Copiar" },
-        { role: "paste", label: "Colar" },
-        { role: "selectAll", label: "Selecionar Tudo" },
-      ],
-    },
-    {
-      label: "Visualizar",
-      submenu: [
-        { role: "reload", label: "Recarregar" },
-        { role: "forceReload", label: "Forçar Recarregamento" },
-        { role: "toggleDevTools", label: "Ferramentas de Desenvolvedor" },
-        { type: "separator" },
-        { role: "resetZoom", label: "Redefinir Zoom" },
-        { role: "zoomIn", label: "Aumentar Zoom" },
-        { role: "zoomOut", label: "Diminuir Zoom" },
-        { type: "separator" },
-        { role: "togglefullscreen", label: "Tela Cheia" },
-      ],
-    },
-    {
-      label: "Ajuda",
-      submenu: [
-        {
-          label: "Sobre DM Copilot",
-          click: () => sendMenuAction("about"),
-        },
-      ],
-    },
-  ];
-}
-
-function sendMenuAction(action) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("menu-action", action);
-  }
+  // No application menu — the app uses its own in-window navigation.
+  Menu.setApplicationMenu(null);
 }
 
 // ============================================

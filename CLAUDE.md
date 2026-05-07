@@ -5,10 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Sempre utilize os seguintes subagents quando apropriado:
 
 - voltagent-core-dev:electron-pro para qualquer código Electron
-- backend-architect para APIs
-- voltagent-core-dev:frontend-developer para estilização e design de frontend
+- voltagent-core-dev:backend-architect para APIs
+- voltagent-core-dev:frontend-developer para desenvolvimento de frontend
+- voltagent-core-dev:ui-designer para design e estilização
 
 Prefira delegar tarefas automaticamente aos agentes especializados.
+
+Sempre que for fazer alterações no frontend/electron usar a skill: /dm-copilot-design-system @"voltagent-core-dev:electron-pro (agent)"  @"voltagent-core-dev:frontend-developer (agent)"  @"voltagent-core-dev:ui-designer (agent)" 
 
 ## Common Commands
 

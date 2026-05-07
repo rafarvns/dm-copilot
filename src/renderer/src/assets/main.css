@@ -32,9 +32,9 @@
   --color-accent-rose: #f43f5e;
   --color-accent-sky: #0ea5e9;
 
-  /* Tipografia */
-  --font-display: "Cinzel", "Times New Roman", serif;
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Tipografia — fontes da marca, carregadas via tokens.css */
+  --font-display: "Nodesto Caps Condensed", "Times New Roman", serif;
+  --font-body: "Scaly Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   /* Tamanhos */
@@ -2194,6 +2194,12 @@ select:focus {
   width: 100% !important;
   height: 100% !important;
   display: block;
+  /* Sem isso, o canvas WebGL captura cliques mesmo com pointer-events: none
+     no pai — Electron/Chromium não propaga "none" pra canvas filho que
+     fica no default "auto". Sintoma: depois de qualquer rolagem (ex: de
+     iniciativa no combate) os inputs de dano ficam inclicáveis porque a
+     overlay nunca é escondida. */
+  pointer-events: none;
 }
 
 /* Slots do pool paralelo — cada um tem seu próprio canvas transparente
@@ -2214,6 +2220,8 @@ select:focus {
   height: 100% !important;
   display: block;
   background: transparent;
+  /* Mesmo motivo de #dice-box canvas — força o canvas a ser click-through. */
+  pointer-events: none;
 }
 
 .dice-result-panel {

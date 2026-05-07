@@ -11,17 +11,47 @@
    See CLAUDE.md § Design system for the migration plan.
    ============================================================ */
 
-/* JetBrains Mono is loaded from Google Fonts.
-   Brand fonts (Nodesto Caps Condensed, Scaly Sans) ship locally. */
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap");
+/* All fonts ship locally. JetBrains Mono is self-hosted (instead of via
+   Google Fonts) because the renderer's CSP only allows style-src 'self'
+   and we don't want to relax it just to load a stylesheet. The two
+   .woff2 files cover both 400 and 600 weights — Google serves a single
+   variable font for the family. */
 
-/* ---------- Brand fonts ---------- */
+/* ---------- JetBrains Mono (mono — dice notation, code, timestamps) ---------- */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./fonts/JetBrainsMono-latin.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./fonts/JetBrainsMono-latin-ext.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* ---------- Brand fonts ----------
+   Nodesto Caps Condensed renderiza com glyphs naturalmente pequenos para
+   o seu em-square; aplicamos size-adjust: 110% globalmente para subir
+   um pouco a presença dos headings sem precisar tocar font-size em
+   cada componente. Ajuste o número se ficar muito ou pouco. */
 @font-face {
   font-family: "Nodesto Caps Condensed";
   src: url("./fonts/Nodesto_Caps_Condensed_1_.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  size-adjust: 110%;
 }
 @font-face {
   font-family: "Nodesto Caps Condensed";
@@ -29,6 +59,7 @@
   font-weight: 400;
   font-style: italic;
   font-display: swap;
+  size-adjust: 110%;
 }
 @font-face {
   font-family: "Nodesto Caps Condensed";
@@ -36,6 +67,7 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+  size-adjust: 110%;
 }
 @font-face {
   font-family: "Nodesto Caps Condensed";
@@ -43,6 +75,7 @@
   font-weight: 700;
   font-style: italic;
   font-display: swap;
+  size-adjust: 110%;
 }
 
 @font-face {
