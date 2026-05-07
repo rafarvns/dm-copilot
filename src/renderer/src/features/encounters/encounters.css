@@ -1,0 +1,1673 @@
+/* ============================================================
+   Encounters — feature stylesheet
+   ------------------------------------------------------------
+   Importado em main.js logo após main.css. Concentra estilos
+   de overlay #encounter-detail-view, banners de combate,
+   participant cards e modais auxiliares.
+
+   Migrado de main.css (linhas ~1466-3128) — Round 1 do redesign.
+   ============================================================ */
+
+/* --- Encounter Manager Layout --- */
+.encounter-manager {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  flex: 1;
+}
+
+.encounter-columns {
+  display: flex;
+  gap: var(--space-6);
+  flex: 1;
+}
+
+.encounter-section {
+  flex: 1;
+  background-color: var(--color-surface-hover);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  /* border-top tático adicionado via variantes de afinidade abaixo */
+}
+
+/* --- Affinity color inheritance (seção raiz define currentColor) --- */
+.encounter-section--allies {
+  border-top: 3px solid var(--color-ally);
+  color: var(--color-ally);
+}
+
+.encounter-section--neutrals {
+  border-top: 3px solid var(--color-neutral);
+  color: var(--color-neutral);
+}
+
+.encounter-section--enemies {
+  border-top: 3px solid var(--color-enemy);
+  color: var(--color-enemy);
+}
+
+.encounter-section__header {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  border-bottom: 2px solid transparent;
+}
+
+.encounter-section__title {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: currentColor;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.encounter-section__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-hover);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.encounter-section--allies .encounter-section__header {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: var(--color-ally);
+}
+
+.encounter-section--neutrals .encounter-section__header {
+  background-color: rgba(234, 179, 8, 0.1);
+  border-color: var(--color-neutral);
+}
+
+.encounter-section--enemies .encounter-section__header {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--color-enemy);
+}
+
+/* --- Drag and Drop States --- */
+.participant-card[draggable="true"] {
+  cursor: grab;
+}
+
+.participant-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.participant-card--dragging {
+  opacity: 0;
+  /* Oculta o original enquanto arrasta */
+}
+
+.participant-card--ghost {
+  opacity: 1;
+  /* O ghost (imagem que segue o mouse) deve ser visível */
+}
+
+.participant-card--placeholder {
+  min-height: 120px;
+  background-color: rgba(124, 58, 237, 0.05);
+  border: 2px dashed var(--color-primary-light);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  transition: all 0.2s ease;
+}
+
+.encounter-section--allies .participant-card--placeholder {
+  background-color: rgba(34, 197, 94, 0.05);
+  border-color: var(--color-ally-fg);
+}
+
+.encounter-section--neutrals .participant-card--placeholder {
+  background-color: rgba(234, 179, 8, 0.05);
+  border-color: var(--color-neutral-fg);
+}
+
+.encounter-section--enemies .participant-card--placeholder {
+  background-color: rgba(239, 68, 68, 0.05);
+  border-color: var(--color-enemy-fg);
+}
+
+.encounter-section__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 100px;
+  padding: var(--space-2);
+  transition: background-color 0.2s ease;
+  border-radius: var(--radius-lg);
+}
+
+/* --- Drag-over list states --- */
+.encounter-section__list--drag-over {
+  background-color: rgba(124, 58, 237, 0.05);
+  border-color: var(--color-primary-light);
+  border-radius: var(--radius-lg);
+}
+
+.encounter-section--allies .encounter-section__list--drag-over {
+  background-color: rgba(34, 197, 94, 0.05);
+  border-color: var(--color-ally-fg);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--color-ally) 30%, transparent);
+}
+
+.encounter-section--neutrals .encounter-section__list--drag-over {
+  background-color: rgba(234, 179, 8, 0.05);
+  border-color: var(--color-neutral-fg);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--color-neutral) 30%, transparent);
+}
+
+.encounter-section--enemies .encounter-section__list--drag-over {
+  background-color: rgba(239, 68, 68, 0.05);
+  border-color: var(--color-enemy-fg);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--color-enemy) 30%, transparent);
+}
+
+/* --- Participant Card --- */
+.participant-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  position: relative;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.participant-card--with-img {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.participant-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: currentColor;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.participant-card:hover::before {
+  opacity: 0.8;
+}
+
+/* Cor de afinidade herdada pela .encounter-section pai */
+.encounter-section--allies .participant-card {
+  color: var(--color-ally);
+}
+.encounter-section--neutrals .participant-card {
+  color: var(--color-neutral);
+}
+.encounter-section--enemies .participant-card {
+  color: var(--color-enemy);
+}
+
+.participant-card:hover {
+  transform: translateY(-2px);
+  border-color: currentColor;
+}
+
+.participant-card__image-container {
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--color-border);
+  background-color: var(--color-surface-hover);
+}
+
+.participant-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: 0 0 0 3px currentColor;
+}
+
+.participant-card__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.participant-card__header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.participant-card__name {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-accent-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.participant-card__link {
+  margin-left: var(--space-2);
+  text-decoration: none;
+  opacity: 0.6;
+}
+
+.participant-card__link:hover {
+  opacity: 1;
+}
+
+/* Affinity Pills Selector */
+.affinity-pills {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.affinity-pill {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+}
+
+.affinity-pill input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.affinity-pill span {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  text-align: center;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.affinity-pill--ally input:checked + span {
+  background: rgba(39, 174, 96, 0.2);
+  border-color: var(--color-accent-emerald);
+  color: var(--color-accent-emerald);
+  box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);
+}
+
+.affinity-pill--neutral input:checked + span {
+  background: rgba(241, 196, 15, 0.2);
+  border-color: var(--color-accent-gold);
+  color: var(--color-accent-gold);
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+}
+
+.affinity-pill--enemy input:checked + span {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: var(--color-accent-rose);
+  color: var(--color-accent-rose);
+  box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+}
+
+.participant-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.stat-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-control__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.stat-control__input {
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  width: 35px;
+  padding: 0;
+  text-align: center;
+  appearance: textfield;
+}
+
+.stat-control__input::-webkit-outer-spin-button,
+.stat-control__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stat-control__input:focus,
+.stat-control__max:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.stat-control__sep {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  margin: 0 -2px;
+}
+
+.stat-control__max {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.stat-control__value {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.participant-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.participant-card:hover .participant-card__actions {
+  opacity: 1;
+}
+
+/* --- Tabs (participant add modal) --- */
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.tab-btn {
+  padding: var(--space-2) var(--space-4);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tab-content.hidden {
+  display: none;
+}
+
+/* --- Participant Selection --- */
+.participant-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+}
+
+.selection-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.selection-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.selection-item--added {
+  border-color: var(--color-accent-gold);
+  background: rgba(241, 196, 15, 0.05);
+}
+
+.selection-item--added::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid var(--color-accent-gold);
+  border-radius: inherit;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.selection-item__count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--color-accent-gold);
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.selection-item__image-container {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.selection-item__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.selection-item__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.selection-item__name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.selection-item__meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Badge variants */
+.badge--gold {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #facc15; /* TODO token: --color-neutral-fg is #fde047; #facc15 is a slightly darker shade — keep as-is until palette confirms */
+}
+
+.encounters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.mt-8 {
+  margin-top: var(--space-8);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .encounter-manager,
+  .encounter-columns {
+    flex-direction: column;
+  }
+}
+
+/* ===== Combat Execution ===== */
+
+.combat-controls {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.combat-controls__group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.combat-controls__divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Keep legacy alias for any JS that may toggle combat-controls__status */
+.combat-controls__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.combat-server-link {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  background: rgba(124, 58, 237, 0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+#player-link-text {
+  color: var(--color-primary-light);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.player-link-copyable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.player-link-copyable:hover {
+  color: var(--color-text) !important;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.combat-server-link:active {
+  transform: scale(0.98);
+}
+
+.combat-controls__round-group {
+  margin-left: auto;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+
+.combat-controls__round-group.hidden {
+  border-left: none;
+  padding-left: 0;
+}
+
+.combat-controls__round {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-accent-gold);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--color-accent-gold) 10%, transparent);
+}
+
+.combat-controls__round-icon {
+  color: var(--color-accent-gold);
+  opacity: 0.7;
+}
+
+.combat-controls__round-icon.icon {
+  width: 14px;
+  height: 14px;
+}
+
+.combat-controls__round-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.combat-controls__round-value {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-2xl);
+  color: var(--color-accent-gold);
+  line-height: 1;
+}
+
+/* Combat Arena */
+.combat-arena {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-8) 0;
+  perspective: 2000px;
+}
+
+.combat-arena__banners {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-4);
+  min-height: 350px;
+  width: 100%;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.combat-banner {
+  flex: 0 0 160px;
+  height: 360px;
+  background: var(--color-surface);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.combat-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background-color: var(--color-primary-light);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.combat-banner:hover::before {
+  opacity: 0.8;
+}
+
+.combat-banner:has(.combat-banner__affinity--ally)::before {
+  background-color: var(--color-ally);
+}
+
+.combat-banner:has(.combat-banner__affinity--neutral)::before {
+  background-color: var(--color-neutral);
+}
+
+.combat-banner:has(.combat-banner__affinity--enemy)::before {
+  background-color: var(--color-enemy);
+}
+
+.combat-banner:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light);
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.5),
+    0 0 24px color-mix(in srgb, var(--color-primary-light) 40%, transparent);
+}
+
+.combat-banner__remove {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-accent-rose);
+  color: white;
+  border: 2px solid var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.combat-banner:hover .combat-banner__remove {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.combat-banner__remove:hover {
+  background: var(--color-accent-rose);
+  transform: scale(1.1) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-rose) 50%, transparent);
+}
+
+@keyframes combat-banner-active-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px var(--color-accent-gold),
+      0 0 32px color-mix(in srgb, var(--color-accent-gold) 50%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--color-accent-gold),
+      0 0 48px color-mix(in srgb, var(--color-accent-gold) 70%, transparent);
+  }
+}
+
+.combat-banner--active {
+  transform: scale(1.04);
+  border-color: var(--color-accent-gold);
+  z-index: 10;
+  box-shadow:
+    0 0 0 3px var(--color-accent-gold),
+    0 0 32px color-mix(in srgb, var(--color-accent-gold) 50%, transparent);
+  animation: combat-banner-active-glow 2.4s ease-in-out infinite;
+}
+
+.combat-banner--acted {
+  opacity: 0.4;
+  filter: grayscale(0.9);
+  transform: scale(0.9);
+}
+
+/* --- Death Saves --- */
+.death-saves {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0 4px;
+}
+
+.death-saves__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.death-saves__row {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.death-save-marker {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+
+.death-save-marker:hover {
+  transform: scale(1.2);
+}
+
+.death-save-marker--success {
+  color: var(--color-accent-emerald);
+}
+.death-save-marker--failure {
+  color: var(--color-enemy);
+}
+
+.death-save-marker.filled {
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.death-save-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 2px;
+}
+
+/* Dead state — grayscale + skull overlay */
+.combat-banner--dead {
+  filter: grayscale(1) brightness(0.55);
+  position: relative;
+  pointer-events: auto; /* keep markers clickable for manual edit */
+}
+
+.combat-banner--dead::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='%23ffffff'><path d='M32 4C18 4 8 14 8 28c0 8 4 14 10 19v9c0 2 2 4 4 4h4v-6h4v6h4v-6h4v6h4c2 0 4-2 4-4v-9c6-5 10-11 10-19C56 14 46 4 32 4zm-10 24c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zm20 0c-3 0-6-3-6-6s3-6 6-6 6 3 6 6-3 6-6 6zM26 38l6-8 6 8h-12z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 60% auto;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.combat-banner__affinity {
+  width: 100%;
+  height: 12px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.combat-banner__affinity--ally {
+  background: linear-gradient(90deg, var(--color-ally), var(--color-ally-fg));
+}
+
+.combat-banner__affinity--neutral {
+  background: linear-gradient(90deg, var(--color-neutral), var(--color-neutral-fg));
+}
+
+.combat-banner__affinity--enemy {
+  background: linear-gradient(90deg, var(--color-enemy), var(--color-enemy-fg));
+}
+
+.combat-banner__image-container {
+  width: 100%;
+  height: 210px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-border);
+}
+
+.combat-banner__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.combat-banner__name {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-base);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 2px;
+  color: var(--color-accent-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.combat-banner__stats {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.combat-banner__hp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+}
+
+.combat-banner__hp-icon {
+  color: var(--color-accent-rose);
+}
+
+.combat-banner__hp--low {
+  color: var(--color-accent-rose);
+}
+
+.combat-banner__ca {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+  color: var(--color-accent-gold);
+}
+
+.combat-banner__ca-icon {
+  color: var(--color-accent-sky);
+}
+
+.combat-banner__actions {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.damage-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  text-align: center;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.damage-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: rgba(124, 58, 237, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.combat-banner__initiative {
+  margin-top: auto;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.combat-banner__initiative:hover {
+  color: var(--color-text);
+}
+
+.combat-banner__initiative-edit {
+  margin-top: auto;
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.initiative-input {
+  width: 60px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  color: #fff;
+  font-family: var(--font-display-brand);
+  font-size: 1.4rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.initiative-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: rgba(124, 58, 237, 0.15);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.initiative-roll-btn {
+  padding: 4px 8px;
+  font-size: 1rem;
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.4);
+}
+
+.initiative-roll-btn:hover {
+  background: rgba(124, 58, 237, 0.3);
+}
+
+.combat-arena__initiative-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.combat-arena__initiative-hint,
+.initiative-bar__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  font-style: normal;
+}
+
+.combat-arena__initiative-hint .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.combat-arena__initiative-actions,
+.initiative-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* --- Encounter Background Picker (modal) --- */
+.encounter-bg-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.encounter-bg-tab {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.encounter-bg-tab:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.encounter-bg-tab.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.encounter-bg-panel {
+  margin-top: var(--space-2);
+}
+
+.encounter-bg-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-3);
+  max-height: 280px;
+  overflow-y: auto;
+  padding: var(--space-1);
+}
+
+.encounter-bg-thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+.encounter-bg-thumb:hover {
+  border-color: var(--color-primary-light);
+  transform: scale(1.03);
+}
+
+.encounter-bg-thumb.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.4);
+}
+
+.encounter-bg-preview-wrapper {
+  margin-top: var(--space-3);
+}
+
+.encounter-bg-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+/* --- Encounter Detail View Background --- */
+.overlay-view.encounter-detail-view--has-bg {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(15, 15, 20, 0.55) 0%,
+      rgba(15, 15, 20, 0.3) 50%,
+      rgba(15, 15, 20, 0.65) 100%
+    ),
+    var(--encounter-bg-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ============================================================
+   Encounter Form Modal — Round 2 refinements
+   ============================================================ */
+
+/* --- Modal Header --- */
+#encounter-modal .modal__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#encounter-modal .modal__title-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-hover);
+  color: var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#encounter-modal .modal__title-icon .icon {
+  width: 22px;
+  height: 22px;
+}
+
+#encounter-modal .modal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 2px;
+}
+
+#encounter-modal .modal__title {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-2xl);
+  color: var(--color-accent-gold);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+/* --- Difficulty Pills --- */
+.difficulty-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-2);
+}
+
+.difficulty-pill {
+  display: block;
+  cursor: pointer;
+  position: relative;
+}
+
+.difficulty-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.difficulty-pill > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface);
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.difficulty-pill > span .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.difficulty-pill:hover > span {
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+.difficulty-pill--easy input:checked + span {
+  border-color: var(--color-accent-emerald);
+  color: var(--color-accent-emerald);
+  background-color: color-mix(in srgb, var(--color-accent-emerald) 12%, transparent);
+}
+
+.difficulty-pill--medium input:checked + span {
+  border-color: var(--color-accent-gold);
+  color: var(--color-accent-gold);
+  background-color: color-mix(in srgb, var(--color-accent-gold) 12%, transparent);
+}
+
+.difficulty-pill--hard input:checked + span {
+  border-color: var(--color-accent-rose);
+  color: var(--color-accent-rose);
+  background-color: color-mix(in srgb, var(--color-accent-rose) 12%, transparent);
+}
+
+.difficulty-pill--deadly input:checked + span {
+  border-color: var(--color-primary);
+  color: var(--color-primary-light);
+  background-color: color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+/* --- Cover Image Upload Slot 16:9 --- */
+.encounter-bg-uploader {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--color-surface-hover);
+  position: relative;
+}
+
+.encounter-bg-uploader--empty {
+  border: 2px dashed var(--color-border);
+  background-color: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.encounter-bg-uploader--empty:hover {
+  border-color: var(--color-primary-light);
+}
+
+/* --- Music URL — input with prefix icon --- */
+.input-with-icon {
+  position: relative;
+  flex: 1;
+}
+
+.input-with-icon__icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon__icon .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.input-with-icon .form-input {
+  padding-left: calc(var(--space-3) + 16px + var(--space-2));
+  width: 100%;
+}
+
+/* ============================================================
+   Add Participant Modal — Round 5 refinements
+   ============================================================ */
+
+#add-participant-modal .modal__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#add-participant-modal .modal__title-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-hover);
+  color: var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#add-participant-modal .modal__title-icon .icon {
+  width: 22px;
+  height: 22px;
+}
+
+#add-participant-modal .modal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 2px;
+}
+
+#add-participant-modal .modal__title {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-2xl);
+  color: var(--color-accent-gold);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+/* --- Tab overrides (gold accent, icons) --- */
+#add-participant-modal .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+#add-participant-modal .tab-btn:hover {
+  color: var(--color-text);
+}
+
+#add-participant-modal .tab-btn.active {
+  color: var(--color-accent-gold);
+  border-bottom-color: var(--color-accent-gold);
+}
+
+#add-participant-modal .tab-btn .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================================
+   Death Save Modal — Round 5 refinements
+   ============================================================ */
+
+#modal-death-save .modal__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#modal-death-save .modal__title-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-hover);
+  color: var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#modal-death-save .modal__title-icon .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.modal__title-icon--danger {
+  background-color: color-mix(in srgb, var(--color-accent-rose) 15%, transparent);
+  color: var(--color-accent-rose);
+}
+
+#modal-death-save .modal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 2px;
+}
+
+#modal-death-save .modal__title {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-2xl);
+  color: var(--color-accent-gold);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.death-save-modal__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+
+.death-save-modal__prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-base);
+}
+
+.death-save-modal__prompt .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-primary-light);
+}
+
+.death-save-modal__input {
+  width: 140px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  padding: var(--space-3);
+  background-color: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+
+.death-save-modal__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.death-save-modal__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: var(--space-2) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.death-save-modal__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.death-save-modal__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.death-save-modal__legend-item--success {
+  color: var(--color-accent-emerald);
+}
+
+.death-save-modal__legend-item--fail {
+  color: var(--color-accent-rose);
+}
+
+.death-save-modal__legend-item--crit-fail {
+  color: var(--color-accent-rose);
+  opacity: 0.7;
+}
+
+.death-save-modal__legend-item--crit-success {
+  color: var(--color-accent-gold);
+}
+
+/* ============================================================
+   Encounter Manager — Round 6 visual polish
+   ============================================================ */
+
+/* --- Top bar header (scoped to #encounter-detail-view) --- */
+.encounter-manager__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Back button label */
+.encounter-manager__header .overlay-view__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.encounter-manager__header .overlay-view__back:hover {
+  color: var(--color-text);
+}
+
+.encounter-manager__title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.encounter-manager__title {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-3xl);
+  color: var(--color-accent-gold);
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.encounter-manager__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  flex-wrap: wrap;
+}
+
+.encounter-manager__difficulty {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+/* Difficulty pill color modifiers — JS can add these classes */
+.encounter-manager__difficulty--easy {
+  background-color: color-mix(in srgb, var(--color-accent-emerald) 18%, transparent);
+  color: var(--color-accent-emerald);
+}
+
+.encounter-manager__difficulty--medium {
+  background-color: color-mix(in srgb, var(--color-accent-gold) 18%, transparent);
+  color: var(--color-accent-gold);
+}
+
+.encounter-manager__difficulty--hard {
+  background-color: color-mix(in srgb, var(--color-accent-rose) 18%, transparent);
+  color: var(--color-accent-rose);
+}
+
+.encounter-manager__difficulty--deadly {
+  background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  color: var(--color-primary-light);
+}
+
+.encounter-manager__location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.encounter-manager__location .icon {
+  width: 14px;
+  height: 14px;
+}

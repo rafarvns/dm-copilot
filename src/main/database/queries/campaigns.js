@@ -6,8 +6,8 @@
 // ============================================
 function createCampaign(db, campaignData) {
   const stmt = db.prepare(`
-    INSERT INTO campaigns (name, description, system, combat_visibility, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO campaigns (name, description, system, combat_visibility, image_path, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -16,6 +16,7 @@ function createCampaign(db, campaignData) {
     campaignData.description || null,
     campaignData.system || null,
     campaignData.combat_visibility || null,
+    campaignData.image_path || null,
     now,
     now
   );
@@ -43,6 +44,10 @@ function getCampaignsBySystem(db, system) {
   return db.prepare(`SELECT * FROM campaigns WHERE system = ? ORDER BY name`).all(system);
 }
 
+function getRecentCampaigns(db, limit = 5) {
+  return db.prepare(`SELECT * FROM campaigns ORDER BY updated_at DESC LIMIT ?`).all(limit);
+}
+
 // ============================================
 // UPDATE
 // ============================================
@@ -55,6 +60,7 @@ function updateCampaign(db, id, campaignData) {
     description: "description",
     system: "system",
     combat_visibility: "combat_visibility",
+    image_path: "image_path",
   };
 
   for (const [key, column] of Object.entries(columnMap)) {
@@ -107,6 +113,7 @@ module.exports = {
   getCampaignById,
   getAllCampaigns,
   getCampaignsBySystem,
+  getRecentCampaigns,
   updateCampaign,
   deleteCampaign,
   countCampaigns,

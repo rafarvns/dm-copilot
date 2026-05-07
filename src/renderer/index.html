@@ -28,24 +28,29 @@
 
     <!-- Encounter Detail View (Manager) — usado pela feature Campaigns -->
     <div id="encounter-detail-view" class="overlay-view hidden">
-      <div class="overlay-view__header">
-        <div class="overlay-view__title-group">
-          <button class="btn-icon" id="btn-close-encounter-detail" title="Voltar">
-            <i data-icon="arrow-left"></i>
-          </button>
-          <div id="last-roll-display" class="last-roll-display hidden">
-            <span class="last-roll-display__label">Último Resultado:</span>
-            <span class="last-roll-display__value">0</span>
-            <span class="last-roll-display__details">(0)</span>
-          </div>
-          <div>
-            <h2 id="view-encounter-name">Nome do Encontro</h2>
-            <div class="overlay-view__meta">
-              <span id="view-encounter-difficulty" class="badge badge--gold">Médio</span>
-              <span id="view-encounter-location" class="text-secondary text-xs">Local</span>
-            </div>
+      <div class="overlay-view__header encounter-manager__header">
+        <button class="btn-icon overlay-view__back" id="btn-close-encounter-detail" title="Voltar">
+          <i data-icon="arrow-left"></i>
+          <span>Voltar</span>
+        </button>
+
+        <div id="last-roll-display" class="last-roll-display hidden">
+          <span class="last-roll-display__label">Último Resultado:</span>
+          <span class="last-roll-display__value">0</span>
+          <span class="last-roll-display__details">(0)</span>
+        </div>
+
+        <div class="encounter-manager__title-group">
+          <h2 class="encounter-manager__title" id="view-encounter-name">Nome do Encontro</h2>
+          <div class="encounter-manager__meta">
+            <span id="view-encounter-difficulty" class="encounter-manager__difficulty badge badge--gold">Médio</span>
+            <span id="view-encounter-location" class="encounter-manager__location text-secondary text-xs">
+              <i data-icon="map-pin"></i>
+              <span>Local</span>
+            </span>
           </div>
         </div>
+
         <div class="overlay-view__actions">
           <div class="dice-toolbar" id="dice-toolbar">
             <div class="dice-buttons">
@@ -135,13 +140,26 @@
 
       <div class="encounter-manager">
         <div class="combat-controls" id="combat-controls">
-          <div class="combat-controls__status">
+          <!-- Grupo 1: controles de turno -->
+          <div class="combat-controls__group">
             <button class="btn btn--primary" id="btn-start-combat">
               <i class="btn__icon" data-icon="swords"></i> Iniciar Encontro
+            </button>
+            <button class="btn btn--secondary hidden" id="btn-prev-turn">
+              <i class="btn__icon" data-icon="arrow-left"></i> Turno Anterior
+            </button>
+            <button class="btn btn--primary hidden" id="btn-next-turn">
+              Próximo Turno <i class="btn__icon" data-icon="arrow-right"></i>
             </button>
             <button class="btn btn--danger hidden" id="btn-end-combat">
               <i class="btn__icon" data-icon="flag"></i> Finalizar Encontro
             </button>
+          </div>
+
+          <div class="combat-controls__divider"></div>
+
+          <!-- Grupo 2: gerenciamento -->
+          <div class="combat-controls__group">
             <button class="btn btn--secondary btn--sm" id="btn-add-participant-main">
               <i class="btn__icon" data-icon="plus"></i> Add
             </button>
@@ -156,17 +174,24 @@
               Link: <span id="player-link-text" class="player-link-copyable"></span>
             </div>
           </div>
-          <div class="combat-controls__round hidden" id="combat-round-display">
-            Rodada <span id="current-round-number">1</span>
+
+          <!-- Grupo 3: round counter (divider oculto via CSS quando o grupo está hidden) -->
+          <div class="combat-controls__group combat-controls__round-group hidden" id="combat-round-display">
+            <div class="combat-controls__round" id="combat-round-counter-wrap">
+              <i data-icon="crown" class="combat-controls__round-icon"></i>
+              <span class="combat-controls__round-label">Rodada</span>
+              <span class="combat-controls__round-value" id="current-round-number">1</span>
+            </div>
           </div>
         </div>
 
         <div id="combat-arena" class="combat-arena hidden">
           <div class="combat-arena__initiative-bar hidden" id="combat-initiative-bar">
-            <span class="initiative-bar__hint" id="initiative-bar-hint">
-              Defina a iniciativa de cada participante para começar.
+            <span class="combat-arena__initiative-hint initiative-bar__hint" id="initiative-bar-hint">
+              <i data-icon="info"></i>
+              <span>Defina a iniciativa de cada participante para começar.</span>
             </span>
-            <div class="initiative-bar__actions">
+            <div class="combat-arena__initiative-actions initiative-bar__actions">
               <button class="btn btn--secondary" id="btn-roll-all-npc-initiative">
                 <i class="btn__icon" data-icon="dices"></i> Rolar Iniciativa de Inimigos &amp;
                 Neutros
@@ -177,35 +202,39 @@
             </div>
           </div>
           <div class="combat-arena__banners" id="combat-banners"></div>
-          <div class="combat-arena__actions">
-            <button class="btn btn--secondary" id="btn-prev-turn">
-              <i class="btn__icon" data-icon="arrow-left"></i> Turno Anterior
-            </button>
-            <button class="btn btn--primary btn--lg" id="btn-next-turn">
-              Próximo Turno <i class="btn__icon" data-icon="arrow-right"></i>
-            </button>
-          </div>
         </div>
 
         <div class="encounter-columns">
           <div class="encounter-section encounter-section--allies hidden" id="section-allies">
-            <div class="encounter-section__header">
-              <h3 class="encounter-section__title">Aliados</h3>
-            </div>
+            <header class="encounter-section__header">
+              <h3 class="encounter-section__title">
+                <i data-icon="shield-check"></i>
+                <span>Aliados</span>
+              </h3>
+              <span class="encounter-section__count" id="encounter-section-count-allies">0</span>
+            </header>
             <div class="encounter-section__list" id="list-allies" data-affinity="ally"></div>
           </div>
 
           <div class="encounter-section encounter-section--neutrals hidden" id="section-neutrals">
-            <div class="encounter-section__header">
-              <h3 class="encounter-section__title">Neutros</h3>
-            </div>
+            <header class="encounter-section__header">
+              <h3 class="encounter-section__title">
+                <i data-icon="circle"></i>
+                <span>Neutros</span>
+              </h3>
+              <span class="encounter-section__count" id="encounter-section-count-neutrals">0</span>
+            </header>
             <div class="encounter-section__list" id="list-neutrals" data-affinity="neutral"></div>
           </div>
 
           <div class="encounter-section encounter-section--enemies hidden" id="section-enemies">
-            <div class="encounter-section__header">
-              <h3 class="encounter-section__title">Inimigos</h3>
-            </div>
+            <header class="encounter-section__header">
+              <h3 class="encounter-section__title">
+                <i data-icon="swords"></i>
+                <span>Inimigos</span>
+              </h3>
+              <span class="encounter-section__count" id="encounter-section-count-enemies">0</span>
+            </header>
             <div class="encounter-section__list" id="list-enemies" data-affinity="enemy"></div>
           </div>
         </div>
@@ -222,6 +251,28 @@
         </div>
         <form id="campaign-form" class="campaign-form" novalidate>
           <input type="hidden" id="campaign-id" />
+          <div class="form-group form-group--cover">
+            <label class="form-label">Capa da campanha</label>
+            <div class="cover-uploader" id="campaign-cover-uploader">
+              <input type="file" id="campaign-image-input" accept="image/*" hidden />
+              <div class="cover-uploader__placeholder" id="campaign-cover-placeholder">
+                <i data-icon="upload"></i>
+                <span>Adicionar capa</span>
+                <span class="cover-uploader__hint">16:9 recomendado</span>
+              </div>
+              <div class="cover-uploader__preview" id="campaign-cover-preview" hidden>
+                <img id="campaign-cover-preview-img" alt="" />
+                <button
+                  type="button"
+                  class="cover-uploader__remove"
+                  id="btn-remove-campaign-cover"
+                  aria-label="Remover capa"
+                >
+                  <i data-icon="circle-x"></i>
+                </button>
+              </div>
+            </div>
+          </div>
           <div class="form-group">
             <label for="campaign-name" class="form-label"
               >Nome da Campanha <span class="form-required">*</span></label
@@ -446,10 +497,18 @@
     <div id="encounter-modal" class="modal hidden">
       <div class="modal__overlay" id="encounter-modal-overlay"></div>
       <div class="modal__content">
-        <div class="modal__header">
-          <h2 class="modal__title" id="encounter-modal-title">Novo Encontro</h2>
-          <button class="modal__close" id="btn-close-encounter-modal">&times;</button>
-        </div>
+        <header class="modal__header">
+          <div class="modal__title-group">
+            <span class="modal__title-icon"><i data-icon="swords"></i></span>
+            <div>
+              <span class="modal__eyebrow">Encontro</span>
+              <h2 class="modal__title" id="encounter-modal-title">Novo Encontro</h2>
+            </div>
+          </div>
+          <button class="modal__close" id="btn-close-encounter-modal" aria-label="Fechar">
+            <i data-icon="x"></i>
+          </button>
+        </header>
         <form id="encounter-form">
           <input type="hidden" id="encounter-id" />
           <div class="form-group">
@@ -466,15 +525,25 @@
             />
             <span class="form-error" id="error-encounter-name"></span>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="encounter-difficulty" class="form-label">Dificuldade</label>
-              <select id="encounter-difficulty" class="form-select">
-                <option value="Fácil">Fácil</option>
-                <option value="Médio" selected>Médio</option>
-                <option value="Difícil">Difícil</option>
-                <option value="Mortal">Mortal</option>
-              </select>
+          <div class="form-group">
+            <label class="form-label">Dificuldade</label>
+            <div class="difficulty-pills" role="radiogroup" id="encounter-difficulty">
+              <label class="difficulty-pill difficulty-pill--easy">
+                <input type="radio" name="encounter-difficulty" value="Fácil" />
+                <span><i data-icon="circle"></i> Fácil</span>
+              </label>
+              <label class="difficulty-pill difficulty-pill--medium">
+                <input type="radio" name="encounter-difficulty" value="Médio" checked />
+                <span><i data-icon="flame"></i> Médio</span>
+              </label>
+              <label class="difficulty-pill difficulty-pill--hard">
+                <input type="radio" name="encounter-difficulty" value="Difícil" />
+                <span><i data-icon="shield-alert"></i> Difícil</span>
+              </label>
+              <label class="difficulty-pill difficulty-pill--deadly">
+                <input type="radio" name="encounter-difficulty" value="Mortal" />
+                <span><i data-icon="skull"></i> Mortal</span>
+              </label>
             </div>
           </div>
           <div class="form-group">
@@ -539,13 +608,16 @@
           <div class="form-group">
             <label for="encounter-music-url" class="form-label">Música de Fundo (YouTube)</label>
             <div class="encounter-music-row">
-              <input
-                type="url"
-                id="encounter-music-url"
-                class="form-input"
-                placeholder="https://www.youtube.com/watch?v=..."
-                autocomplete="off"
-              />
+              <div class="input-with-icon">
+                <i data-icon="music" class="input-with-icon__icon"></i>
+                <input
+                  type="url"
+                  id="encounter-music-url"
+                  class="form-input"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  autocomplete="off"
+                />
+              </div>
               <button
                 type="button"
                 class="btn btn--secondary"
@@ -605,14 +677,16 @@
             </div>
           </fieldset>
 
-          <div class="modal__footer">
-            <button type="button" class="btn btn--secondary" id="btn-cancel-encounter-form">
-              Cancelar
+          <footer class="modal__footer">
+            <button class="btn btn--ghost" id="btn-cancel-encounter-form" type="button">
+              <i class="btn__icon" data-icon="x"></i>
+              <span>Cancelar</span>
             </button>
-            <button type="submit" class="btn btn--primary" id="btn-save-encounter-form">
-              <i class="btn__icon" data-icon="save"></i> Salvar
+            <button class="btn btn--primary" id="btn-save-encounter-form" type="submit">
+              <i class="btn__icon" data-icon="save"></i>
+              <span>Salvar Encontro</span>
             </button>
-          </div>
+          </footer>
         </form>
       </div>
     </div>
@@ -829,10 +903,18 @@
     <div id="add-participant-modal" class="modal hidden">
       <div class="modal__overlay" id="add-participant-modal-overlay"></div>
       <div class="modal__content modal__content--wide">
-        <div class="modal__header">
-          <h2 class="modal__title">Adicionar Participante</h2>
-          <button class="modal__close" id="btn-close-participant-modal">&times;</button>
-        </div>
+        <header class="modal__header">
+          <div class="modal__title-group">
+            <span class="modal__title-icon"><i data-icon="user-plus"></i></span>
+            <div>
+              <span class="modal__eyebrow">Adicionar</span>
+              <h2 class="modal__title">Adicionar Participante</h2>
+            </div>
+          </div>
+          <button class="modal__close" id="btn-close-participant-modal" aria-label="Fechar">
+            <i data-icon="x"></i>
+          </button>
+        </header>
         <div class="participant-affinity-selector mb-3 px-4 pt-3">
           <label class="form-label mb-2">Afinidade do Participante:</label>
           <div class="affinity-pills">
@@ -851,18 +933,31 @@
           </div>
         </div>
         <div class="tabs">
-          <button class="tab-btn active" data-tab="tab-db-chars">Personagens</button>
-          <button class="tab-btn" data-tab="tab-quick-add">Rápido</button>
-          <button class="tab-btn" data-tab="tab-dnd-api">D&D API</button>
+          <button class="tab-btn active" data-tab="tab-db-chars">
+            <i data-icon="users"></i>
+            <span>Personagens</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-quick-add">
+            <i data-icon="zap"></i>
+            <span>Rápido</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-dnd-api">
+            <i data-icon="globe"></i>
+            <span>D&D API</span>
+          </button>
         </div>
         <div class="tab-content" id="tab-db-chars">
           <div class="search-box mb-3">
-            <input
-              type="text"
-              id="db-char-search"
-              class="form-input"
-              placeholder="Buscar personagem..."
-            />
+            <div class="input-with-icon">
+              <span class="input-with-icon__icon"><i data-icon="search"></i></span>
+              <input
+                type="text"
+                id="db-char-search"
+                class="form-input"
+                placeholder="Buscar personagem..."
+                autocomplete="off"
+              />
+            </div>
           </div>
           <div id="db-participant-list" class="participant-selection-list"></div>
         </div>
@@ -892,17 +987,24 @@
                 <input type="number" id="quick-ini" class="form-input" placeholder="0" />
               </div>
             </div>
-            <button type="submit" class="btn btn--primary mt-3 w-100">Adicionar ao Encontro</button>
+            <button type="submit" class="btn btn--primary mt-3 w-100">
+              <i class="btn__icon" data-icon="plus"></i>
+              <span>Adicionar ao Encontro</span>
+            </button>
           </form>
         </div>
         <div class="tab-content hidden" id="tab-dnd-api">
           <div class="search-box mb-3">
-            <input
-              type="text"
-              id="api-monster-search"
-              class="form-input"
-              placeholder="Buscar monstro (em inglês)..."
-            />
+            <div class="input-with-icon">
+              <span class="input-with-icon__icon"><i data-icon="search"></i></span>
+              <input
+                type="text"
+                id="api-monster-search"
+                class="form-input"
+                placeholder="Buscar monstro (em inglês)..."
+                autocomplete="off"
+              />
+            </div>
           </div>
           <div id="api-monster-list" class="participant-selection-list">
             <p class="text-center text-muted p-4">Digite o nome do monstro para buscar na API...</p>
@@ -915,33 +1017,62 @@
     <div id="modal-death-save" class="modal hidden">
       <div class="modal__overlay" id="death-save-modal-overlay"></div>
       <div class="modal__content modal__content--sm">
-        <div class="modal__header">
-          <h2 class="modal__title">💀 Teste de Resistência contra Morte</h2>
-          <button class="modal__close" id="btn-close-death-save-modal">&times;</button>
-        </div>
-        <div class="modal__body">
-          <p id="death-save-prompt" class="mb-4">Resultado da rolagem (d20):</p>
-          <div class="form-group">
-            <input
-              type="number"
-              id="input-death-save-value"
-              class="form-input"
-              min="1"
-              max="20"
-              step="1"
-              value="10"
-            />
+        <header class="modal__header">
+          <div class="modal__title-group">
+            <span class="modal__title-icon modal__title-icon--danger"><i data-icon="skull"></i></span>
+            <div>
+              <span class="modal__eyebrow">Combate</span>
+              <h2 class="modal__title">Teste de Resistência</h2>
+            </div>
           </div>
-          <p class="form-help">
-            ≥10 = sucesso · &lt;10 = falha · 1 = duas falhas · 20 = recupera 1 HP
-          </p>
-        </div>
-        <div class="modal__footer">
-          <button class="btn btn--secondary" id="btn-roll-death-save">
-            <i class="btn__icon" data-icon="dices"></i> Rolar (d20)
+          <button class="modal__close" id="btn-close-death-save-modal" aria-label="Fechar">
+            <i data-icon="x"></i>
           </button>
-          <button class="btn btn--primary" id="btn-confirm-death-save">Confirmar</button>
+        </header>
+        <div class="death-save-modal__body">
+          <p id="death-save-prompt" class="death-save-modal__prompt">
+            <i data-icon="dices"></i>
+            <span>Role um d20 ou digite o resultado</span>
+          </p>
+          <input
+            type="number"
+            id="input-death-save-value"
+            class="death-save-modal__input"
+            min="1"
+            max="20"
+            step="1"
+            value="10"
+            autocomplete="off"
+          />
+          <ul class="death-save-modal__legend">
+            <li class="death-save-modal__legend-item death-save-modal__legend-item--success">
+              <span class="death-save-modal__legend-dot"></span>
+              <span>≥10 sucesso</span>
+            </li>
+            <li class="death-save-modal__legend-item death-save-modal__legend-item--fail">
+              <span class="death-save-modal__legend-dot"></span>
+              <span>&lt;10 falha</span>
+            </li>
+            <li class="death-save-modal__legend-item death-save-modal__legend-item--crit-fail">
+              <span class="death-save-modal__legend-dot"></span>
+              <span>1 conta como 2 falhas</span>
+            </li>
+            <li class="death-save-modal__legend-item death-save-modal__legend-item--crit-success">
+              <span class="death-save-modal__legend-dot"></span>
+              <span>20 recupera HP=1</span>
+            </li>
+          </ul>
         </div>
+        <footer class="modal__footer">
+          <button class="btn btn--secondary" id="btn-confirm-death-save" type="button">
+            <i class="btn__icon" data-icon="check"></i>
+            <span>Confirmar</span>
+          </button>
+          <button class="btn btn--primary" id="btn-roll-death-save" type="button">
+            <i class="btn__icon" data-icon="dices"></i>
+            <span>ROLL</span>
+          </button>
+        </footer>
       </div>
     </div>
 

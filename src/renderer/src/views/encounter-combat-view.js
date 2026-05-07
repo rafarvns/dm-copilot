@@ -5,6 +5,7 @@
 
 import { showToast } from "../core/toast.js";
 import { icon } from "../core/icons.js";
+import { truncate, escapeHtml } from "../core/format.js";
 import {
   resolveEffectiveVisibility,
   applyVisibilityToParticipant,
@@ -377,26 +378,31 @@ export default class EncounterCombatView {
         const isDead = ds?.dead;
         const showSaves = ds && (ds.active || ds.stabilized || ds.dead);
 
-        const savesHtml = showSaves
-          ? `
-        <div class="death-saves" data-id="${p.id}">
-          ${[0, 1, 2]
-            .map(
-              (i) => `
+        const savesMarkersHtml = showSaves
+          ? `${[0, 1, 2]
+              .map(
+                (i) => `
             <span class="death-save-marker death-save-marker--success ${i < ds.successes ? "filled" : ""}"
                   data-id="${p.id}" data-kind="success" data-index="${i}" title="Sucesso ${i + 1}"></span>
           `
-            )
-            .join("")}
-          <span class="death-save-divider"></span>
-          ${[0, 1, 2]
-            .map(
-              (i) => `
+              )
+              .join("")}<span class="death-save-divider"></span>${[0, 1, 2]
+              .map(
+                (i) => `
             <span class="death-save-marker death-save-marker--failure ${i < ds.failures ? "filled" : ""}"
                   data-id="${p.id}" data-kind="failure" data-index="${i}" title="Falha ${i + 1}"></span>
           `
-            )
-            .join("")}
+              )
+              .join("")}`
+          : "";
+
+        const savesHtml = showSaves
+          ? `
+        <div class="death-saves" data-id="${p.id}">
+          <div class="death-saves__label">Salvamentos</div>
+          <div class="death-saves__row">
+            ${savesMarkersHtml}
+          </div>
         </div>
       `
           : "";
@@ -415,9 +421,21 @@ export default class EncounterCombatView {
         `
           : `<div class="combat-banner__initiative" data-id="${p.id}">${p.initiative}</div>`;
 
+        const hasHp = p.hp != null && p.current_hp != null;
+        const hasCa = p.ca != null;
+        const hpLow = hasHp && p.hp > 0 && p.current_hp / p.hp <= 0.25;
+        const hpHtml = hasHp
+          ? `<span class="combat-banner__hp ${hpLow ? "combat-banner__hp--low" : ""}"><span class="combat-banner__hp-icon">${icon("heart")}</span> ${p.current_hp}/${p.hp}</span>`
+          : "";
+        const caHtml = hasCa
+          ? `<span class="combat-banner__ca"><span class="combat-banner__ca-icon">${icon("shield")}</span> ${p.ca}</span>`
+          : "";
+        const statsHtml =
+          hasHp || hasCa ? `<div class="combat-banner__stats">${hpHtml}${caHtml}</div>` : "";
+
         return `
         <div class="combat-banner ${isActive ? "combat-banner--active" : ""} ${hasActed ? "combat-banner--acted" : ""} ${isDead ? "combat-banner--dead" : ""}" data-id="${p.id}">
-          <button class="combat-banner__remove" data-id="${p.id}" title="Remover da luta">×</button>
+          <button class="combat-banner__remove" data-id="${p.id}" title="Remover da luta">${icon("x", { size: 14 })}</button>
           <div class="combat-banner__affinity combat-banner__affinity--${p.affinity}"></div>
           ${
             p.image
@@ -428,7 +446,8 @@ export default class EncounterCombatView {
           `
               : ""
           }
-          <div class="combat-banner__name">${p.name}</div>
+          <div class="combat-banner__name" title="${escapeHtml(p.name)}">${escapeHtml(truncate(p.name, 24))}</div>
+          ${statsHtml}
           ${savesHtml}
           <div class="combat-banner__actions">
             <input type="text" class="damage-input" placeholder="Dano" data-id="${p.id}" />
@@ -954,6 +973,8 @@ export default class EncounterCombatView {
   resetCombatUI() {
     this.DOM.btnStart?.classList.remove("hidden");
     this.DOM.btnEnd?.classList.add("hidden");
+    this.DOM.btnNext?.classList.add("hidden");
+    this.DOM.btnPrev?.classList.add("hidden");
     this.DOM.roundDisplay?.classList.add("hidden");
     this.DOM.arena?.classList.add("hidden");
     this.DOM.initiativeBar?.classList.add("hidden");

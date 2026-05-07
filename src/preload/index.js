@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       getById: (id) => ipcRenderer.invoke("db-campaigns-read-id", id),
       update: (id, data) => ipcRenderer.invoke("db-campaigns-update", id, data),
       delete: (id) => ipcRenderer.invoke("db-campaigns-delete", id),
+      getRecent: (limit) => ipcRenderer.invoke("db-campaigns-recent", limit),
+      saveImage: (buffer) => ipcRenderer.invoke("app-save-campaign-image", buffer),
+      getStats: (id) => ipcRenderer.invoke("db-campaigns-stats", id),
     },
 
     // Characters
@@ -40,6 +43,8 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       getAvailableForCampaign: (campId, system) =>
         ipcRenderer.invoke("db-characters-available-campaign", campId, system),
       saveImage: (data) => ipcRenderer.invoke("app-save-character-image", data),
+      getRecent: (limit) => ipcRenderer.invoke("db-characters-recent", limit),
+      count: () => ipcRenderer.invoke("db-characters-count"),
     },
 
     // Encounters

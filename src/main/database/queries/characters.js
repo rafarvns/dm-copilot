@@ -6,8 +6,8 @@
 // ============================================
 function createCharacter(db, characterData) {
   const stmt = db.prepare(`
-    INSERT INTO characters (name, description, system, hp, ac, ini, image_path, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO characters (name, description, system, hp, ac, ini, image_path, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -19,6 +19,7 @@ function createCharacter(db, characterData) {
     characterData.ac || 10,
     characterData.ini || 0,
     characterData.image_path || null,
+    now,
     now
   );
 
@@ -26,6 +27,7 @@ function createCharacter(db, characterData) {
     id: result.lastInsertRowid,
     ...characterData,
     created_at: now,
+    updated_at: now,
   };
 }
 
@@ -45,6 +47,21 @@ function getAllCharacters(db) {
 function getCharactersBySystem(db, system) {
   const rows = db.prepare(`SELECT * FROM characters WHERE system = ? ORDER BY name`).all(system);
   return rows;
+}
+
+function getRecentCharacters(db, limit = 5) {
+  const rows = db
+    .prepare(
+      // COALESCE cobre personagens criados antes de updated_at existir no schema
+      `SELECT * FROM characters ORDER BY COALESCE(updated_at, created_at) DESC LIMIT ?`
+    )
+    .all(limit);
+  return rows;
+}
+
+function countCharacters(db) {
+  const row = db.prepare(`SELECT COUNT(*) as count FROM characters`).get();
+  return row.count;
 }
 
 // ============================================
@@ -157,6 +174,8 @@ module.exports = {
   getCharacterById,
   getAllCharacters,
   getCharactersBySystem,
+  getRecentCharacters,
+  countCharacters,
   updateCharacter,
   deleteCharacter,
   linkToCampaign,

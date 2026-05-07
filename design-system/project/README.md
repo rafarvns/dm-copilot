@@ -232,6 +232,13 @@ making the user's content read as belonging to the dark UI.
 - **Modals** anchor to the top (60 px from top), not centered — feels less heavy.
 - **Toasts pin bottom-right** with stacking; **dice result panel** also bottom-right
   but overlaid above modals.
+- **No horizontal centering of content inside `.main-view`.** With a permanent 260 px
+  sidebar, `margin: 0 auto` + `max-width` on a feature's root container creates an island
+  shifted away from the true optical center — the sidebar already displaces the axis.
+  Feature views must fill 100% of the available width, with lateral breathing room
+  delivered via spacing tokens (`var(--space-6)` / `var(--space-8)`). Width constraints
+  for readability (e.g. long-form text blocks) apply only to inner elements, never to the
+  root container.
 
 ---
 

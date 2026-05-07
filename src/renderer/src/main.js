@@ -2,6 +2,7 @@
 // Bootstraps the modular shell (sidebar + status-bar + router outlet).
 
 import "./assets/main.css";
+import "./features/encounters/encounters.css";
 
 import databaseService from "./db/database.js";
 import { registerRoute, navigateTo } from "./core/router.js";
@@ -44,6 +45,15 @@ function setupSidebarNavigation() {
     const link = event.target.closest(".sidebar__link[data-view]");
     if (!link) return;
     event.preventDefault();
+    if (link.dataset.view === "dice") {
+      const toolbar = document.getElementById("dice-toolbar");
+      if (toolbar) {
+        toolbar.scrollIntoView({ behavior: "smooth", block: "center" });
+        toolbar.classList.add("dice-toolbar--flash");
+        window.setTimeout(() => toolbar.classList.remove("dice-toolbar--flash"), 600);
+      }
+      return;
+    }
     navigateTo(link.dataset.view);
   });
 }

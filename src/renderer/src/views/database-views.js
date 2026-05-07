@@ -3,13 +3,20 @@
 
 import databaseService from "../db/database.js";
 import EncounterCombatView from "./encounter-combat-view.js";
-import { icon } from "../core/icons.js";
+import { icon, mountIcons } from "../core/icons.js";
 import {
   VISIBILITY_AFFINITIES,
   VISIBILITY_FIELDS,
   parseVisibility,
   makeDefaultVisibility,
 } from "../core/combat-visibility.js";
+import {
+  formatRelativeTime,
+  pluralize,
+  truncate,
+  escapeHtml,
+  normalizeDifficulty,
+} from "../core/format.js";
 
 // ============================================
 // Toast Notifications
@@ -48,6 +55,8 @@ class CampaignsView {
     this.selectedCampaign = null;
     this.deleteTargetId = null;
     this.mounted = false;
+    this.selectedCoverFile = null;
+    this.removeCoverFlag = false;
 
     this.DOM = {};
   }
@@ -64,6 +73,8 @@ class CampaignsView {
       count: document.getElementById("campaigns-count"),
       search: document.getElementById("campaign-search"),
       filterSystem: document.getElementById("campaign-filter-system"),
+      sort: document.getElementById("campaign-sort"),
+      btnNewCampaignEmpty: document.getElementById("btn-new-campaign-empty"),
       // Modal form
       modal: document.getElementById("campaign-modal"),
       modalOverlay: document.getElementById("campaign-modal-overlay"),
@@ -76,6 +87,8 @@ class CampaignsView {
       errorName: document.getElementById("error-name"),
       // Detail view
       detail: document.getElementById("campaign-detail"),
+      detailCover: document.getElementById("campaign-detail-cover"),
+      detailCoverPlaceholder: document.getElementById("campaign-detail-cover-placeholder"),
       detailName: document.getElementById("detail-name"),
       detailSystem: document.getElementById("detail-system"),
       detailDesc: document.getElementById("detail-description"),
@@ -84,6 +97,13 @@ class CampaignsView {
       detailCharCount: document.getElementById("detail-char-count"),
       detailCharList: document.getElementById("detail-characters-list"),
       detailCharEmpty: document.getElementById("detail-characters-empty"),
+      // Cover uploader (form)
+      imageInput: document.getElementById("campaign-image-input"),
+      coverUploader: document.getElementById("campaign-cover-uploader"),
+      coverPlaceholder: document.getElementById("campaign-cover-placeholder"),
+      coverPreview: document.getElementById("campaign-cover-preview"),
+      coverPreviewImg: document.getElementById("campaign-cover-preview-img"),
+      btnRemoveCover: document.getElementById("btn-remove-campaign-cover"),
 
       // Detail - Encounters
       detailEncounterCount: document.getElementById("detail-encounter-count"),
@@ -96,6 +116,11 @@ class CampaignsView {
       detailSceneList: document.getElementById("detail-scenes-list"),
       detailSceneEmpty: document.getElementById("detail-scenes-empty"),
       btnAddScene: document.getElementById("btn-add-scene"),
+
+      detailDescEmpty: document.getElementById("detail-description-empty"),
+      detailCharCountBadge: document.getElementById("detail-char-count-badge"),
+      detailSceneCountBadge: document.getElementById("detail-scene-count-badge"),
+      detailEncounterCountBadge: document.getElementById("detail-encounter-count-badge"),
 
       // Link character modal
       linkModal: document.getElementById("link-character-modal"),
@@ -167,11 +192,12 @@ class CampaignsView {
   bindEvents() {
     // New campaign buttons
     this._on(document.getElementById("btn-new-campaign"), "click", () => this.openForm());
-    this._on(document.getElementById("btn-empty-new"), "click", () => this.openForm());
+    this._on(this.DOM.btnNewCampaignEmpty, "click", () => this.openForm());
 
-    // Search & filter
+    // Search, filter & sort
     this._on(this.DOM.search, "input", () => this.applyFilters());
     this._on(this.DOM.filterSystem, "change", () => this.applyFilters());
+    this._on(this.DOM.sort, "change", () => this.applyFilters());
 
     // Form modal
     this._on(this.DOM.form, "submit", (e) => this.handleSubmit(e));
@@ -224,6 +250,14 @@ class CampaignsView {
     // Clear validation on input
     this._on(this.DOM.nameInput, "input", () => this.clearFieldError("name"));
 
+    // Cover uploader
+    this._on(this.DOM.coverUploader, "click", () => this.DOM.imageInput?.click());
+    this._on(this.DOM.imageInput, "change", (e) => this.handleCoverSelect(e));
+    this._on(this.DOM.btnRemoveCover, "click", (e) => {
+      e.stopPropagation();
+      this.handleCoverRemove();
+    });
+
     // Encounter events
     this._on(this.DOM.btnAddEncounter, "click", () => {
       if (this.selectedCampaign) {
@@ -269,26 +303,80 @@ class CampaignsView {
         window.scenesView?.loadSceneForEdit(id);
       }
     });
+
+    // Empty state CTAs
+    this._on(this.DOM.detailCharEmpty, "click", (e) => {
+      if (e.target.closest('[data-action="add-char-empty"]')) {
+        this.openLinkModal();
+      }
+    });
+
+    this._on(this.DOM.detailEncounterEmpty, "click", (e) => {
+      if (e.target.closest('[data-action="add-encounter-empty"]')) {
+        if (this.selectedCampaign) {
+          window.encountersView.openForm(null, this.selectedCampaign.id);
+        }
+      }
+    });
+
+    this._on(this.DOM.detailSceneEmpty, "click", (e) => {
+      if (e.target.closest('[data-action="add-scene-empty"]')) {
+        if (this.selectedCampaign) {
+          window.scenesView?.openForm(null, this.selectedCampaign.id);
+        }
+      }
+    });
   }
 
   // ============================================
   // Load campaigns from database
   // ============================================
   async loadCampaigns() {
-    try {
-      if (!databaseService.isReady()) {
-        console.warn("Database not ready");
-        this.campaigns = [];
-        this.filteredCampaigns = [];
-        this.render();
-        return;
-      }
+    if (!databaseService.isReady()) {
+      console.warn("Database not ready");
+      this.campaigns = [];
+      this.filteredCampaigns = [];
+      this.render();
+      return;
+    }
 
+    this.renderSkeletons();
+
+    try {
       this.campaigns = await databaseService.getAllCampaigns();
+      const statsArr = await Promise.all(
+        this.campaigns.map((c) =>
+          databaseService
+            .getCampaignStats(c.id)
+            .catch(() => ({ characters: 0, encounters: 0, scenes: 0 }))
+        )
+      );
+      this.campaigns.forEach((c, i) => {
+        c._stats = statsArr[i];
+      });
       this.applyFilters();
-    } catch (error) {
-      console.error("Failed to load campaigns:", error);
-      showToast("Erro ao carregar campanhas", "error");
+    } catch (err) {
+      console.warn("Falha ao carregar campanhas:", err);
+      this.campaigns = [];
+      this.applyFilters();
+    }
+  }
+
+  renderSkeletons() {
+    const skel = `
+      <div class="campaign-card campaign-card--skeleton">
+        <div class="campaign-card__cover campaign-card__cover--skeleton"></div>
+        <div class="campaign-card__body">
+          <div class="campaign-card__skeleton-line" style="width: 70%;"></div>
+          <div class="campaign-card__skeleton-line" style="width: 90%;"></div>
+          <div class="campaign-card__skeleton-line" style="width: 40%;"></div>
+        </div>
+      </div>
+    `;
+    if (this.DOM.list) {
+      this.DOM.list.innerHTML = skel.repeat(4);
+      this.DOM.list.hidden = false;
+      if (this.DOM.empty) this.DOM.empty.hidden = true;
     }
   }
 
@@ -296,16 +384,25 @@ class CampaignsView {
   // Filtering
   // ============================================
   applyFilters() {
-    const searchTerm = (this.DOM.search?.value || "").toLowerCase().trim();
-    const systemFilter = this.DOM.filterSystem?.value || "";
+    const q = (this.DOM.search?.value ?? "").toLowerCase().trim();
+    const sys = this.DOM.filterSystem?.value ?? "";
+    const sortMode = this.DOM.sort?.value ?? "recent";
 
     this.filteredCampaigns = this.campaigns.filter((c) => {
-      const matchesSearch =
-        !searchTerm ||
-        c.name.toLowerCase().includes(searchTerm) ||
-        (c.description && c.description.toLowerCase().includes(searchTerm));
-      const matchesSystem = !systemFilter || c.system === systemFilter;
-      return matchesSearch && matchesSystem;
+      const matchesQ =
+        !q ||
+        (c.name?.toLowerCase().includes(q)) ||
+        (c.description?.toLowerCase().includes(q));
+      const matchesSys = !sys || c.system === sys;
+      return matchesQ && matchesSys;
+    });
+
+    this.filteredCampaigns.sort((a, b) => {
+      if (sortMode === "az") return (a.name || "").localeCompare(b.name || "", "pt-BR");
+      if (sortMode === "za") return (b.name || "").localeCompare(a.name || "", "pt-BR");
+      if (sortMode === "oldest")
+        return new Date(a.updated_at || 0) - new Date(b.updated_at || 0);
+      return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
     });
 
     this.render();
@@ -317,7 +414,6 @@ class CampaignsView {
   render() {
     if (!this.DOM.list) return;
 
-    // Update count
     if (this.DOM.count) {
       const total = this.campaigns.length;
       const shown = this.filteredCampaigns.length;
@@ -327,72 +423,133 @@ class CampaignsView {
           : `${shown} de ${total} campanha${total !== 1 ? "s" : ""}`;
     }
 
-    // Show empty state or grid
-    const isEmpty = this.filteredCampaigns.length === 0;
-
-    if (this.DOM.empty) {
-      this.DOM.empty.classList.toggle("hidden", !isEmpty);
-    }
-    if (this.DOM.list) {
-      this.DOM.list.classList.toggle("hidden", isEmpty);
+    if (this.filteredCampaigns.length === 0) {
+      this.DOM.list.hidden = true;
+      if (this.DOM.empty) this.DOM.empty.hidden = false;
+      return;
     }
 
-    if (!isEmpty) {
-      this.renderCards();
-    }
+    this.DOM.list.hidden = false;
+    if (this.DOM.empty) this.DOM.empty.hidden = true;
+    this.renderCards();
   }
 
   renderCards() {
     this.DOM.list.innerHTML = this.filteredCampaigns.map((c) => this.renderCard(c)).join("");
+    mountIcons(this.DOM.list);
   }
 
-  renderCard(campaign) {
-    const desc = campaign.description || "Sem descrição";
-    const system = campaign.system || "";
-    const systemBadge = system
-      ? `<span class="badge badge--primary campaign-card__system">${this.escapeHTML(system)}</span>`
-      : "";
-    const date = this.formatDate(campaign.updated_at || campaign.created_at);
+  renderCard(c) {
+    const cover = c.image_path
+      ? `<img class="campaign-card__cover" src="local-image://${c.image_path}" alt="" loading="lazy" />`
+      : `<div class="campaign-card__cover-placeholder"><i data-icon="image"></i></div>`;
+
+    const stats = c._stats ?? { characters: 0, encounters: 0, scenes: 0 };
+    const desc = c.description ? escapeHtml(truncate(c.description, 100)) : "";
+    const name = escapeHtml(c.name ?? "Sem título");
+    const system = c.system ? escapeHtml(c.system) : null;
+    const updatedRel = escapeHtml(formatRelativeTime(c.updated_at));
 
     return `
-      <div class="campaign-card" data-id="${campaign.id}">
-        <div class="campaign-card__header">
-          <h3 class="campaign-card__title">${this.escapeHTML(campaign.name)}</h3>
-          ${systemBadge}
-        </div>
-        <p class="campaign-card__desc">${this.escapeHTML(desc)}</p>
-        <div class="campaign-card__footer">
-          <span class="campaign-card__date">${date}</span>
-          <div class="campaign-card__actions">
-            <button class="campaign-card__btn" data-action="edit" data-id="${campaign.id}" title="Editar">${icon("pencil")}</button>
-            <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete" data-id="${campaign.id}" title="Excluir">${icon("trash-2")}</button>
+      <article class="campaign-card" data-id="${c.id}">
+        ${cover}
+        <div class="campaign-card__body">
+          <div class="campaign-card__header">
+            <h3 class="campaign-card__title">${name}</h3>
+            ${system ? `<span class="badge badge--primary campaign-card__system">${system}</span>` : ""}
+          </div>
+          ${desc ? `<p class="campaign-card__desc">${desc}</p>` : ""}
+          <div class="campaign-card__footer">
+            <div class="campaign-card__stats">
+              <span class="campaign-card__stat" title="Personagens"><i data-icon="users"></i> ${stats.characters}</span>
+              <span class="campaign-card__stat" title="Encontros"><i data-icon="swords"></i> ${stats.encounters}</span>
+              <span class="campaign-card__stat" title="Cenas"><i data-icon="eye"></i> ${stats.scenes}</span>
+            </div>
+            <span class="campaign-card__time">${updatedRel}</span>
+            <div class="campaign-card__actions">
+              <button class="campaign-card__btn" data-action="edit" title="Editar">
+                <i data-icon="pencil"></i>
+              </button>
+              <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete" title="Excluir">
+                <i data-icon="trash-2"></i>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </article>
     `;
   }
 
   async renderDetail(campaign) {
     if (!this.DOM.detail) return;
 
-    this.DOM.detailName.textContent = campaign.name;
+    this.selectedCampaign = campaign;
 
-    if (campaign.system) {
-      this.DOM.detailSystem.textContent = campaign.system;
-      this.DOM.detailSystem.className = "badge badge--primary";
-      this.DOM.detailSystem.classList.remove("hidden");
+    // Hero — capa
+    if (campaign.image_path && this.DOM.detailCover) {
+      this.DOM.detailCover.src = `local-image://${campaign.image_path}`;
+      this.DOM.detailCover.hidden = false;
+      if (this.DOM.detailCoverPlaceholder) this.DOM.detailCoverPlaceholder.hidden = true;
     } else {
-      this.DOM.detailSystem.classList.add("hidden");
+      if (this.DOM.detailCover) {
+        this.DOM.detailCover.removeAttribute("src");
+        this.DOM.detailCover.hidden = true;
+      }
+      if (this.DOM.detailCoverPlaceholder) this.DOM.detailCoverPlaceholder.hidden = false;
     }
 
-    this.DOM.detailDesc.textContent = campaign.description || "Sem descrição";
-    this.DOM.detailCreated.innerHTML = `<span class="campaign-detail__meta-icon">${icon("calendar")}</span> Criada em: ${this.formatDate(campaign.created_at)}`;
-    this.DOM.detailUpdated.innerHTML = `<span class="campaign-detail__meta-icon">${icon("refresh-cw")}</span> Atualizada em: ${this.formatDate(campaign.updated_at)}`;
+    // Título + badge sistema
+    if (this.DOM.detailName) this.DOM.detailName.textContent = campaign.name ?? "";
+    if (this.DOM.detailSystem) {
+      if (campaign.system) {
+        this.DOM.detailSystem.textContent = campaign.system;
+        this.DOM.detailSystem.hidden = false;
+      } else {
+        this.DOM.detailSystem.hidden = true;
+      }
+    }
 
-    // Load campaign characters, encounters and scenes
-    await this.loadCampaignCharacters(campaign.id);
-    await this.loadCampaignEncounters(campaign.id);
-    await this.loadCampaignScenes(campaign.id);
+    // Descrição
+    if (this.DOM.detailDesc) {
+      if (campaign.description) {
+        this.DOM.detailDesc.textContent = campaign.description;
+        this.DOM.detailDesc.hidden = false;
+        if (this.DOM.detailDescEmpty) this.DOM.detailDescEmpty.hidden = true;
+      } else {
+        this.DOM.detailDesc.textContent = "";
+        this.DOM.detailDesc.hidden = true;
+        if (this.DOM.detailDescEmpty) this.DOM.detailDescEmpty.hidden = false;
+      }
+    }
+
+    // Data de criação
+    if (this.DOM.detailCreated) {
+      this.DOM.detailCreated.textContent = `Criada em ${this.formatDate(campaign.created_at)}`;
+    }
+
+    // Micro-stats (usa _stats do batch já carregado, ou busca individualmente)
+    const stats =
+      campaign._stats ??
+      (await databaseService
+        .getCampaignStats(campaign.id)
+        .catch(() => ({ characters: 0, encounters: 0, scenes: 0 })));
+
+    if (this.DOM.detailCharCount) this.DOM.detailCharCount.textContent = stats.characters;
+    if (this.DOM.detailEncounterCount) this.DOM.detailEncounterCount.textContent = stats.encounters;
+    if (this.DOM.detailSceneCount) this.DOM.detailSceneCount.textContent = stats.scenes;
+    if (this.DOM.detailUpdated) {
+      const rel = formatRelativeTime(campaign.updated_at);
+      this.DOM.detailUpdated.textContent = rel || "—";
+    }
+
+    // Carregar sub-entidades em paralelo
+    await Promise.all([
+      this.loadCampaignCharacters(campaign.id),
+      this.loadCampaignEncounters(campaign.id),
+      this.loadCampaignScenes(campaign.id),
+    ]);
+
+    mountIcons(this.DOM.detail);
   }
 
   async loadCampaignCharacters(campaignId) {
@@ -410,51 +567,65 @@ class CampaignsView {
 
     const count = characters.length;
     this.DOM.detailCharCount.textContent = count;
+    if (this.DOM.detailCharCountBadge) {
+      this.DOM.detailCharCountBadge.textContent = pluralize(count, "personagem", "personagens");
+    }
 
     const isEmpty = count === 0;
     this.DOM.detailCharEmpty.classList.toggle("hidden", !isEmpty);
     this.DOM.detailCharList.classList.toggle("hidden", isEmpty);
 
     if (!isEmpty) {
-      this.DOM.detailCharList.innerHTML = characters
-        .map((char) => {
-          const avatarContent = char.image_path
-            ? `<img src="local-image://${char.image_path}" alt="${char.name}">`
-            : `<span class="character-card__avatar-placeholder">${icon("user", { size: 24 })}</span>`;
+      const cardHtml = (char) => {
+        const avatar = char.image_path
+          ? `<img src="local-image://${escapeHtml(char.image_path)}" alt="" loading="lazy" />`
+          : `<i data-icon="user"></i>`;
+        const name = escapeHtml(char.name ?? "Sem nome");
+        const system = char.system ? escapeHtml(char.system) : "";
+        const hp = char.hp ?? "—";
+        const ac = char.ac ?? "—";
+        const ini = char.ini ?? "—";
 
-          return `
-          <div class="character-card" data-id="${char.id}">
-            <div class="character-card__header">
-              <div class="character-card__avatar">
-                ${avatarContent}
+        return `
+          <article class="campaign-character-card" data-id="${char.id}" data-action="edit-char">
+            <div class="campaign-character-card__header">
+              <div class="campaign-character-card__avatar">${avatar}</div>
+              <div class="campaign-character-card__title-block">
+                <h3 class="campaign-character-card__name">${name}</h3>
+                ${system ? `<span class="campaign-character-card__system">${system}</span>` : ""}
               </div>
-              <div class="character-card__title-group" style="flex: 1;">
-                <h3 class="character-card__title">${this.escapeHTML(char.name)}</h3>
-              </div>
-              <div class="character-card__actions" style="display: flex; gap: 4px;">
-                <button class="btn-icon" data-action="edit-char" data-id="${char.id}" title="Editar Personagem">${icon("pencil")}</button>
-                <button class="btn-icon btn-icon--danger" data-action="unlink" data-id="${char.id}" title="Remover da Campanha">${icon("circle-x")}</button>
-                <button class="btn-icon btn-icon--danger" data-action="delete-char" data-id="${char.id}" title="Excluir Permanentemente">${icon("trash-2")}</button>
+              <div class="campaign-character-card__actions">
+                <button class="campaign-card__btn" data-action="edit-char" data-id="${char.id}" title="Editar">
+                  <i data-icon="pencil"></i>
+                </button>
+                <button class="campaign-card__btn" data-action="unlink" data-id="${char.id}" title="Desvincular">
+                  <i data-icon="circle-x"></i>
+                </button>
+                <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete-char" data-id="${char.id}" title="Excluir">
+                  <i data-icon="trash-2"></i>
+                </button>
               </div>
             </div>
-            <div class="character-card__stats">
-              <div class="stat-box">
+            <div class="campaign-character-card__stats">
+              <div class="stat-box stat-box--hp">
                 <span class="stat-box__label">HP</span>
-                <span class="stat-box__value stat-box__value--hp">${char.hp || 0}</span>
+                <span class="stat-box__value">${hp}</span>
               </div>
-              <div class="stat-box">
-                <span class="stat-box__label">AC</span>
-                <span class="stat-box__value stat-box__value--ac">${char.ac || 10}</span>
+              <div class="stat-box stat-box--ac">
+                <span class="stat-box__label">CA</span>
+                <span class="stat-box__value">${ac}</span>
               </div>
-              <div class="stat-box">
-                <span class="stat-box__label">Ini</span>
-                <span class="stat-box__value stat-box__value--ini">${char.ini || 0}</span>
+              <div class="stat-box stat-box--initiative">
+                <span class="stat-box__label">INI</span>
+                <span class="stat-box__value">${ini}</span>
               </div>
             </div>
-          </div>
+          </article>
         `;
-        })
-        .join("");
+      };
+
+      this.DOM.detailCharList.innerHTML = characters.map(cardHtml).join("");
+      mountIcons(this.DOM.detailCharList);
     }
   }
 
@@ -473,35 +644,55 @@ class CampaignsView {
 
     const count = encounters.length;
     this.DOM.detailEncounterCount.textContent = count;
+    if (this.DOM.detailEncounterCountBadge) {
+      this.DOM.detailEncounterCountBadge.textContent = pluralize(count, "encontro", "encontros");
+    }
 
     const isEmpty = count === 0;
     this.DOM.detailEncounterEmpty.classList.toggle("hidden", !isEmpty);
     this.DOM.detailEncounterList.classList.toggle("hidden", isEmpty);
 
     if (!isEmpty) {
-      this.DOM.detailEncounterList.innerHTML = encounters
-        .map((enc) => {
-          return `
-          <div class="campaign-card campaign-card--sm" data-id="${enc.id}">
-            <div class="campaign-card__header">
-              <h3 class="campaign-card__title">${this.escapeHTML(enc.name)}</h3>
-              <span class="badge badge--gold">${this.escapeHTML(enc.difficulty || "Médio")}</span>
-            </div>
-            <p class="campaign-card__desc text-xs" style="margin-bottom: 8px;">
-              ${icon("map-pin")} ${this.escapeHTML(enc.location || "Local não definido")}
-            </p>
-            <div class="campaign-card__footer">
-              <span class="campaign-card__date">${this.formatDate(enc.created_at)}</span>
-              <div class="campaign-card__actions">
-                <button class="btn btn--primary btn--sm" data-action="view-encounter" data-id="${enc.id}">Abrir</button>
-                <button class="btn-icon" data-action="edit-encounter" data-id="${enc.id}">${icon("pencil")}</button>
-                <button class="btn-icon btn-icon--danger" data-action="delete-encounter" data-id="${enc.id}">${icon("trash-2")}</button>
+      const cardHtml = (enc) => {
+        const cover = enc.background_image
+          ? `<img class="campaign-encounter-card__cover" src="${escapeHtml(enc.background_image)}" alt="" loading="lazy" />`
+          : `<div class="campaign-encounter-card__cover-placeholder"><i data-icon="swords"></i></div>`;
+        const name = escapeHtml(enc.name ?? "Sem título");
+        const diff = enc.difficulty
+          ? `<span class="badge badge--difficulty-${normalizeDifficulty(enc.difficulty)}">${escapeHtml(enc.difficulty)}</span>`
+          : "";
+        const loc = enc.location
+          ? `<span class="campaign-encounter-card__meta-item"><i data-icon="map-pin"></i> ${escapeHtml(truncate(enc.location, 40))}</span>`
+          : "";
+        const time = enc.created_at ? escapeHtml(formatRelativeTime(enc.created_at)) : "";
+
+        return `
+          <article class="campaign-encounter-card" data-id="${enc.id}" data-action="view-encounter">
+            ${cover}
+            <div class="campaign-encounter-card__body">
+              <h3 class="campaign-encounter-card__name">${name}</h3>
+              <div class="campaign-encounter-card__meta">
+                ${diff}
+                ${loc}
+              </div>
+              <div class="campaign-encounter-card__footer">
+                <span class="campaign-encounter-card__time">${time}</span>
+                <div class="campaign-encounter-card__actions">
+                  <button class="campaign-card__btn" data-action="edit-encounter" data-id="${enc.id}" title="Editar">
+                    <i data-icon="pencil"></i>
+                  </button>
+                  <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete-encounter" data-id="${enc.id}" title="Excluir">
+                    <i data-icon="trash-2"></i>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </article>
         `;
-        })
-        .join("");
+      };
+
+      this.DOM.detailEncounterList.innerHTML = encounters.map(cardHtml).join("");
+      mountIcons(this.DOM.detailEncounterList);
     }
   }
 
@@ -520,34 +711,47 @@ class CampaignsView {
 
     const count = scenes.length;
     if (this.DOM.detailSceneCount) this.DOM.detailSceneCount.textContent = count;
+    if (this.DOM.detailSceneCountBadge) {
+      this.DOM.detailSceneCountBadge.textContent = pluralize(count, "cena", "cenas");
+    }
 
     const isEmpty = count === 0;
     this.DOM.detailSceneEmpty?.classList.toggle("hidden", !isEmpty);
     this.DOM.detailSceneList.classList.toggle("hidden", isEmpty);
 
     if (!isEmpty) {
-      this.DOM.detailSceneList.innerHTML = scenes
-        .map((scene) => {
-          const desc = scene.description ? scene.description.slice(0, 120) : "Sem descrição";
-          return `
-          <div class="campaign-card campaign-card--sm" data-action="open-scene" data-id="${scene.id}" style="cursor: pointer;">
-            <div class="campaign-card__header">
-              <h3 class="campaign-card__title">${this.escapeHTML(scene.name)}</h3>
-            </div>
-            <p class="campaign-card__desc text-xs" style="margin-bottom: 8px;">
-              ${this.escapeHTML(desc)}${scene.description && scene.description.length > 120 ? "…" : ""}
-            </p>
-            <div class="campaign-card__footer">
-              <span class="campaign-card__date">${this.formatDate(scene.created_at)}</span>
-              <div class="campaign-card__actions">
-                <button class="btn btn--primary btn--sm" data-action="open-scene" data-id="${scene.id}">Abrir</button>
-                <button class="btn-icon btn-icon--danger" data-action="delete-scene" data-id="${scene.id}" title="Excluir">${icon("trash-2")}</button>
+      const cardHtml = (scene) => {
+        const cover = scene.background_image
+          ? `<img class="campaign-scene-card__cover" src="${escapeHtml(scene.background_image)}" alt="" loading="lazy" />`
+          : `<div class="campaign-scene-card__cover-placeholder"><i data-icon="eye"></i></div>`;
+        const name = escapeHtml(scene.name ?? scene.title ?? "Sem título");
+        const desc = scene.description ? escapeHtml(truncate(scene.description, 100)) : "";
+        const time = formatRelativeTime(scene.created_at);
+
+        return `
+          <article class="campaign-scene-card" data-id="${scene.id}" data-action="open-scene">
+            ${cover}
+            <div class="campaign-scene-card__body">
+              <h3 class="campaign-scene-card__name">${name}</h3>
+              ${desc ? `<p class="campaign-scene-card__desc">${desc}</p>` : ""}
+              <div class="campaign-scene-card__footer">
+                <span>${escapeHtml(time)}</span>
+                <div class="campaign-scene-card__actions">
+                  <button class="campaign-card__btn" data-action="edit-scene" data-id="${scene.id}" title="Editar">
+                    <i data-icon="pencil"></i>
+                  </button>
+                  <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete-scene" data-id="${scene.id}" title="Excluir">
+                    <i data-icon="trash-2"></i>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </article>
         `;
-        })
-        .join("");
+      };
+
+      this.DOM.detailSceneList.innerHTML = scenes.map(cardHtml).join("");
+      mountIcons(this.DOM.detailSceneList);
     }
   }
 
@@ -684,28 +888,24 @@ class CampaignsView {
   // Card click delegation
   // ============================================
   handleCardClick(e) {
-    const target = e.target.closest("[data-action]");
-    if (target) {
+    const actionBtn = e.target.closest("[data-action]");
+    if (actionBtn) {
       e.stopPropagation();
-      const action = target.dataset.action;
-      const id = parseInt(target.dataset.id, 10);
-
-      if (action === "edit") {
-        const campaign = this.campaigns.find((c) => c.id === id);
-        if (campaign) this.openForm(campaign);
-      } else if (action === "delete") {
-        this.confirmDelete(id);
-      }
+      const card = actionBtn.closest(".campaign-card");
+      const id = Number(card?.dataset.id);
+      const campaign = this.campaigns.find((c) => c.id === id);
+      if (!campaign) return;
+      if (actionBtn.dataset.action === "edit") this.openForm(campaign);
+      else if (actionBtn.dataset.action === "delete") this.confirmDelete(id);
       return;
     }
 
     // Click on card itself → open detail
     const card = e.target.closest(".campaign-card");
-    if (card) {
-      const id = parseInt(card.dataset.id, 10);
-      const campaign = this.campaigns.find((c) => c.id === id);
-      if (campaign) this.openDetail(campaign);
-    }
+    if (!card) return;
+    const id = Number(card.dataset.id);
+    const campaign = this.campaigns.find((c) => c.id === id);
+    if (campaign) this.openDetail(campaign);
   }
 
   // ============================================
@@ -725,6 +925,22 @@ class CampaignsView {
     if (this.DOM.systemSelect) this.DOM.systemSelect.value = campaign ? campaign.system || "" : "";
     if (this.DOM.descInput) this.DOM.descInput.value = campaign ? campaign.description || "" : "";
     this.populateVisibilityCheckboxes(campaign ? campaign.combat_visibility : null);
+
+    // Reset cover state
+    this.selectedCoverFile = null;
+    this.removeCoverFlag = false;
+    if (this.DOM.imageInput) this.DOM.imageInput.value = "";
+
+    if (campaign?.image_path) {
+      if (this.DOM.coverPreviewImg)
+        this.DOM.coverPreviewImg.src = `local-image://${campaign.image_path}`;
+      if (this.DOM.coverPreview) this.DOM.coverPreview.hidden = false;
+      if (this.DOM.coverPlaceholder) this.DOM.coverPlaceholder.hidden = true;
+    } else {
+      if (this.DOM.coverPreviewImg) this.DOM.coverPreviewImg.removeAttribute("src");
+      if (this.DOM.coverPreview) this.DOM.coverPreview.hidden = true;
+      if (this.DOM.coverPlaceholder) this.DOM.coverPlaceholder.hidden = false;
+    }
 
     // Clear errors
     this.clearAllErrors();
@@ -756,24 +972,36 @@ class CampaignsView {
 
     const combat_visibility = this.collectVisibilityFromCheckboxes();
 
+    const data = {
+      name,
+      system: system || null,
+      description: description || null,
+      combat_visibility,
+    };
+
+    // Image pipeline
+    if (this.selectedCoverFile) {
+      try {
+        const buffer = await this.processCoverImage(this.selectedCoverFile);
+        data.image_path = await databaseService.saveCampaignImage(buffer);
+      } catch (err) {
+        console.error("Falha ao processar/salvar capa:", err);
+        showToast("Erro ao processar imagem de capa", "error");
+        return;
+      }
+    } else if (this.removeCoverFlag) {
+      data.image_path = null;
+    }
+    // Se nenhum dos dois e estiver editando: omitir image_path para preservar o atual
+
     try {
       if (this.editingId) {
         // Update
-        await databaseService.updateCampaign(this.editingId, {
-          name,
-          system: system || null,
-          description: description || null,
-          combat_visibility,
-        });
+        await databaseService.updateCampaign(this.editingId, data);
         showToast("Campanha atualizada com sucesso!", "success");
       } else {
         // Create
-        await databaseService.createCampaign({
-          name,
-          system: system || null,
-          description: description || null,
-          combat_visibility,
-        });
+        await databaseService.createCampaign(data);
         showToast("Campanha criada com sucesso!", "success");
       }
 
@@ -858,6 +1086,21 @@ class CampaignsView {
     if (this.DOM.listView) this.DOM.listView.classList.remove("hidden");
   }
 
+  // Abre o detalhe de uma campanha pelo id — usado pelo dashboard ao clicar no card "Continuar".
+  async openCampaign(id) {
+    if (!id) return;
+    try {
+      const campaign = await databaseService.getCampaignById(id);
+      if (!campaign) {
+        console.warn(`Campaign id ${id} não encontrada.`);
+        return;
+      }
+      this.openDetail(campaign);
+    } catch (err) {
+      console.error("Falha ao abrir campanha:", err);
+    }
+  }
+
   // ============================================
   // Delete
   // ============================================
@@ -902,6 +1145,70 @@ class CampaignsView {
       showToast("Erro ao excluir campanha", "error");
       this.closeConfirm();
     }
+  }
+
+  // ============================================
+  // Cover image upload (Fase 5)
+  // ============================================
+  handleCoverSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      console.warn("Arquivo selecionado não é uma imagem");
+      return;
+    }
+    this.selectedCoverFile = file;
+    this.removeCoverFlag = false;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (this.DOM.coverPreviewImg) this.DOM.coverPreviewImg.src = reader.result;
+      if (this.DOM.coverPlaceholder) this.DOM.coverPlaceholder.hidden = true;
+      if (this.DOM.coverPreview) this.DOM.coverPreview.hidden = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  handleCoverRemove() {
+    this.selectedCoverFile = null;
+    this.removeCoverFlag = true;
+    if (this.DOM.imageInput) this.DOM.imageInput.value = "";
+    if (this.DOM.coverPreviewImg) this.DOM.coverPreviewImg.removeAttribute("src");
+    if (this.DOM.coverPreview) this.DOM.coverPreview.hidden = true;
+    if (this.DOM.coverPlaceholder) this.DOM.coverPlaceholder.hidden = false;
+  }
+
+  async processCoverImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1200;
+        const maxH = 675;
+        let { width, height } = img;
+        const ratio = Math.min(maxW / width, maxH / height, 1);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          async (blob) => {
+            if (!blob) {
+              reject(new Error("Falha ao processar imagem"));
+              return;
+            }
+            const arrayBuffer = await blob.arrayBuffer();
+            resolve(new Uint8Array(arrayBuffer));
+          },
+          "image/webp",
+          0.85
+        );
+      };
+      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
+      img.src = URL.createObjectURL(file);
+    });
   }
 
   // ============================================
@@ -980,7 +1287,7 @@ class EncountersView {
       form: document.getElementById("encounter-form"),
       idInput: document.getElementById("encounter-id"),
       nameInput: document.getElementById("encounter-name"),
-      difficultySelect: document.getElementById("encounter-difficulty"),
+      difficultyGroup: document.getElementById("encounter-difficulty"),
       locationInput: document.getElementById("encounter-location"),
       descInput: document.getElementById("encounter-description"),
       btnCancel: document.getElementById("btn-cancel-encounter-form"),
@@ -1214,8 +1521,13 @@ class EncountersView {
 
     if (this.DOM.idInput) this.DOM.idInput.value = encounter ? encounter.id : "";
     if (this.DOM.nameInput) this.DOM.nameInput.value = encounter ? encounter.name : "";
-    if (this.DOM.difficultySelect)
-      this.DOM.difficultySelect.value = encounter ? encounter.difficulty || "Médio" : "Médio";
+    if (this.DOM.difficultyGroup) {
+      const value = encounter ? encounter.difficulty || "Médio" : "Médio";
+      const radio = this.DOM.difficultyGroup.querySelector(
+        `input[name="encounter-difficulty"][value="${value}"]`
+      );
+      if (radio) radio.checked = true;
+    }
     if (this.DOM.locationInput)
       this.DOM.locationInput.value = encounter ? encounter.location || "" : "";
     if (this.DOM.descInput) this.DOM.descInput.value = encounter ? encounter.description || "" : "";
@@ -1458,7 +1770,10 @@ class EncountersView {
     const encounterData = {
       campaign_id: this.currentCampaignId,
       name: this.DOM.nameInput.value.trim(),
-      difficulty: this.DOM.difficultySelect.value,
+      difficulty:
+        this.DOM.difficultyGroup
+          ?.querySelector('input[name="encounter-difficulty"]:checked')
+          ?.value ?? "Médio",
       location: this.DOM.locationInput.value.trim(),
       description: this.DOM.descInput.value.trim(),
       background_image: this.DOM.bgInput?.value || null,
@@ -1641,39 +1956,39 @@ class EncountersView {
       if (isEmpty) return;
 
       listEl.innerHTML = group
-        .map(
-          (p) => `
-        <div class="participant-card ${p.image ? "participant-card--with-img" : ""}" 
-             data-index="${p.originalIndex}" 
+        .map((p) => {
+          const safeName = escapeHtml(p.name ?? "Sem nome");
+          const displayName = escapeHtml(truncate(p.name ?? "Sem nome", 20));
+          return `
+        <div class="participant-card ${p.image ? "participant-card--with-img" : ""}"
+             data-index="${p.originalIndex}"
              data-id="${p.tempId}"
              draggable="true">
           ${
             p.image
               ? `
             <div class="participant-card__image-container">
-              <img src="${p.image}" class="participant-card__img" alt="${this.escapeHTML(p.name)}" />
+              <img src="${p.image}" class="participant-card__img" alt="${safeName}" />
             </div>
           `
               : ""
           }
           <div class="participant-card__main">
             <div class="participant-card__header">
-              <span class="participant-card__name">
-                ${this.escapeHTML(p.name)}
-              </span>
+              <div class="participant-card__name" title="${safeName}">${displayName}</div>
               <div class="participant-card__stats">
                 <div class="stat-control">
                   <span class="stat-control__label">HP</span>
-                  <input type="number" class="stat-control__input stat-control__input--hp" 
-                         value="${(p.current_hp !== undefined ? p.current_hp : p.hp) || 0}" 
+                  <input type="number" class="stat-control__input stat-control__input--hp"
+                         value="${(p.current_hp !== undefined ? p.current_hp : p.hp) || 0}"
                          data-field="current_hp" title="HP Atual" />
                   <span class="stat-control__sep">/</span>
                   <span class="stat-control__max">${p.hp || 0}</span>
                 </div>
                 <div class="stat-control">
                   <span class="stat-control__label">AC</span>
-                  <input type="number" class="stat-control__input stat-control__input--ac" 
-                         value="${p.ac || 10}" 
+                  <input type="number" class="stat-control__input stat-control__input--ac"
+                         value="${p.ac || 10}"
                          data-field="ac" title="CA" />
                 </div>
                 <div class="stat-control">
@@ -1691,8 +2006,8 @@ class EncountersView {
             </div>
           </div>
         </div>
-      `
-        )
+      `;
+        })
         .join("");
     };
 
@@ -1700,13 +2015,18 @@ class EncountersView {
     renderList(this.DOM.listNeutrals, this.DOM.sectionNeutrals, this.affinityGroups.neutral);
     renderList(this.DOM.listEnemies, this.DOM.sectionEnemies, this.affinityGroups.enemy);
 
-    // If all sections are hidden, show a message
-    const allHidden =
-      this.affinityGroups.ally.length === 0 &&
-      this.affinityGroups.neutral.length === 0 &&
-      this.affinityGroups.enemy.length === 0;
+    // Update section count badges
+    const countEl = (id) => document.getElementById(id);
+    const setBadge = (el, count) => {
+      if (el) el.textContent = String(count);
+    };
+    setBadge(countEl("encounter-section-count-allies"), this.affinityGroups.ally.length);
+    setBadge(countEl("encounter-section-count-neutrals"), this.affinityGroups.neutral.length);
+    setBadge(countEl("encounter-section-count-enemies"), this.affinityGroups.enemy.length);
 
-    // You could add a placeholder message here if needed
+    // Resolve <i data-icon> placeholders injected by renderList
+    const columnsEl = this.DOM.sectionAllies?.closest(".encounter-columns");
+    if (columnsEl) mountIcons(columnsEl);
   }
 
   async handleParticipantAction(e) {

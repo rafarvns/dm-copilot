@@ -2,16 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Sempre utilize os seguintes subagents quando apropriado:
+## Delegação de UI/Electron (obrigatório)
 
-- voltagent-core-dev:electron-pro para qualquer código Electron
-- voltagent-core-dev:backend-architect para APIs
-- voltagent-core-dev:frontend-developer para desenvolvimento de frontend
-- voltagent-core-dev:ui-designer para design e estilização
+Edits em `src/renderer/**` e `src/main/**` são **bloqueados pelo hook PreToolUse** em `.claude/hooks/block-direct-renderer-edits.js`. Tudo nessas pastas passa por subagente, sem exceção — a regra vale para alterações de 1 linha de CSS tanto quanto pra refactors grandes.
 
-Prefira delegar tarefas automaticamente aos agentes especializados.
+- `voltagent-core-dev:frontend-developer` — código do renderer (vanilla JS, HTML, features/views)
+- `voltagent-core-dev:electron-pro` — main process, IPC, integração Electron
+- `voltagent-core-dev:ui-designer` — design, CSS, tokens, layout, estilização
+- `voltagent-core-dev:backend-architect` — APIs (não bloqueado pelo hook, mas use)
 
-Sempre que for fazer alterações no frontend/electron usar a skill: /dm-copilot-design-system @"voltagent-core-dev:electron-pro (agent)"  @"voltagent-core-dev:frontend-developer (agent)"  @"voltagent-core-dev:ui-designer (agent)" 
+Pra qualquer mudança na UI, ative `/dm-copilot-design-system` antes de delegar — carrega o design system com tokens, tipografia e iconografia. O hook detecta subagentes pelo campo `agent_id` no payload, então edits feitos de dentro deles passam normalmente.
 
 ## Common Commands
 
@@ -100,6 +100,6 @@ The official design system lives at `design-system/` (bundle exported from `clau
 
 **Iconography is Lucide via `src/renderer/src/core/icons.js`.** Use `<i data-icon="name">` placeholders (auto-mounted by `mountIcons()`) or call `icon(name, opts)` directly. Don't use emoji as icons in new code; replace adjacent legacy emoji when you touch a file. Canonical icon vocabulary is in `design-system/project/README.md` § Iconography.
 
-**Forbidden moves:** new colors outside the palette, gradients on surfaces (only the brand emblem and ROLL button get gradients), centred modals (they anchor 60 px from the top), light mode (none exists), new font families (Nodesto Caps Condensed + Scaly Sans + JetBrains Mono is the full set), translating D&D vocabulary (HP/AC/CA/Iniciativa/Encontro stay).
+**Forbidden moves:** new colors outside the palette, gradients on surfaces (only the brand emblem and ROLL button get gradients), centred modals (they anchor 60 px from the top), light mode (none exists), new font families (Nodesto Caps Condensed + Scaly Sans + JetBrains Mono is the full set), translating D&D vocabulary (HP/AC/CA/Iniciativa/Encontro stay), centralizar conteúdo de feature dentro da `.main-view` com `margin: 0 auto` + `max-width` (a sidebar já desloca o eixo óptico — conteúdo é full-width com padding lateral via tokens).
 
 **Skill:** the `dm-copilot-design-system` skill activates automatically on UI/design keywords. When in doubt, invoke it before touching renderer CSS or HTML.

@@ -661,6 +661,40 @@ ipcMain.handle("db-campaigns-delete", (_event, id) => {
   return deleteCampaign(db, id);
 });
 
+ipcMain.handle("db-campaigns-recent", (_event, limit) => {
+  const db = databaseManager.getConnection();
+  return require("./database/queries/campaigns").getRecentCampaigns(db, limit);
+});
+
+ipcMain.handle("app-save-campaign-image", async (_event, imageData) => {
+  try {
+    const userDataPath = app.getPath("userData");
+    const imagesDir = path.join(userDataPath, "images", "campaigns");
+
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    const fileName = `camp_${Date.now()}.webp`;
+    const filePath = path.join(imagesDir, fileName);
+
+    fs.writeFileSync(filePath, Buffer.from(imageData));
+
+    return `campaigns/${fileName}`;
+  } catch (error) {
+    console.error("Erro ao salvar imagem de campanha:", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("db-campaigns-stats", (_event, id) => {
+  const db = databaseManager.getConnection();
+  const characters = require("./database/queries/characters").countCharactersByCampaign(db, id);
+  const encounters = require("./database/queries/encounters").countEncountersByCampaign(db, id);
+  const scenes = require("./database/queries/scenes").countScenesByCampaign(db, id);
+  return { characters, encounters, scenes };
+});
+
 // ============================================
 // IPC Handlers - Characters
 // ============================================
@@ -722,6 +756,16 @@ ipcMain.handle("db-characters-available-campaign", (_event, campaignId, system) 
   const db = databaseManager.getConnection();
   const { getAvailableCharactersForCampaign } = require("./database/queries/characters");
   return getAvailableCharactersForCampaign(db, campaignId, system);
+});
+
+ipcMain.handle("db-characters-recent", (_event, limit) => {
+  const db = databaseManager.getConnection();
+  return require("./database/queries/characters").getRecentCharacters(db, limit);
+});
+
+ipcMain.handle("db-characters-count", () => {
+  const db = databaseManager.getConnection();
+  return require("./database/queries/characters").countCharacters(db);
 });
 
 // ============================================

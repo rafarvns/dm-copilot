@@ -68,6 +68,21 @@ class DatabaseService {
     return await window.dmCopilot.db.campaigns.delete(id);
   }
 
+  async getRecentCampaigns(limit = 5) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.campaigns.getRecent(limit);
+  }
+
+  async saveCampaignImage(buffer) {
+    if (!this.isReady()) throw new Error("Database service not ready");
+    return window.dmCopilot.db.campaigns.saveImage(buffer);
+  }
+
+  async getCampaignStats(id) {
+    if (!this.isReady()) throw new Error("Database service not ready");
+    return window.dmCopilot.db.campaigns.getStats(id);
+  }
+
   // ============================================
   // Characters
   // ============================================
@@ -124,6 +139,16 @@ class DatabaseService {
   async saveCharacterImage(imageData) {
     if (!this.isReady()) throw new Error("Database not initialized");
     return await window.dmCopilot.db.characters.saveImage(imageData);
+  }
+
+  async getRecentCharacters(limit = 5) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.getRecent(limit);
+  }
+
+  async countCharacters() {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    return await window.dmCopilot.db.characters.count();
   }
 
   // ============================================

@@ -165,6 +165,16 @@ function setSceneEncounters(db, sceneId, encounterIds) {
   return true;
 }
 
+// ============================================
+// COUNT
+// ============================================
+function countScenesByCampaign(db, campaignId) {
+  const row = db
+    .prepare(`SELECT COUNT(*) as count FROM scenes WHERE campaign_id = ?`)
+    .get(campaignId);
+  return row.count;
+}
+
 module.exports = {
   createScene,
   getSceneById,
@@ -175,4 +185,5 @@ module.exports = {
   setSceneLinks,
   getSceneEncounters,
   setSceneEncounters,
+  countScenesByCampaign,
 };

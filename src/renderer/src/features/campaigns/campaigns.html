@@ -30,89 +30,168 @@
       <option value="Vampiro">Vampiro: A Máscara</option>
       <option value="Outro">Outro</option>
     </select>
+    <select id="campaign-sort" class="campaigns-toolbar__sort">
+      <option value="recent">Mais recente</option>
+      <option value="oldest">Mais antiga</option>
+      <option value="az">A &#x2192; Z</option>
+      <option value="za">Z &#x2192; A</option>
+    </select>
   </div>
 
   <div id="campaigns-list" class="campaigns-grid"></div>
 
-  <div id="campaigns-empty" class="empty-state hidden">
-    <div class="empty-state__icon"><i data-icon="scroll-text"></i></div>
-    <h2 class="empty-state__title">Nenhuma campanha encontrada</h2>
-    <p class="empty-state__text">
-      Crie sua primeira campanha para começar a organizar suas aventuras.
-    </p>
-    <button class="btn btn--primary btn--lg" id="btn-empty-new">
-      <i class="btn__icon" data-icon="plus"></i> Criar Primeira Campanha
+  <div id="campaigns-empty" class="campaigns-empty" hidden>
+    <span class="campaigns-empty__icon"><i data-icon="castle"></i></span>
+    <h3 class="campaigns-empty__title">Pronto pra começar uma nova aventura?</h3>
+    <p class="campaigns-empty__text">Crie sua primeira campanha e dê vida ao próximo mundo.</p>
+    <button class="btn btn--primary" id="btn-new-campaign-empty">
+      <i class="btn__icon" data-icon="plus"></i>
+      <span>Criar campanha</span>
     </button>
   </div>
 </div>
 
 <!-- Campaign Detail -->
-<div id="campaign-detail" class="campaign-detail hidden">
-  <button class="btn btn--ghost" id="btn-back-to-list">
-    <i class="btn__icon" data-icon="arrow-left"></i> Voltar para Campanhas
-  </button>
-  <div class="campaign-detail__header">
-    <h1 id="detail-name" class="campaign-detail__name"></h1>
-    <span id="detail-system" class="badge"></span>
-  </div>
-  <p id="detail-description" class="campaign-detail__desc"></p>
+<section id="campaign-detail" class="campaign-detail hidden">
+  <header class="campaign-detail__hero">
+    <img id="campaign-detail-cover" class="campaign-detail__cover" alt="" />
+    <div id="campaign-detail-cover-placeholder" class="campaign-detail__cover-placeholder">
+      <i data-icon="image"></i>
+    </div>
+    <div class="campaign-detail__hero-overlay"></div>
+    <button class="campaign-detail__back" id="btn-back-to-list" type="button" aria-label="Voltar">
+      <i data-icon="arrow-left"></i>
+      <span>Voltar</span>
+    </button>
+    <div class="campaign-detail__hero-content">
+      <span class="badge badge--primary" id="detail-system"></span>
+      <h1 class="campaign-detail__title" id="detail-name"></h1>
+    </div>
+    <div class="campaign-detail__hero-actions">
+      <button class="campaign-detail__hero-btn" id="btn-edit-campaign" type="button">
+        <i data-icon="pencil"></i>
+        <span>Editar</span>
+      </button>
+      <button class="campaign-detail__hero-btn campaign-detail__hero-btn--danger" id="btn-delete-campaign" type="button">
+        <i data-icon="trash-2"></i>
+        <span>Excluir</span>
+      </button>
+    </div>
+  </header>
+
   <div class="campaign-detail__meta">
-    <span id="detail-created" class="campaign-detail__meta-item">
-      <i class="campaign-detail__meta-icon" data-icon="calendar"></i> Criada em: —
-    </span>
-    <span id="detail-updated" class="campaign-detail__meta-item">
-      <i class="campaign-detail__meta-icon" data-icon="refresh-cw"></i> Atualizada em: —
-    </span>
-  </div>
-  <div class="campaign-detail__actions">
-    <button class="btn btn--primary" id="btn-edit-campaign">
-      <i class="btn__icon" data-icon="pencil"></i> Editar
-    </button>
-    <button class="btn btn--danger" id="btn-delete-campaign">
-      <i class="btn__icon" data-icon="trash-2"></i> Excluir
-    </button>
-  </div>
-  <div class="campaign-detail__sections">
-    <div class="section-header">
-      <h2 class="section-title">Personagens da Campanha</h2>
-      <div class="section-actions">
-        <span id="detail-char-count" class="badge badge--muted">0</span>
-        <button class="btn btn--secondary btn--sm" id="btn-add-char-to-campaign">
-          <i class="btn__icon" data-icon="plus"></i> Adicionar
-        </button>
+    <div class="stat-card">
+      <span class="stat-card__icon"><i data-icon="users"></i></span>
+      <div class="stat-card__body">
+        <span class="stat-card__value" id="detail-char-count">0</span>
+        <span class="stat-card__label">Personagens</span>
       </div>
     </div>
-    <div id="detail-characters-list" class="characters-grid mt-4"></div>
-    <div id="detail-characters-empty" class="text-center py-6 mt-4">
-      <p class="text-muted">Nenhum personagem vinculado a esta campanha.</p>
+    <div class="stat-card">
+      <span class="stat-card__icon"><i data-icon="swords"></i></span>
+      <div class="stat-card__body">
+        <span class="stat-card__value" id="detail-encounter-count">0</span>
+        <span class="stat-card__label">Encontros</span>
+      </div>
     </div>
+    <div class="stat-card">
+      <span class="stat-card__icon"><i data-icon="eye"></i></span>
+      <div class="stat-card__body">
+        <span class="stat-card__value" id="detail-scene-count">0</span>
+        <span class="stat-card__label">Cenas</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-card__icon"><i data-icon="clock"></i></span>
+      <div class="stat-card__body">
+        <span class="stat-card__value stat-card__value--small" id="detail-updated">—</span>
+        <span class="stat-card__label">Atualizada</span>
+      </div>
+    </div>
+  </div>
 
-    <div class="section-header mt-8">
-      <h2 class="section-title">Encontros</h2>
-      <div class="section-actions">
-        <span id="detail-encounter-count" class="badge badge--muted">0</span>
-        <button class="btn btn--secondary btn--sm" id="btn-add-encounter">
-          <i class="btn__icon" data-icon="plus"></i> Novo Encontro
-        </button>
-      </div>
-    </div>
-    <div id="detail-encounters-list" class="encounters-grid mt-4"></div>
-    <div id="detail-encounters-empty" class="text-center py-6 mt-4">
-      <p class="text-muted">Nenhum encontro criado para esta campanha.</p>
-    </div>
-
-    <div class="section-header mt-8">
-      <h2 class="section-title">Cenas</h2>
-      <div class="section-actions">
-        <span id="detail-scene-count" class="badge badge--muted">0</span>
-        <button class="btn btn--secondary btn--sm" id="btn-add-scene">
-          <i class="btn__icon" data-icon="plus"></i> Nova Cena
-        </button>
-      </div>
-    </div>
-    <div id="detail-scenes-list" class="encounters-grid mt-4"></div>
-    <div id="detail-scenes-empty" class="text-center py-6 mt-4">
-      <p class="text-muted">Nenhuma cena criada para esta campanha.</p>
-    </div>
+  <div class="campaign-detail__description">
+    <h2 class="campaign-detail__section-title">
+      <i data-icon="book-open"></i>
+      <span>Descrição</span>
+    </h2>
+    <p class="campaign-detail__description-text" id="detail-description"></p>
+    <p class="campaign-detail__description-empty" id="detail-description-empty" hidden>
+      Esta campanha ainda não tem uma descrição. Adicione uma na hora de editar.
+    </p>
+    <p class="campaign-detail__created" id="detail-created"></p>
   </div>
-</div>
+
+  <!-- Sub-sections: Personagens, Encontros, Cenas -->
+  <section class="campaign-detail__subsection">
+    <header class="campaign-detail__subsection-header">
+      <h2 class="campaign-detail__section-title">
+        <span class="campaign-detail__section-icon"><i data-icon="users"></i></span>
+        <span>Personagens</span>
+        <span class="campaign-detail__section-count" id="detail-char-count-badge">0 personagens</span>
+      </h2>
+      <button class="btn btn--secondary" id="btn-add-char-to-campaign" type="button">
+        <i class="btn__icon" data-icon="plus"></i>
+        <span>Adicionar</span>
+      </button>
+    </header>
+    <div class="campaign-detail__subsection-grid" id="detail-characters-list"></div>
+    <div class="campaign-detail__subsection-empty" id="detail-characters-empty" hidden>
+      <span class="campaign-detail__subsection-empty__icon"><i data-icon="users"></i></span>
+      <h3 class="campaign-detail__subsection-empty__title">Nenhum personagem vinculado</h3>
+      <p class="campaign-detail__subsection-empty__text">Vincule personagens existentes ou crie um novo para esta campanha.</p>
+      <button class="btn btn--primary" data-action="add-char-empty" type="button">
+        <i class="btn__icon" data-icon="plus"></i>
+        <span>Adicionar personagem</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="campaign-detail__subsection">
+    <header class="campaign-detail__subsection-header">
+      <h2 class="campaign-detail__section-title">
+        <span class="campaign-detail__section-icon"><i data-icon="eye"></i></span>
+        <span>Cenas</span>
+        <span class="campaign-detail__section-count" id="detail-scene-count-badge">0 cenas</span>
+      </h2>
+      <button class="btn btn--secondary" id="btn-add-scene" type="button">
+        <i class="btn__icon" data-icon="plus"></i>
+        <span>Adicionar</span>
+      </button>
+    </header>
+    <div class="campaign-detail__subsection-grid" id="detail-scenes-list"></div>
+    <div class="campaign-detail__subsection-empty" id="detail-scenes-empty" hidden>
+      <span class="campaign-detail__subsection-empty__icon"><i data-icon="eye"></i></span>
+      <h3 class="campaign-detail__subsection-empty__title">Nenhuma cena criada ainda</h3>
+      <p class="campaign-detail__subsection-empty__text">Crie cenas pra apresentar aos jogadores e ambientar suas sessões.</p>
+      <button class="btn btn--primary" data-action="add-scene-empty" type="button">
+        <i class="btn__icon" data-icon="plus"></i>
+        <span>Criar cena</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="campaign-detail__subsection">
+    <header class="campaign-detail__subsection-header">
+      <h2 class="campaign-detail__section-title">
+        <span class="campaign-detail__section-icon"><i data-icon="swords"></i></span>
+        <span>Encontros</span>
+        <span class="campaign-detail__section-count" id="detail-encounter-count-badge">0 encontros</span>
+      </h2>
+      <button class="btn btn--secondary" id="btn-add-encounter" type="button">
+        <i class="btn__icon" data-icon="plus"></i>
+        <span>Adicionar</span>
+      </button>
+    </header>
+    <div class="campaign-detail__subsection-grid" id="detail-encounters-list"></div>
+    <div class="campaign-detail__subsection-empty" id="detail-encounters-empty" hidden>
+      <span class="campaign-detail__subsection-empty__icon"><i data-icon="swords"></i></span>
+      <h3 class="campaign-detail__subsection-empty__title">Nenhum encontro montado</h3>
+      <p class="campaign-detail__subsection-empty__text">Monte combates, prepare iniciativa e gerencie criaturas em uma sessão.</p>
+      <button class="btn btn--primary" data-action="add-encounter-empty" type="button">
+        <i class="btn__icon" data-icon="plus"></i>
+        <span>Criar encontro</span>
+      </button>
+    </div>
+  </section>
+</section>
