@@ -29,9 +29,8 @@
     <!-- Encounter Detail View (Manager) — usado pela feature Campaigns -->
     <div id="encounter-detail-view" class="overlay-view hidden">
       <div class="overlay-view__header encounter-manager__header">
-        <button class="btn-icon overlay-view__back" id="btn-close-encounter-detail" title="Voltar">
+        <button class="btn-icon overlay-view__back" id="btn-close-encounter-detail" title="Voltar" aria-label="Voltar">
           <i data-icon="arrow-left"></i>
-          <span>Voltar</span>
         </button>
 
         <div id="last-roll-display" class="last-roll-display hidden">
@@ -41,7 +40,12 @@
         </div>
 
         <div class="encounter-manager__title-group">
-          <h2 class="encounter-manager__title" id="view-encounter-name">Nome do Encontro</h2>
+          <div class="encounter-manager__title-row">
+            <h2 class="encounter-manager__title" id="view-encounter-name">Nome do Encontro</h2>
+            <button class="btn-icon" id="btn-edit-encounter-current" type="button" aria-label="Editar encontro">
+              <i data-icon="pencil"></i>
+            </button>
+          </div>
           <div class="encounter-manager__meta">
             <span id="view-encounter-difficulty" class="encounter-manager__difficulty badge badge--gold">Médio</span>
             <span id="view-encounter-location" class="encounter-manager__location text-secondary text-xs">
@@ -140,11 +144,38 @@
 
       <div class="encounter-manager">
         <div class="combat-controls" id="combat-controls">
-          <!-- Grupo 1: controles de turno -->
-          <div class="combat-controls__group">
-            <button class="btn btn--primary" id="btn-start-combat">
-              <i class="btn__icon" data-icon="swords"></i> Iniciar Encontro
+          <!-- Grupo esquerdo: iniciativas (visíveis durante a fase de iniciativa) -->
+          <div class="combat-controls__group" id="combat-initiative-actions">
+            <button
+              class="combat-action-icon-btn combat-action-icon-btn--ally"
+              id="btn-roll-all-ally-initiative"
+              type="button"
+              aria-label="Rolar iniciativa de aliados"
+            >
+              <span class="combat-action-icon-btn__icon-stack">
+                <i data-icon="dices"></i>
+                <i data-icon="zap" class="combat-action-icon-btn__icon-overlay"></i>
+              </span>
+              <span class="combat-action-icon-btn__label">Iniciativa: Aliados</span>
             </button>
+            <button
+              class="combat-action-icon-btn combat-action-icon-btn--enemy"
+              id="btn-roll-all-npc-initiative"
+              type="button"
+              aria-label="Rolar iniciativa de inimigos e neutros"
+            >
+              <span class="combat-action-icon-btn__icon-stack">
+                <i data-icon="dices"></i>
+                <i data-icon="zap" class="combat-action-icon-btn__icon-overlay"></i>
+              </span>
+              <span class="combat-action-icon-btn__label">Iniciativa: Inimigos</span>
+            </button>
+          </div>
+
+          <div class="combat-controls__divider"></div>
+
+          <!-- Grupo central: controles de turno -->
+          <div class="combat-controls__group">
             <button class="btn btn--secondary hidden" id="btn-prev-turn">
               <i class="btn__icon" data-icon="arrow-left"></i> Turno Anterior
             </button>
@@ -156,51 +187,56 @@
             </button>
           </div>
 
-          <div class="combat-controls__divider"></div>
+          <!-- Grupo direito: ações principais + round counter -->
+          <div class="combat-controls__group combat-controls__group--right">
+            <!-- Round counter (hidden until combat starts) -->
+            <div class="combat-controls__round-group hidden" id="combat-round-display">
+              <div class="combat-controls__round" id="combat-round-counter-wrap">
+                <i data-icon="crown" class="combat-controls__round-icon"></i>
+                <span class="combat-controls__round-label">Rodada</span>
+                <span class="combat-controls__round-value" id="current-round-number">1</span>
+              </div>
+            </div>
 
-          <!-- Grupo 2: gerenciamento -->
-          <div class="combat-controls__group">
-            <button class="btn btn--secondary btn--sm" id="btn-add-participant-main">
-              <i class="btn__icon" data-icon="plus"></i> Add
-            </button>
-            <button class="btn btn--secondary btn--sm" id="btn-edit-encounter-current">
-              <i class="btn__icon" data-icon="pencil"></i> Editar
-            </button>
-            <div
-              id="combat-server-link"
-              class="combat-server-link hidden"
-              title="Clique para copiar"
+            <div class="combat-controls__divider"></div>
+
+            <!-- Link do jogador -->
+            <button
+              class="combat-action-icon-btn combat-action-icon-btn--accent"
+              id="btn-open-player-link"
+              type="button"
+              aria-label="Abrir link do jogador"
+              hidden
             >
-              Link: <span id="player-link-text" class="player-link-copyable"></span>
-            </div>
-          </div>
+              <i data-icon="external-link"></i>
+              <span class="combat-action-icon-btn__label">Abrir Link do Jogador</span>
+            </button>
 
-          <!-- Grupo 3: round counter (divider oculto via CSS quando o grupo está hidden) -->
-          <div class="combat-controls__group combat-controls__round-group hidden" id="combat-round-display">
-            <div class="combat-controls__round" id="combat-round-counter-wrap">
-              <i data-icon="crown" class="combat-controls__round-icon"></i>
-              <span class="combat-controls__round-label">Rodada</span>
-              <span class="combat-controls__round-value" id="current-round-number">1</span>
-            </div>
+            <!-- Adicionar participante -->
+            <button
+              class="combat-action-icon-btn combat-action-icon-btn--accent"
+              id="btn-add-participant-main"
+              type="button"
+              aria-label="Adicionar participante"
+            >
+              <i data-icon="user-plus"></i>
+              <span class="combat-action-icon-btn__label">Adicionar Personagem</span>
+            </button>
+
+            <!-- Iniciar Encontro -->
+            <button
+              class="combat-action-icon-btn combat-action-icon-btn--success"
+              id="btn-start-combat"
+              type="button"
+              aria-label="Iniciar encontro"
+            >
+              <i data-icon="play"></i>
+              <span class="combat-action-icon-btn__label">Iniciar Encontro</span>
+            </button>
           </div>
         </div>
 
         <div id="combat-arena" class="combat-arena hidden">
-          <div class="combat-arena__initiative-bar hidden" id="combat-initiative-bar">
-            <span class="combat-arena__initiative-hint initiative-bar__hint" id="initiative-bar-hint">
-              <i data-icon="info"></i>
-              <span>Defina a iniciativa de cada participante para começar.</span>
-            </span>
-            <div class="combat-arena__initiative-actions initiative-bar__actions">
-              <button class="btn btn--secondary" id="btn-roll-all-npc-initiative">
-                <i class="btn__icon" data-icon="dices"></i> Rolar Iniciativa de Inimigos &amp;
-                Neutros
-              </button>
-              <button class="btn btn--secondary" id="btn-roll-all-ally-initiative">
-                <i class="btn__icon" data-icon="dices"></i> Rolar Iniciativa dos Aliados Restantes
-              </button>
-            </div>
-          </div>
           <div class="combat-arena__banners" id="combat-banners"></div>
         </div>
 

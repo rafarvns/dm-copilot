@@ -35,14 +35,11 @@ export default class EncounterCombatView {
       btnEnd: document.getElementById("btn-end-combat"),
       btnNext: document.getElementById("btn-next-turn"),
       btnPrev: document.getElementById("btn-prev-turn"),
-      serverLink: document.getElementById("combat-server-link"),
-      linkText: document.getElementById("player-link-text"),
+      btnOpenPlayerLink: document.getElementById("btn-open-player-link"),
       roundDisplay: document.getElementById("combat-round-display"),
       roundNumber: document.getElementById("current-round-number"),
 
-      // Initiative phase bar
-      initiativeBar: document.getElementById("combat-initiative-bar"),
-      initiativeBarHint: document.getElementById("initiative-bar-hint"),
+      // Initiative buttons (now in combat-controls, no separate bar)
       btnRollAllNpcInit: document.getElementById("btn-roll-all-npc-initiative"),
       btnRollAllAllyInit: document.getElementById("btn-roll-all-ally-initiative"),
 
@@ -81,25 +78,31 @@ export default class EncounterCombatView {
       });
     }
 
-    // Click to copy link
-    this.DOM.linkText?.addEventListener("click", () => {
-      const text = this.DOM.linkText.textContent;
-      if (text) {
-        navigator.clipboard.writeText(text).then(() => {
-          showToast("Link copiado para o clipboard!");
-        });
+    // Open player link in external browser
+    this.DOM.btnOpenPlayerLink?.addEventListener("click", () => {
+      const url = this.DOM.btnOpenPlayerLink.dataset.url;
+      if (url && window.dmCopilot?.openExternal) {
+        window.dmCopilot.openExternal(url);
       }
     });
 
-    // Show server link immediately (server auto-starts with the app)
+    // Resolve server URL on boot so the link button is ready before combat starts
     if (window.dmCopilot?.combat) {
       window.dmCopilot.combat
         .getInfo()
         .then(({ ip, port }) => {
-          if (this.DOM.linkText) this.DOM.linkText.textContent = `http://${ip}:${port}`;
-          this.DOM.serverLink?.classList.remove("hidden");
+          this._setPlayerLinkUrl(`http://${ip}:${port}`);
         })
         .catch(() => {});
+    }
+  }
+
+  _setPlayerLinkUrl(url) {
+    if (!url) return;
+    this._playerLinkUrl = url;
+    if (this.DOM.btnOpenPlayerLink) {
+      this.DOM.btnOpenPlayerLink.dataset.url = url;
+      this.DOM.btnOpenPlayerLink.removeAttribute("hidden");
     }
   }
 
@@ -152,8 +155,7 @@ export default class EncounterCombatView {
 
     try {
       const { ip, port } = await window.dmCopilot.combat.getInfo();
-      this.DOM.linkText.textContent = `http://${ip}:${port}`;
-      this.DOM.serverLink.classList.remove("hidden");
+      this._setPlayerLinkUrl(`http://${ip}:${port}`);
     } catch (err) {
       console.error("Failed to get combat server info:", err);
     }
@@ -642,23 +644,22 @@ export default class EncounterCombatView {
   }
 
   updateInitiativePhaseUI() {
-    if (!this.DOM.initiativeBar) return;
-
     if (!this.isActive) {
-      this.DOM.initiativeBar.classList.add("hidden");
       this.DOM.btnNext?.classList.remove("hidden");
       this.DOM.btnPrev?.classList.remove("hidden");
       return;
     }
 
     if (this.initiativeLocked) {
-      this.DOM.initiativeBar.classList.add("hidden");
+      // Initiatives locked — show turn controls, disable initiative buttons
       this.DOM.btnNext?.classList.remove("hidden");
       this.DOM.btnPrev?.classList.remove("hidden");
+      if (this.DOM.btnRollAllNpcInit) this.DOM.btnRollAllNpcInit.disabled = true;
+      if (this.DOM.btnRollAllAllyInit) this.DOM.btnRollAllAllyInit.disabled = true;
       return;
     }
 
-    // Em fase de iniciativa: mostra a barra e esconde os controles de turno
+    // Initiative phase: hide turn controls, enable/disable initiative buttons
     const pendingNpcs = this.participants.filter(
       (p) =>
         (p.affinity === "enemy" || p.affinity === "neutral") &&
@@ -668,23 +669,11 @@ export default class EncounterCombatView {
       (p) => p.affinity === "ally" && (p.initiative === null || p.initiative === undefined)
     ).length;
 
-    this.DOM.initiativeBar.classList.remove("hidden");
     if (this.DOM.btnRollAllNpcInit) {
       this.DOM.btnRollAllNpcInit.disabled = pendingNpcs === 0;
     }
     if (this.DOM.btnRollAllAllyInit) {
       this.DOM.btnRollAllAllyInit.disabled = pendingAllies === 0;
-    }
-    if (this.DOM.initiativeBarHint) {
-      if (pendingNpcs > 0 && pendingAllies > 0) {
-        this.DOM.initiativeBarHint.textContent = `Faltam ${pendingNpcs} NPC(s) e ${pendingAllies} jogador(es) para definir iniciativa.`;
-      } else if (pendingNpcs > 0) {
-        this.DOM.initiativeBarHint.textContent = `Falta(m) ${pendingNpcs} NPC(s) para rolar iniciativa.`;
-      } else if (pendingAllies > 0) {
-        this.DOM.initiativeBarHint.textContent = `Aguardando iniciativa dos jogadores (${pendingAllies}).`;
-      } else {
-        this.DOM.initiativeBarHint.textContent = "Pronto para iniciar os turnos!";
-      }
     }
     this.DOM.btnNext?.classList.add("hidden");
     this.DOM.btnPrev?.classList.add("hidden");
@@ -977,7 +966,8 @@ export default class EncounterCombatView {
     this.DOM.btnPrev?.classList.add("hidden");
     this.DOM.roundDisplay?.classList.add("hidden");
     this.DOM.arena?.classList.add("hidden");
-    this.DOM.initiativeBar?.classList.add("hidden");
+    if (this.DOM.btnRollAllNpcInit) this.DOM.btnRollAllNpcInit.disabled = false;
+    if (this.DOM.btnRollAllAllyInit) this.DOM.btnRollAllAllyInit.disabled = false;
     if (this.DOM.banners) this.DOM.banners.innerHTML = "";
   }
 
@@ -1051,8 +1041,7 @@ export default class EncounterCombatView {
 
     try {
       const { ip, port } = await window.dmCopilot.combat.getInfo();
-      if (this.DOM.linkText) this.DOM.linkText.textContent = `http://${ip}:${port}`;
-      this.DOM.serverLink?.classList.remove("hidden");
+      this._setPlayerLinkUrl(`http://${ip}:${port}`);
     } catch (err) {
       console.warn("Resume: falha ao carregar info do servidor:", err);
     }

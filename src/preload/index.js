@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld("dmCopilot", {
   // --- Versão do App ---
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
 
+  // --- URLs Externas ---
+  openExternal: (url) => ipcRenderer.invoke("app-open-external", url),
+
   // --- Database ---
   db: {
     init: () => ipcRenderer.invoke("db-init"),

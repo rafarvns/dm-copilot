@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, protocol } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, dialog, protocol, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
@@ -471,6 +471,19 @@ function createWindow() {
 // ============================================
 ipcMain.handle("get-app-version", () => {
   return app.getVersion();
+});
+
+ipcMain.handle("app-open-external", async (_event, url) => {
+  try {
+    const safe = String(url || "").trim();
+    if (!safe.startsWith("http://") && !safe.startsWith("https://")) {
+      return { success: false, error: "URL inválida" };
+    }
+    await shell.openExternal(safe);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
 ipcMain.handle("app-save-encounter-image", async (_event, imageData) => {
