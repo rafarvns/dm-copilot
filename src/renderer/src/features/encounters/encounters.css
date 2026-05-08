@@ -552,7 +552,7 @@
 /* ===== Combat Execution ===== */
 
 .combat-controls {
-  background: rgba(255, 255, 255, 0.02);
+  background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-2) var(--space-4);
@@ -609,7 +609,7 @@
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-accent-gold);
   border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--color-accent-gold) 10%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent-gold) 10%, var(--color-bg));
 }
 
 .combat-controls__round-icon {
@@ -627,7 +627,7 @@
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-text-muted);
+  color: var(--color-accent-gold);
 }
 
 .combat-controls__round-value {
@@ -652,16 +652,16 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: var(--space-6);
   min-height: 350px;
   width: 100%;
-  padding: var(--space-4);
+  padding: var(--space-10) var(--space-6);
   overflow-y: auto;
 }
 
 .combat-banner {
   flex: 0 0 160px;
-  height: 360px;
+  height: 400px;
   background: var(--color-surface);
   border: 2px solid transparent;
   border-radius: var(--radius-lg);
@@ -746,34 +746,75 @@
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-rose) 50%, transparent);
 }
 
-@keyframes combat-banner-active-glow {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 3px var(--color-accent-gold),
-      0 0 32px color-mix(in srgb, var(--color-accent-gold) 50%, transparent);
+@keyframes combat-banner-active-pulse {
+  0% {
+    transform: scale(1.15) translateZ(60px);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 40%, transparent);
   }
   50% {
-    box-shadow:
-      0 0 0 3px var(--color-accent-gold),
-      0 0 48px color-mix(in srgb, var(--color-accent-gold) 70%, transparent);
+    transform: scale(1.18) translateZ(70px);
+    box-shadow: 0 0 50px color-mix(in srgb, var(--color-primary) 80%, transparent);
+    border-color: #fff;
+  }
+  100% {
+    transform: scale(1.15) translateZ(60px);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 40%, transparent);
   }
 }
 
 .combat-banner--active {
-  transform: scale(1.04);
-  border-color: var(--color-accent-gold);
+  border-color: var(--color-primary);
   z-index: 10;
-  box-shadow:
-    0 0 0 3px var(--color-accent-gold),
-    0 0 32px color-mix(in srgb, var(--color-accent-gold) 50%, transparent);
-  animation: combat-banner-active-glow 2.4s ease-in-out infinite;
+  animation: combat-banner-active-pulse 1.75s infinite ease-in-out;
 }
 
 .combat-banner--acted {
   opacity: 0.4;
   filter: grayscale(0.9);
   transform: scale(0.9);
+}
+
+/* --- Inline editable fields (input com aparência de label) --- */
+.combat-banner__field {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  width: 100%;
+  cursor: text;
+  border-radius: 2px;
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.combat-banner__field:hover:not(:focus) {
+  background-color: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.combat-banner__field:focus {
+  background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  box-shadow: inset 0 -1px 0 var(--color-primary-light);
+}
+
+.combat-banner__field[type="number"]::-webkit-inner-spin-button,
+.combat-banner__field[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.combat-banner__field[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.combat-banner__hp-num,
+.combat-banner__ca-num {
+  width: 3ch;
+  text-align: center;
 }
 
 /* --- Death Saves --- */
@@ -908,7 +949,7 @@
   gap: 8px;
   justify-content: center;
   align-items: center;
-  font-size: 0.78rem;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
   margin-top: 4px;
 }
@@ -1008,6 +1049,20 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
+/* Quando o input de iniciativa também é um inline field, fica com aparência de label */
+.initiative-input.combat-banner__field {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 6px;
+}
+
+.initiative-input.combat-banner__field:focus {
+  background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  border: none;
+  box-shadow: inset 0 -1px 0 var(--color-primary-light);
+}
+
 .initiative-roll-btn {
   padding: 4px 8px;
   font-size: 1rem;
@@ -1044,7 +1099,7 @@
   justify-content: center;
 }
 
-.combat-action-icon-btn:hover {
+.combat-action-icon-btn:hover:not(:disabled) {
   width: auto;
   padding: 0 var(--space-3);
   gap: var(--space-2);
@@ -1069,7 +1124,7 @@
     opacity var(--transition-fast);
 }
 
-.combat-action-icon-btn:hover .combat-action-icon-btn__label {
+.combat-action-icon-btn:hover:not(:disabled) .combat-action-icon-btn__label {
   max-width: 200px;
   opacity: 1;
 }
@@ -1112,7 +1167,7 @@
   color: white;
 }
 
-.combat-action-icon-btn--success:hover {
+.combat-action-icon-btn--success:hover:not(:disabled) {
   background-color: color-mix(in srgb, var(--color-accent-emerald) 80%, black);
   border-color: color-mix(in srgb, var(--color-accent-emerald) 80%, black);
 }
@@ -1124,7 +1179,7 @@
   color: var(--color-primary-light);
 }
 
-.combat-action-icon-btn--accent:hover {
+.combat-action-icon-btn--accent:hover:not(:disabled) {
   background-color: color-mix(in srgb, var(--color-primary) 25%, transparent);
   border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
@@ -1136,7 +1191,7 @@
   color: var(--color-ally-fg);
 }
 
-.combat-action-icon-btn--ally:hover {
+.combat-action-icon-btn--ally:hover:not(:disabled) {
   background-color: color-mix(in srgb, var(--color-ally) 28%, transparent);
 }
 
@@ -1147,8 +1202,19 @@
   color: var(--color-enemy-fg);
 }
 
-.combat-action-icon-btn--enemy:hover {
+.combat-action-icon-btn--enemy:hover:not(:disabled) {
   background-color: color-mix(in srgb, var(--color-enemy) 28%, transparent);
+}
+
+/* Variant: danger (Finalizar Encontro) */
+.combat-action-icon-btn--danger {
+  background-color: color-mix(in srgb, var(--color-accent-rose) 18%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent-rose) 40%, transparent);
+  color: var(--color-accent-rose);
+}
+
+.combat-action-icon-btn--danger:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-accent-rose) 28%, transparent);
 }
 
 /* --- Encounter Background Picker (modal) --- */
@@ -1723,4 +1789,186 @@
 .encounter-manager__location .icon {
   width: 14px;
   height: 14px;
+}
+
+/* ===== Quick Edit Modal Form ===== */
+.quick-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.quick-edit-form__row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.quick-edit-form__row--header {
+  align-items: stretch;
+}
+
+.quick-edit-form__row--stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.quick-edit-form__image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.quick-edit-form__image img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+}
+
+.quick-edit-form__name-label {
+  flex: 1;
+}
+
+.quick-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.quick-edit-form label input[type="text"],
+.quick-edit-form label input[type="number"] {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.quick-edit-form label input[type="text"]:focus,
+.quick-edit-form label input[type="number"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.quick-edit-form__affinity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.quick-edit-form__affinity legend {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0;
+}
+
+.quick-edit-form__affinity > div,
+.quick-edit-form__affinity {
+  display: flex;
+}
+
+.quick-edit-form__affinity {
+  flex-direction: column;
+}
+
+.quick-edit-form__affinity > label {
+  display: none;
+}
+
+.quick-edit-form__affinity {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.quick-edit-form__affinity > label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: none;
+  letter-spacing: normal;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.quick-edit-form__affinity > label > input[type="radio"] {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: transparent;
+  margin: 0;
+  cursor: pointer;
+}
+
+.quick-edit-form__affinity > label > input[type="radio"]:checked {
+  background: currentColor;
+  box-shadow: inset 0 0 0 2px var(--color-surface);
+}
+
+.quick-edit-form__affinity > label:has(input[value="ally"]:checked) {
+  border-color: var(--color-ally);
+  color: var(--color-ally-fg);
+  background: color-mix(in srgb, var(--color-ally) 18%, transparent);
+}
+
+.quick-edit-form__affinity > label:has(input[value="neutral"]:checked) {
+  border-color: var(--color-neutral);
+  color: var(--color-neutral-fg);
+  background: color-mix(in srgb, var(--color-neutral) 18%, transparent);
+}
+
+.quick-edit-form__affinity > label:has(input[value="enemy"]:checked) {
+  border-color: var(--color-enemy);
+  color: var(--color-enemy-fg);
+  background: color-mix(in srgb, var(--color-enemy) 18%, transparent);
+}
+
+.quick-edit-form__resets {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.quick-edit-form__resets .btn {
+  flex: 1;
 }

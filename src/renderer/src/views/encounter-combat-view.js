@@ -5,7 +5,7 @@
 
 import { showToast } from "../core/toast.js";
 import { icon } from "../core/icons.js";
-import { truncate, escapeHtml } from "../core/format.js";
+import { escapeHtml } from "../core/format.js";
 import {
   resolveEffectiveVisibility,
   applyVisibilityToParticipant,
@@ -58,6 +58,22 @@ export default class EncounterCombatView {
         neutrals: document.getElementById("section-neutrals"),
         enemies: document.getElementById("section-enemies"),
       },
+
+      // Quick Edit Modal
+      quickEditModal: document.getElementById("modal-quick-edit"),
+      quickEditOverlay: document.getElementById("quick-edit-modal-overlay"),
+      quickEditClose: document.getElementById("btn-close-quick-edit"),
+      quickEditCancel: document.getElementById("btn-cancel-quick-edit"),
+      quickEditSave: document.getElementById("btn-save-quick-edit"),
+      quickEditPickImage: document.getElementById("btn-quick-edit-pick-image"),
+      quickEditResetActed: document.getElementById("btn-quick-edit-reset-acted"),
+      quickEditResetSaves: document.getElementById("btn-quick-edit-reset-saves"),
+      quickEditImagePreview: document.getElementById("quick-edit-image-preview"),
+      quickEditName: document.getElementById("quick-edit-name"),
+      quickEditCurrentHp: document.getElementById("quick-edit-current-hp"),
+      quickEditHp: document.getElementById("quick-edit-hp"),
+      quickEditCa: document.getElementById("quick-edit-ca"),
+      quickEditInitiative: document.getElementById("quick-edit-initiative"),
     };
   }
 
@@ -95,6 +111,21 @@ export default class EncounterCombatView {
         })
         .catch(() => {});
     }
+
+    // Modal Edição Rápida — listeners
+    this.DOM.banners.addEventListener("dblclick", (e) => {
+      const banner = e.target.closest(".combat-banner");
+      if (!banner) return;
+      if (e.target.closest("input, button, .death-save-marker")) return;
+      this.openQuickEditModal(banner.dataset.id);
+    });
+    this.DOM.quickEditOverlay?.addEventListener("click", () => this.closeQuickEditModal());
+    this.DOM.quickEditClose?.addEventListener("click", () => this.closeQuickEditModal());
+    this.DOM.quickEditCancel?.addEventListener("click", () => this.closeQuickEditModal());
+    this.DOM.quickEditSave?.addEventListener("click", () => this.saveQuickEdit());
+    this.DOM.quickEditPickImage?.addEventListener("click", () => this.pickImageForQuickEdit());
+    this.DOM.quickEditResetActed?.addEventListener("click", () => this.handleQuickEditResetActed());
+    this.DOM.quickEditResetSaves?.addEventListener("click", () => this.handleQuickEditResetSaves());
   }
 
   _setPlayerLinkUrl(url) {
@@ -413,8 +444,8 @@ export default class EncounterCombatView {
         const initiativeHtml = !this.initiativeLocked
           ? `
           <div class="combat-banner__initiative-edit" data-id="${p.id}">
-            <input type="number" class="initiative-input" placeholder="—"
-                   data-id="${p.id}" min="0" max="40" step="1" value="${initValue}" />
+            <input type="number" class="initiative-input combat-banner__field" placeholder="—"
+                   data-id="${p.id}" data-field="initiative" min="0" max="40" step="1" value="${initValue}" />
             <button class="btn btn--icon-only btn--sm initiative-roll-btn"
                     data-id="${p.id}" title="Rolar d20">
               ${icon("dices")}
@@ -427,10 +458,18 @@ export default class EncounterCombatView {
         const hasCa = p.ca != null;
         const hpLow = hasHp && p.hp > 0 && p.current_hp / p.hp <= 0.25;
         const hpHtml = hasHp
-          ? `<span class="combat-banner__hp ${hpLow ? "combat-banner__hp--low" : ""}"><span class="combat-banner__hp-icon">${icon("heart")}</span> ${p.current_hp}/${p.hp}</span>`
+          ? `<span class="combat-banner__hp ${hpLow ? "combat-banner__hp--low" : ""}">
+  <span class="combat-banner__hp-icon">${icon("heart")}</span>
+  <input class="combat-banner__hp-num combat-banner__field" data-id="${p.id}" data-field="current_hp" type="number" min="0" value="${p.current_hp}" />
+  <span>/</span>
+  <input class="combat-banner__hp-num combat-banner__field" data-id="${p.id}" data-field="hp" type="number" min="0" value="${p.hp}" />
+</span>`
           : "";
         const caHtml = hasCa
-          ? `<span class="combat-banner__ca"><span class="combat-banner__ca-icon">${icon("shield")}</span> ${p.ca}</span>`
+          ? `<span class="combat-banner__ca">
+  <span class="combat-banner__ca-icon">${icon("shield")}</span>
+  <input class="combat-banner__ca-num combat-banner__field" data-id="${p.id}" data-field="ca" type="number" min="0" max="40" value="${p.ca}" />
+</span>`
           : "";
         const statsHtml =
           hasHp || hasCa ? `<div class="combat-banner__stats">${hpHtml}${caHtml}</div>` : "";
@@ -448,7 +487,7 @@ export default class EncounterCombatView {
           `
               : ""
           }
-          <div class="combat-banner__name" title="${escapeHtml(p.name)}">${escapeHtml(truncate(p.name, 24))}</div>
+          <input class="combat-banner__name combat-banner__field" data-id="${p.id}" data-field="name" value="${escapeHtml(p.name)}" maxlength="40" title="${escapeHtml(p.name)}" />
           ${statsHtml}
           ${savesHtml}
           <div class="combat-banner__actions">
@@ -509,20 +548,39 @@ export default class EncounterCombatView {
       });
     });
 
-    // Bind initiative inputs (Enter confirms manual value)
-    this.DOM.banners.querySelectorAll(".initiative-input").forEach((input) => {
+    // Bind inline edit fields (delegated commit on Enter/blur)
+    this.DOM.banners.querySelectorAll(".combat-banner__field").forEach((input) => {
       const commit = () => {
-        if (input.value === "") return;
-        const raw = parseInt(input.value, 10);
-        if (Number.isNaN(raw)) return;
-        const p = this.participants.find((x) => x.id === input.dataset.id);
-        if (p && p.initiative === raw) return; // valor inalterado, evita re-render
-        this.setManualInitiative(input.dataset.id, raw);
+        if (input.dataset.field === "initiative") {
+          // mantém o caminho legado da iniciativa
+          if (input.value === "") return;
+          const raw = parseInt(input.value, 10);
+          if (Number.isNaN(raw)) return;
+          const p = this.participants.find((x) => x.id === input.dataset.id);
+          if (p && p.initiative === raw) return;
+          this.setManualInitiative(input.dataset.id, raw);
+          return;
+        }
+        this.commitInlineEdit(input.dataset.id, input.dataset.field, input.value);
       };
-      input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") commit();
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          input.blur();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          // restaura valor original (não commita) e tira foco
+          const p = this.participants.find((x) => x.id === input.dataset.id);
+          if (p) {
+            const f = input.dataset.field;
+            input.value = f === "name" ? (p.name ?? "") : (p[f] ?? "");
+          }
+          input.blur();
+        }
       });
       input.addEventListener("blur", commit);
+      input.addEventListener("click", (e) => e.stopPropagation());
+      input.addEventListener("dblclick", (e) => e.stopPropagation());
     });
 
     // Bind individual roll buttons (rolls a single d20 with 3D animation)
@@ -708,6 +766,38 @@ export default class EncounterCombatView {
     this.updateInitiativePhaseUI();
     this.broadcastState();
     this.maybeLockAfterRoll();
+  }
+
+  commitInlineEdit(id, field, raw) {
+    const p = this.participants.find((x) => x.id === id);
+    if (!p) return;
+
+    let value;
+    if (field === "name") {
+      value = (raw ?? "").toString().trim().slice(0, 40);
+      if (!value) return; // não aceita nome vazio
+    } else if (field === "current_hp" || field === "hp" || field === "ca") {
+      if (raw === "" || raw == null) return;
+      const n = parseInt(raw, 10);
+      if (Number.isNaN(n) || n < 0) return;
+      value = n;
+      if (field === "current_hp" && p.hp != null) value = Math.min(value, p.hp);
+      if (field === "hp") {
+        // se reduzir o máximo abaixo do current, ajusta current também
+        if (p.current_hp != null && p.current_hp > value) p.current_hp = value;
+      }
+      if (field === "ca") value = Math.min(40, value);
+    } else {
+      return;
+    }
+
+    if (p[field] === value) return;
+    p[field] = value;
+
+    this.broadcastState();
+    this.updateDB();
+    // re-render diferido pra não quebrar o blur em andamento
+    setTimeout(() => this.renderBanners(), 0);
   }
 
   async rollSingleInitiative(id) {
@@ -1104,5 +1194,153 @@ export default class EncounterCombatView {
 
     this.broadcastState();
     this.updateDB();
+  }
+
+  openQuickEditModal(id) {
+    const p = this.participants.find((x) => x.id === id);
+    if (!p) return;
+    this.editingParticipantId = id;
+    this.editingImageBuffer = p.image ?? null;
+    if (this.DOM.quickEditName) this.DOM.quickEditName.value = p.name ?? "";
+    if (this.DOM.quickEditCurrentHp) this.DOM.quickEditCurrentHp.value = p.current_hp ?? "";
+    if (this.DOM.quickEditHp) this.DOM.quickEditHp.value = p.hp ?? "";
+    if (this.DOM.quickEditCa) this.DOM.quickEditCa.value = p.ca ?? "";
+    if (this.DOM.quickEditInitiative) this.DOM.quickEditInitiative.value = p.initiative ?? "";
+    if (this.DOM.quickEditImagePreview) {
+      this.DOM.quickEditImagePreview.src = p.image || "";
+      this.DOM.quickEditImagePreview.style.visibility = p.image ? "visible" : "hidden";
+    }
+    document
+      .querySelectorAll('input[name="quick-edit-affinity"]')
+      .forEach((r) => (r.checked = r.value === p.affinity));
+    this.DOM.quickEditModal?.classList.remove("hidden");
+  }
+
+  closeQuickEditModal() {
+    this.editingParticipantId = null;
+    this.editingImageBuffer = null;
+    this.DOM.quickEditModal?.classList.add("hidden");
+  }
+
+  saveQuickEdit() {
+    const id = this.editingParticipantId;
+    if (!id) return;
+    const p = this.participants.find((x) => x.id === id);
+    if (!p) return;
+
+    const name = (this.DOM.quickEditName?.value ?? "").trim().slice(0, 40);
+    if (name) p.name = name;
+
+    const currentHp = parseInt(this.DOM.quickEditCurrentHp?.value, 10);
+    const hp = parseInt(this.DOM.quickEditHp?.value, 10);
+    const ca = parseInt(this.DOM.quickEditCa?.value, 10);
+    const initiative = parseInt(this.DOM.quickEditInitiative?.value, 10);
+
+    if (!Number.isNaN(hp) && hp >= 0) p.hp = hp;
+    if (!Number.isNaN(currentHp) && currentHp >= 0) {
+      p.current_hp = p.hp != null ? Math.min(currentHp, p.hp) : currentHp;
+    }
+    if (!Number.isNaN(ca) && ca >= 0) p.ca = Math.min(40, ca);
+    if (!Number.isNaN(initiative) && initiative >= 0) p.initiative = Math.min(40, initiative);
+
+    const affRadio = document.querySelector('input[name="quick-edit-affinity"]:checked');
+    if (affRadio && ["ally", "neutral", "enemy"].includes(affRadio.value)) {
+      p.affinity = affRadio.value;
+    }
+
+    if (this.editingImageBuffer !== undefined) {
+      p.image = this.editingImageBuffer;
+    }
+
+    this.renderBanners();
+    this.broadcastState();
+    this.updateDB();
+    // se houver método de re-render das colunas (allies/neutrals/enemies), chame aqui também
+    if (typeof this.renderEncounterColumns === "function") this.renderEncounterColumns();
+
+    this.closeQuickEditModal();
+  }
+
+  handleQuickEditResetActed() {
+    const id = this.editingParticipantId;
+    if (!id) return;
+    const p = this.participants.find((x) => x.id === id);
+    if (!p) return;
+    p.has_acted = 0;
+    this.renderBanners();
+    this.broadcastState();
+    this.updateDB();
+  }
+
+  handleQuickEditResetSaves() {
+    const id = this.editingParticipantId;
+    if (!id) return;
+    const p = this.participants.find((x) => x.id === id);
+    if (!p) return;
+    p.deathSaves = { active: false, successes: 0, failures: 0, stabilized: false, dead: false };
+    this.renderBanners();
+    this.broadcastState();
+    this.updateDB();
+  }
+
+  async pickImageForQuickEdit() {
+    // Usa dialogs.openFile para selecionar o arquivo, processa via canvas
+    // (mesmo pipeline de characters-view.js) e salva via db.characters.saveImage.
+    if (!window.dmCopilot?.dialogs?.openFile) {
+      console.warn("pickImageForQuickEdit: dialogs.openFile não disponível");
+      return;
+    }
+    const result = await window.dmCopilot.dialogs.openFile({
+      filters: [{ name: "Imagens", extensions: ["jpg", "jpeg", "png", "webp", "gif"] }],
+      properties: ["openFile"],
+    });
+    if (!result || result.canceled || !result.filePaths?.[0]) return;
+    const filePath = result.filePaths[0];
+
+    // Carrega e processa a imagem via canvas (resize + webp)
+    try {
+      const buffer = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 800;
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = (height / width) * MAX_SIZE;
+              width = MAX_SIZE;
+            } else {
+              width = (width / height) * MAX_SIZE;
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) blob.arrayBuffer().then(resolve);
+              else reject(new Error("Falha ao exportar imagem"));
+            },
+            "image/webp",
+            0.85
+          );
+        };
+        img.onerror = () => reject(new Error("Erro ao carregar imagem"));
+        // Usa o protocolo local-image:// para carregar o arquivo selecionado
+        img.src = `local-image://${filePath.replace(/\\/g, "/")}`;
+      });
+
+      const relativePath = await window.dmCopilot.db.characters.saveImage(buffer);
+      const imageUrl = `local-image://${relativePath}`;
+      this.editingImageBuffer = imageUrl;
+      if (this.DOM.quickEditImagePreview) {
+        this.DOM.quickEditImagePreview.src = imageUrl;
+        this.DOM.quickEditImagePreview.style.visibility = "visible";
+      }
+    } catch (err) {
+      console.error("Erro ao processar imagem para edição rápida:", err);
+    }
   }
 }

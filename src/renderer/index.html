@@ -176,14 +176,32 @@
 
           <!-- Grupo central: controles de turno -->
           <div class="combat-controls__group">
-            <button class="btn btn--secondary hidden" id="btn-prev-turn">
-              <i class="btn__icon" data-icon="arrow-left"></i> Turno Anterior
+            <button
+              class="combat-action-icon-btn hidden"
+              id="btn-prev-turn"
+              type="button"
+              aria-label="Turno anterior"
+            >
+              <i data-icon="chevron-left"></i>
+              <span class="combat-action-icon-btn__label">Turno Anterior</span>
             </button>
-            <button class="btn btn--primary hidden" id="btn-next-turn">
-              Próximo Turno <i class="btn__icon" data-icon="arrow-right"></i>
+            <button
+              class="combat-action-icon-btn combat-action-icon-btn--accent hidden"
+              id="btn-next-turn"
+              type="button"
+              aria-label="Próximo turno"
+            >
+              <i data-icon="chevron-right"></i>
+              <span class="combat-action-icon-btn__label">Próximo Turno</span>
             </button>
-            <button class="btn btn--danger hidden" id="btn-end-combat">
-              <i class="btn__icon" data-icon="flag"></i> Finalizar Encontro
+            <button
+              class="combat-action-icon-btn combat-action-icon-btn--danger hidden"
+              id="btn-end-combat"
+              type="button"
+              aria-label="Finalizar encontro"
+            >
+              <i data-icon="flag"></i>
+              <span class="combat-action-icon-btn__label">Finalizar Encontro</span>
             </button>
           </div>
 
@@ -192,7 +210,7 @@
             <!-- Round counter (hidden until combat starts) -->
             <div class="combat-controls__round-group hidden" id="combat-round-display">
               <div class="combat-controls__round" id="combat-round-counter-wrap">
-                <i data-icon="crown" class="combat-controls__round-icon"></i>
+                <i data-icon="refresh-cw" class="combat-controls__round-icon"></i>
                 <span class="combat-controls__round-label">Rodada</span>
                 <span class="combat-controls__round-value" id="current-round-number">1</span>
               </div>
@@ -1107,6 +1125,68 @@
           <button class="btn btn--primary" id="btn-roll-death-save" type="button">
             <i class="btn__icon" data-icon="dices"></i>
             <span>ROLL</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Quick Edit Participant Modal -->
+    <div id="modal-quick-edit" class="modal hidden">
+      <div class="modal__overlay" id="quick-edit-modal-overlay"></div>
+      <div class="modal__content">
+        <header class="modal__header">
+          <div class="modal__title-group">
+            <span class="modal__title-icon"><i data-icon="pencil"></i></span>
+            <div>
+              <span class="modal__eyebrow">Combate</span>
+              <h2 class="modal__title">Editar Personagem</h2>
+            </div>
+          </div>
+          <button class="modal__close" id="btn-close-quick-edit" aria-label="Fechar">
+            <i data-icon="x"></i>
+          </button>
+        </header>
+        <div class="quick-edit-form" id="quick-edit-form">
+          <div class="quick-edit-form__row quick-edit-form__row--header">
+            <div class="quick-edit-form__image">
+              <img id="quick-edit-image-preview" alt="" />
+              <button type="button" class="btn btn--secondary btn--sm" id="btn-quick-edit-pick-image">
+                <i data-icon="image"></i> <span>Trocar Imagem</span>
+              </button>
+            </div>
+            <label class="quick-edit-form__name-label">
+              Nome
+              <input type="text" id="quick-edit-name" maxlength="40" autocomplete="off" />
+            </label>
+          </div>
+
+          <fieldset class="quick-edit-form__affinity">
+            <legend>Afinidade</legend>
+            <label><input type="radio" name="quick-edit-affinity" value="ally" /><span>Aliado</span></label>
+            <label><input type="radio" name="quick-edit-affinity" value="neutral" /><span>Neutro</span></label>
+            <label><input type="radio" name="quick-edit-affinity" value="enemy" /><span>Inimigo</span></label>
+          </fieldset>
+
+          <div class="quick-edit-form__row quick-edit-form__row--stats">
+            <label>HP atual<input type="number" id="quick-edit-current-hp" min="0" /></label>
+            <label>HP máx<input type="number" id="quick-edit-hp" min="0" /></label>
+            <label>CA<input type="number" id="quick-edit-ca" min="0" max="40" /></label>
+            <label>Iniciativa<input type="number" id="quick-edit-initiative" min="0" max="40" /></label>
+          </div>
+
+          <div class="quick-edit-form__resets">
+            <button type="button" class="btn btn--secondary btn--sm" id="btn-quick-edit-reset-acted">
+              <i data-icon="refresh-cw"></i> <span>Resetar "Já agiu"</span>
+            </button>
+            <button type="button" class="btn btn--secondary btn--sm" id="btn-quick-edit-reset-saves">
+              <i data-icon="refresh-cw"></i> <span>Limpar Salvamentos</span>
+            </button>
+          </div>
+        </div>
+        <footer class="modal__footer">
+          <button class="btn btn--secondary" id="btn-cancel-quick-edit" type="button">Cancelar</button>
+          <button class="btn btn--primary" id="btn-save-quick-edit" type="button">
+            <i class="btn__icon" data-icon="check"></i> <span>Salvar</span>
           </button>
         </footer>
       </div>
