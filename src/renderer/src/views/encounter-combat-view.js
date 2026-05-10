@@ -4,6 +4,7 @@
  */
 
 import { showToast } from "../core/toast.js";
+import { showConfirm } from "../core/confirm-dialog.js";
 import { icon } from "../core/icons.js";
 import { escapeHtml } from "../core/format.js";
 import {
@@ -152,7 +153,7 @@ export default class EncounterCombatView {
 
     this.participants = this.gatherParticipants();
     if (this.participants.length === 0) {
-      alert("Adicione participantes antes de iniciar o combate.");
+      showToast("Adicione participantes antes de iniciar o combate.", "error");
       return;
     }
 
@@ -616,11 +617,19 @@ export default class EncounterCombatView {
     this.updateDB();
   }
 
-  removeParticipantFromCombat(id) {
+  async removeParticipantFromCombat(id) {
     const index = this.participants.findIndex((p) => p.id === id);
     if (index === -1) return;
 
-    if (!confirm(`Remover ${this.participants[index].name} desta luta?`)) return;
+    const ok = await showConfirm({
+      title: "Remover Participante",
+      message: `Remover ${this.participants[index].name} desta luta?`,
+      confirmLabel: "Remover",
+      cancelLabel: "Cancelar",
+      confirmVariant: "primary",
+      confirmIcon: "x",
+    });
+    if (!ok) return;
 
     // Adjust currentTurnIndex if necessary
     if (index < this.currentTurnIndex) {
@@ -677,7 +686,8 @@ export default class EncounterCombatView {
       amount: amount,
     });
 
-    // Check if ally fell to 0 HP — prompt for death save
+    // Check if ally fell to 0 HP — prompt for death save.
+    // Fire-and-forget para não bloquear pipeline reativo de combate.
     if (
       participant &&
       type === "damage" &&
@@ -687,15 +697,28 @@ export default class EncounterCombatView {
       !participant.deathSaves?.dead &&
       !participant.deathSaves?.stabilized
     ) {
-      const start = window.confirm(
-        `${participant.name} caiu a 0 HP. Iniciar teste de resistência contra morte?`
-      );
-      if (start) {
-        participant.deathSaves = { ...this.makeEmptyDeathSaves(), active: true };
-        showToast(`Teste de resistência iniciado para ${participant.name}`, "info");
-      }
+      this._promptDeathSave(participant).catch((err) => {
+        console.error("Falha ao iniciar teste de morte:", err);
+      });
     }
 
+    this.renderBanners();
+    this.broadcastState();
+    this.updateDB();
+  }
+
+  async _promptDeathSave(participant) {
+    const ok = await showConfirm({
+      title: "Teste de Morte",
+      message: `${participant.name} caiu a 0 HP. Iniciar teste de resistência contra morte?`,
+      confirmLabel: "Iniciar Teste",
+      cancelLabel: "Cancelar",
+      confirmVariant: "primary",
+      confirmIcon: "skull",
+    });
+    if (!ok) return;
+    participant.deathSaves = { ...this.makeEmptyDeathSaves(), active: true };
+    showToast(`Teste de resistência iniciado para ${participant.name}`, "info");
     this.renderBanners();
     this.broadcastState();
     this.updateDB();
@@ -1151,7 +1174,16 @@ export default class EncounterCombatView {
   }
 
   async endCombat() {
-    if (!confirm("Deseja finalizar este encontro?")) return;
+    const ok = await showConfirm({
+      title: "Finalizar Encontro",
+      message:
+        "Deseja finalizar este encontro? O combate será encerrado para você e para os jogadores conectados.",
+      confirmLabel: "Finalizar",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "flag",
+    });
+    if (!ok) return;
     await this._stopCombatInternal();
   }
 

@@ -525,6 +525,128 @@
   color: var(--color-text-muted);
 }
 
+/* ── Preview de stats da API D&D 5e ──────────────────────────────────────── */
+
+@keyframes selection-item-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.selection-item__panels {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.selection-item__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.selection-item__panel-state {
+  font-family: var(--font-body-brand);
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--color-text-muted);
+  align-self: center;
+  justify-self: center;
+  grid-column: 1 / -1;
+  animation: selection-item-pulse 1.4s ease-in-out infinite;
+}
+
+.selection-item__panel-state--error {
+  color: var(--color-accent-rose);
+  animation: none;
+}
+
+.selection-item__stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  align-content: start;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background-color: rgba(255, 255, 255, 0.02);
+  flex: 1;
+}
+
+.selection-item__stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.selection-item__stat-label {
+  font-family: var(--font-body-brand);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  line-height: 1;
+}
+
+.selection-item__stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.selection-item__abilities {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  align-content: start;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.selection-item__ability {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.selection-item__ability-label {
+  font-family: var(--font-body-brand);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-primary-light);
+  line-height: 1;
+}
+
+.selection-item__ability-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.selection-item__ability-mod {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
 /* Badge variants */
 .badge--gold {
   background-color: rgba(234, 179, 8, 0.2);
@@ -1074,36 +1196,26 @@
   background: rgba(124, 58, 237, 0.3);
 }
 
-/* ===== Combat Action Icon Buttons (hover-expand pattern) ===== */
+/* ===== Combat Action Icon Buttons (icon-only, fixed 40×40) ===== */
 
 .combat-action-icon-btn {
   display: inline-flex;
   align-items: center;
   gap: 0;
-  padding: 0 var(--space-2);
+  padding: 0;
   width: 40px;
+  min-width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
-  overflow: hidden;
   transition:
-    width var(--transition-base),
-    padding var(--transition-base),
-    gap var(--transition-base),
     background-color var(--transition-fast),
     border-color var(--transition-fast);
   flex-shrink: 0;
   justify-content: center;
-}
-
-.combat-action-icon-btn:hover:not(:disabled) {
-  width: auto;
-  padding: 0 var(--space-3);
-  gap: var(--space-2);
-  justify-content: flex-start;
 }
 
 .combat-action-icon-btn:disabled {
@@ -1112,21 +1224,7 @@
 }
 
 .combat-action-icon-btn__label {
-  white-space: nowrap;
-  font-family: var(--font-body-brand);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  max-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition:
-    max-width var(--transition-base),
-    opacity var(--transition-fast);
-}
-
-.combat-action-icon-btn:hover:not(:disabled) .combat-action-icon-btn__label {
-  max-width: 200px;
-  opacity: 1;
+  display: none;
 }
 
 /* Icon stack — dices + zap overlay badge */

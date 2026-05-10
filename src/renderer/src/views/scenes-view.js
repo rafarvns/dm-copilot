@@ -4,6 +4,7 @@
 
 import { showToast } from "../core/toast.js";
 import { icon } from "../core/icons.js";
+import { showConfirm } from "../core/confirm-dialog.js";
 
 class ScenesView {
   constructor() {
@@ -694,7 +695,15 @@ class ScenesView {
   }
 
   async confirmDelete(id) {
-    if (!confirm("Tem certeza que deseja excluir esta cena?")) return;
+    const ok = await showConfirm({
+      title: "Excluir Cena",
+      message: "Tem certeza que deseja excluir esta cena? Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "trash-2",
+    });
+    if (!ok) return;
     try {
       await window.dmCopilot.db.scenes.delete(id);
       showToast("Cena excluída");

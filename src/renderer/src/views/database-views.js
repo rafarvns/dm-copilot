@@ -17,6 +17,7 @@ import {
   escapeHtml,
   normalizeDifficulty,
 } from "../core/format.js";
+import { showConfirm } from "../core/confirm-dialog.js";
 
 // ============================================
 // Toast Notifications
@@ -53,7 +54,6 @@ class CampaignsView {
     this.filteredCampaigns = [];
     this.editingId = null;
     this.selectedCampaign = null;
-    this.deleteTargetId = null;
     this.mounted = false;
     this.selectedCoverFile = null;
     this.removeCoverFlag = false;
@@ -128,10 +128,6 @@ class CampaignsView {
       linkCharList: document.getElementById("available-chars-list"),
       linkCharEmpty: document.getElementById("available-chars-empty"),
       linkCharSystemName: document.getElementById("link-char-system-name"),
-      // Confirm modal
-      confirmModal: document.getElementById("confirm-modal"),
-      confirmOverlay: document.getElementById("confirm-modal-overlay"),
-      confirmMessage: document.getElementById("confirm-message"),
     };
 
     // Cache visibility checkboxes (4 fields × 3 affinities)
@@ -237,12 +233,6 @@ class CampaignsView {
       }
     });
     this._on(this.DOM.linkCharList, "click", (e) => this.handleLinkChar(e));
-
-    // Confirmation modal events
-    this._on(document.getElementById("btn-confirm-cancel"), "click", () => this.closeConfirm());
-    this._on(document.getElementById("btn-close-confirm"), "click", () => this.closeConfirm());
-    this._on(document.getElementById("btn-confirm-ok"), "click", () => this.executeDelete());
-    this._on(this.DOM.confirmOverlay, "click", () => this.closeConfirm());
 
     // Card delegation
     this._on(this.DOM.list, "click", (e) => this.handleCardClick(e));
@@ -837,16 +827,22 @@ class CampaignsView {
     if (!btn) return;
 
     const charId = parseInt(btn.dataset.id, 10);
-    if (
-      confirm("Deseja remover este personagem da campanha? (O personagem continuará existindo)")
-    ) {
-      try {
-        await databaseService.unlinkCharacterFromCampaign(charId, this.selectedCampaign.id);
-        showToast("Personagem removido da campanha");
-        await this.loadCampaignCharacters(this.selectedCampaign.id);
-      } catch (error) {
-        showToast("Erro ao remover personagem", "error");
-      }
+    const ok = await showConfirm({
+      title: "Remover da Campanha",
+      message:
+        "Deseja remover este personagem da campanha? O personagem continuará existindo no sistema.",
+      confirmLabel: "Remover da Campanha",
+      cancelLabel: "Cancelar",
+      confirmVariant: "primary",
+      confirmIcon: "x",
+    });
+    if (!ok) return;
+    try {
+      await databaseService.unlinkCharacterFromCampaign(charId, this.selectedCampaign.id);
+      showToast("Personagem removido da campanha");
+      await this.loadCampaignCharacters(this.selectedCampaign.id);
+    } catch (error) {
+      showToast("Erro ao remover personagem", "error");
     }
   }
 
@@ -873,14 +869,22 @@ class CampaignsView {
     if (!btn) return;
 
     const charId = parseInt(btn.dataset.id, 10);
-    if (confirm("Tem certeza que deseja excluir permanentemente este personagem?")) {
-      try {
-        await databaseService.deleteCharacter(charId);
-        showToast("Personagem excluído");
-        await this.loadCampaignCharacters(this.selectedCampaign.id);
-      } catch (error) {
-        showToast("Erro ao excluir", "error");
-      }
+    const ok = await showConfirm({
+      title: "Excluir Personagem",
+      message:
+        "Tem certeza que deseja excluir permanentemente este personagem? Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "trash-2",
+    });
+    if (!ok) return;
+    try {
+      await databaseService.deleteCharacter(charId);
+      showToast("Personagem excluído");
+      await this.loadCampaignCharacters(this.selectedCampaign.id);
+    } catch (error) {
+      showToast("Erro ao excluir", "error");
     }
   }
 
@@ -1104,46 +1108,32 @@ class CampaignsView {
   // ============================================
   // Delete
   // ============================================
-  confirmDelete(id) {
-    this.deleteTargetId = id;
+  async confirmDelete(id) {
     const campaign = this.campaigns.find((c) => c.id === id);
-
-    if (this.DOM.confirmMessage) {
-      this.DOM.confirmMessage.textContent = campaign
-        ? `Tem certeza que deseja excluir a campanha "${campaign.name}"? Todos os personagens, encontros e notas vinculados também serão excluídos. Esta ação não pode ser desfeita.`
-        : "Tem certeza que deseja excluir esta campanha?";
-    }
-
-    if (this.DOM.confirmModal) {
-      this.DOM.confirmModal.classList.remove("hidden");
-    }
-  }
-
-  closeConfirm() {
-    if (this.DOM.confirmModal) {
-      this.DOM.confirmModal.classList.add("hidden");
-    }
-    this.deleteTargetId = null;
-  }
-
-  async executeDelete() {
-    if (!this.deleteTargetId) return;
+    const name = campaign?.name || "esta campanha";
+    const ok = await showConfirm({
+      title: "Excluir Campanha",
+      message: `Tem certeza que deseja excluir "${name}"? Esta ação removerá todos os encontros, cenas e vínculos. Esta ação não pode ser desfeita.`,
+      confirmLabel: "Excluir Campanha",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "trash-2",
+    });
+    if (!ok) return;
 
     try {
-      await databaseService.deleteCampaign(this.deleteTargetId);
+      await databaseService.deleteCampaign(id);
       showToast("Campanha excluída com sucesso!", "success");
 
       // If viewing detail of deleted campaign, go back to list
-      if (this.selectedCampaign && this.selectedCampaign.id === this.deleteTargetId) {
+      if (this.selectedCampaign && this.selectedCampaign.id === id) {
         this.showList();
       }
 
-      this.closeConfirm();
       await this.loadCampaigns();
     } catch (error) {
       console.error("Failed to delete campaign:", error);
       showToast("Erro ao excluir campanha", "error");
-      this.closeConfirm();
     }
   }
 
@@ -1273,6 +1263,7 @@ class EncountersView {
     this.affinityGroups = { ally: [], neutral: [], enemy: [] };
     this.combatView = new EncounterCombatView(this);
     this.bgPresetsLoaded = false;
+    this._monsterDetailCache = new Map(); // Map<index, monsterDetail>
 
     this.initDOM();
     this.initEvents();
@@ -1857,16 +1848,23 @@ class EncountersView {
   }
 
   async confirmDelete(id) {
-    if (confirm("Tem certeza que deseja excluir este encontro?")) {
-      try {
-        await databaseService.deleteEncounter(id);
-        showToast("Encontro excluído");
-        if (window.campaignsView && window.campaignsView.selectedCampaign) {
-          window.campaignsView.loadCampaignEncounters(window.campaignsView.selectedCampaign.id);
-        }
-      } catch (error) {
-        showToast("Erro ao excluir", "error");
+    const ok = await showConfirm({
+      title: "Excluir Encontro",
+      message: "Tem certeza que deseja excluir este encontro? Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "trash-2",
+    });
+    if (!ok) return;
+    try {
+      await databaseService.deleteEncounter(id);
+      showToast("Encontro excluído");
+      if (window.campaignsView && window.campaignsView.selectedCampaign) {
+        window.campaignsView.loadCampaignEncounters(window.campaignsView.selectedCampaign.id);
       }
+    } catch (error) {
+      showToast("Erro ao excluir", "error");
     }
   }
 
@@ -2293,7 +2291,6 @@ class EncountersView {
     this.DOM.apiPartList.innerHTML = '<p class="text-center py-4">Buscando...</p>';
 
     try {
-      // Actually fetch from dnd5eapi
       const response = await fetch(
         `https://www.dnd5eapi.co/api/2014/monsters?name=${encodeURIComponent(query)}`
       );
@@ -2305,12 +2302,16 @@ class EncountersView {
         return;
       }
 
-      this.DOM.apiPartList.innerHTML = data.results
+      const monsters = data.results.slice(0, 20);
+
+      // Render imediato — cards com preview em loading ou cache
+      this.DOM.apiPartList.innerHTML = monsters
         .map((m) => {
           const imageUrl = `https://www.dnd5eapi.co/api/images/monsters/${m.index}.png`;
           const apiUrl = `https://www.dnd5eapi.co/api/2014/monsters/${m.index}`;
           const count = this.participants.filter((p) => p.api_url === apiUrl).length;
           const isAdded = count > 0;
+          const cached = this._monsterDetailCache.get(m.index);
 
           return `
           <div class="selection-item selection-item--with-img ${isAdded ? "selection-item--added" : ""}" data-index="${m.index}">
@@ -2318,8 +2319,17 @@ class EncountersView {
               <img src="${imageUrl}" class="selection-item__img" onerror="this.parentElement.style.display='none'" />
             </div>
             <div class="selection-item__info">
-              <span class="selection-item__name">${this.escapeHTML(m.name.replace(/🔗/g, ""))}</span>
-              <span class="selection-item__meta">API D&D 5e</span>
+              <div class="selection-item__panels">
+                <div class="selection-item__main">
+                  <span class="selection-item__name">${this.escapeHTML(m.name.replace(/🔗/g, ""))}</span>
+                  <div class="selection-item__stats">
+                    ${cached ? this._renderMonsterStats(cached) : `<span class="selection-item__panel-state">Carregando…</span>`}
+                  </div>
+                </div>
+                <div class="selection-item__abilities">
+                  ${cached ? this._renderMonsterAbilities(cached) : `<span class="selection-item__panel-state">Carregando…</span>`}
+                </div>
+              </div>
             </div>
             ${isAdded ? `<span class="selection-item__count">${count}</span>` : ""}
             <button class="btn btn--secondary btn--sm">Adicionar</button>
@@ -2330,12 +2340,11 @@ class EncountersView {
 
       this.DOM.apiPartList.querySelectorAll(".selection-item").forEach((item) => {
         item.addEventListener("click", (e) => {
-          if (e.target.classList.contains("btn")) return; // Allow button click to bubble if needed, but here we handle the whole item
+          if (e.target.classList.contains("btn")) return;
           this.addApiMonster(item.dataset.index);
         });
       });
 
-      // Also handle the button specifically if click doesn't bubble correctly
       this.DOM.apiPartList.querySelectorAll(".selection-item button").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -2343,16 +2352,123 @@ class EncountersView {
           this.addApiMonster(item.dataset.index);
         });
       });
+
+      // Fetch paralelo dos detalhes ausentes no cache
+      const missing = monsters.filter((m) => !this._monsterDetailCache.has(m.index));
+
+      const fetches = missing.map(async (m) => {
+        try {
+          const r = await fetch(`https://www.dnd5eapi.co/api/2014/monsters/${m.index}`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const detail = await r.json();
+          return { index: m.index, ok: true, detail };
+        } catch (err) {
+          return { index: m.index, ok: false, err };
+        }
+      });
+
+      const results = await Promise.all(fetches);
+
+      for (const r of results) {
+        const card = this.DOM.apiPartList.querySelector(
+          `.selection-item[data-index="${CSS.escape(r.index)}"]`
+        );
+        if (!card) continue;
+
+        const statsEl = card.querySelector(".selection-item__stats");
+        const abilitiesEl = card.querySelector(".selection-item__abilities");
+        if (!statsEl || !abilitiesEl) continue;
+
+        if (r.ok) {
+          this._monsterDetailCache.set(r.index, r.detail);
+          statsEl.innerHTML = this._renderMonsterStats(r.detail);
+          abilitiesEl.innerHTML = this._renderMonsterAbilities(r.detail);
+        } else {
+          statsEl.innerHTML = `<span class="selection-item__panel-state selection-item__panel-state--error">Indisponível</span>`;
+          abilitiesEl.innerHTML = `<span class="selection-item__panel-state selection-item__panel-state--error">Indisponível</span>`;
+        }
+      }
     } catch (error) {
       this.DOM.apiPartList.innerHTML =
         '<p class="text-center py-4 text-danger">Erro ao buscar na API.</p>';
     }
   }
 
+  _modifier(score) {
+    return Math.floor((Number(score) - 10) / 2);
+  }
+
+  _formatModifier(score) {
+    const m = this._modifier(score);
+    return m >= 0 ? `+${m}` : `${m}`;
+  }
+
+  _formatCR(cr) {
+    if (cr === 0.125) return "1/8";
+    if (cr === 0.25) return "1/4";
+    if (cr === 0.5) return "1/2";
+    if (Number.isInteger(cr)) return String(cr);
+    return String(cr);
+  }
+
+  _renderMonsterStats(detail) {
+    const hp = parseInt(detail.hit_points) || 0;
+    const ac = Array.isArray(detail.armor_class)
+      ? detail.armor_class[0]?.value ?? 10
+      : parseInt(detail.armor_class) || 10;
+    const cr = this._formatCR(detail.challenge_rating);
+    const iniMod = this._formatModifier(detail.dexterity);
+
+    return `
+      <span class="selection-item__stat">
+        <span class="selection-item__stat-label">CR</span>
+        <span class="selection-item__stat-value">${cr}</span>
+      </span>
+      <span class="selection-item__stat">
+        <span class="selection-item__stat-label">HP</span>
+        <span class="selection-item__stat-value">${hp}</span>
+      </span>
+      <span class="selection-item__stat">
+        <span class="selection-item__stat-label">CA</span>
+        <span class="selection-item__stat-value">${ac}</span>
+      </span>
+      <span class="selection-item__stat">
+        <span class="selection-item__stat-label">INI</span>
+        <span class="selection-item__stat-value">${iniMod}</span>
+      </span>
+    `;
+  }
+
+  _renderMonsterAbilities(detail) {
+    const abilities = [
+      ["STR", detail.strength],
+      ["DEX", detail.dexterity],
+      ["CON", detail.constitution],
+      ["INT", detail.intelligence],
+      ["WIS", detail.wisdom],
+      ["CHA", detail.charisma],
+    ];
+
+    return abilities
+      .map(
+        ([name, score]) => `
+          <span class="selection-item__ability">
+            <span class="selection-item__ability-label">${name}</span>
+            <span class="selection-item__ability-value">${score} <span class="selection-item__ability-mod">(${this._formatModifier(score)})</span></span>
+          </span>`
+      )
+      .join("");
+  }
+
   async addApiMonster(index) {
     try {
-      const response = await fetch(`https://www.dnd5eapi.co/api/2014/monsters/${index}`);
-      const monster = await response.json();
+      let monster = this._monsterDetailCache.get(index);
+      if (!monster) {
+        const response = await fetch(`https://www.dnd5eapi.co/api/2014/monsters/${index}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        monster = await response.json();
+        this._monsterDetailCache.set(index, monster);
+      }
 
       this.addParticipantToList({
         id: Date.now(),
@@ -2361,7 +2477,7 @@ class EncountersView {
         ac: Array.isArray(monster.armor_class)
           ? monster.armor_class[0]?.value || 10
           : parseInt(monster.armor_class) || 10,
-        ini: 0,
+        ini: this._modifier(monster.dexterity),
         affinity: this.getSelectedAffinity(),
         api_url: monster.url ? `https://www.dnd5eapi.co${monster.url}` : null,
         image: monster.image ? `https://www.dnd5eapi.co${monster.image}` : null,

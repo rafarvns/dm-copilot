@@ -1,0 +1,258 @@
+/* ============================================================
+   Dice Roller Feature — stylesheet
+   ------------------------------------------------------------
+   Importado junto com dice-roller.js na montagem da feature.
+   Segue o design system de tokens.css + marca Nodesto/Scaly/Mono.
+
+   Tokens usados (todos de tokens.css / main.css :root):
+     Cor     : --color-text, --color-text-secondary, --color-text-muted,
+               --color-surface, --color-surface-hover, --color-surface-active,
+               --color-border, --color-primary, --color-accent-gold
+     Tipo    : --font-display-brand, --font-body-brand, --font-mono
+     Tamanho : --text-xs … --text-3xl
+     Espaço  : --space-1 … --space-12
+     Raio    : --radius-md, --radius-lg
+     Sombra  : --shadow-sm
+     Transição: --transition-fast
+
+   Classes globais reaproveitadas (não redefinidas aqui):
+     .btn, .btn--ghost      — main.css
+     .result-die, .result-die__icon,
+     .result-die__value,
+     .result-sep            — main.css (dice overlay panel)
+     .icon, .icon--xxl      — main.css (lucide SVG base)
+   ============================================================ */
+
+/* ---- Root container ---------------------------------------- */
+.dice-roller {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-8);
+  /* full-width — sem max-width, sem margin auto (regra de feedback:
+     sidebar desloca eixo óptico; conteúdo preenche com padding lateral) */
+}
+
+/* ---- Header ------------------------------------------------- */
+.dice-roller__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dice-roller__title {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.dice-roller__subtitle {
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---- Slot do #dice-toolbar emprestado --------------------- */
+/*
+  O nó #dice-toolbar é movido para cá via appendChild quando a
+  feature monta. Os estilos do toolbar vivem em main.css; o slot
+  só dá um respiro vertical e centraliza horizontalmente.
+*/
+.dice-roller__toolbar-slot {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---- Log header bar ---------------------------------------- */
+.dice-roller__log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dice-roller__log-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display-brand);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+/* Ícone Lucide dentro do título do log */
+.dice-roller__log-title-icon.icon,
+.dice-roller__log-title > .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* .btn.btn--ghost já cuida do visual do botão Limpar */
+
+/* ---- Log list ----------------------------------------------- */
+.dice-roller__log {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ---- Entry row ---------------------------------------------- */
+.dice-roller__entry {
+  display: grid;
+  /*
+    col 1 — timestamp (auto)
+    col 2 — notation (cresce)
+    col 3 — detalhes com ícones dos dados (auto)
+    col 4 — total (auto)
+  */
+  grid-template-columns: auto 1fr auto auto;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.dice-roller__entry:hover {
+  border-color: var(--color-primary);
+  transform: translateX(2px);
+}
+
+/* Timestamp */
+.dice-roller__entry-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* Notação (ex.: "1d20 + 5") */
+.dice-roller__entry-notation {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Detalhes — .result-die, .result-die__icon, .result-die__value,
+   .result-sep já têm estilos em main.css. Aqui apenas controlamos
+   o alinhamento do container. */
+.dice-roller__entry-details {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+/* Total da rolagem */
+.dice-roller__entry-total {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-accent-gold);
+  white-space: nowrap;
+  text-align: right;
+  min-width: 2.5ch;
+}
+
+/* ---- Batch entries (múltiplas rolagens em paralelo) --------- */
+/*
+  Batch ocupa as colunas 2-4 (notation, details, total) abaixo
+  da primeira linha de timestamp + notation. Em listas de batalha
+  (iniciativa em batch) o JS injeta .dice-roller__entry-batch
+  como filho direto do <li>.
+*/
+.dice-roller__entry-batch {
+  grid-column: 2 / span 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--color-border);
+}
+
+.dice-roller__entry-batch-line {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* ---- Empty state -------------------------------------------- */
+.dice-roller__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  color: var(--color-text-muted);
+  text-align: center;
+  /* Impede que o li ocupe toda a altura do flex-container e
+     cause scroll desnecessário quando a lista está vazia */
+  list-style: none;
+}
+
+.dice-roller__empty-icon {
+  /* .icon--xxl em main.css já define 48x48 — adicionamos opacidade */
+  opacity: 0.5;
+  color: var(--color-text-muted);
+}
+
+/* Garante o tamanho mesmo que a classe --xxl não seja aplicada via JS */
+.dice-roller__empty-icon.icon,
+.dice-roller__empty-icon > .icon {
+  width: 48px;
+  height: 48px;
+}
+
+.dice-roller__empty-text {
+  font-family: var(--font-body-brand);
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+/* ---- Animação de entrada dos items -------------------------- */
+@keyframes dice-entry-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dice-roller__entry {
+  animation: dice-entry-slide-in 200ms ease forwards;
+}

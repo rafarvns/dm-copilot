@@ -4,6 +4,8 @@
  */
 
 import DiceBox from "@3d-dice/dice-box-threejs";
+import { EventBus } from "../core/event-bus.js";
+import { showConfirm } from "../core/confirm-dialog.js";
 
 export default class DiceView {
   constructor() {
@@ -20,6 +22,7 @@ export default class DiceView {
     this.isRolling = false;
     this.isProcessingQueue = false;
     this.queue = [];
+    this.adHocMode = false;
 
     // Pool de instâncias DiceBox para rolagens 3D PARALELAS (várias animações
     // ao mesmo tempo na tela). Cada slot tem seu próprio canvas/scene/world,
@@ -34,6 +37,14 @@ export default class DiceView {
     this.bindEvents();
     // Pré-aquece o pool em background — não bloqueia a UI nem o startup.
     this.warmupParallelPool();
+  }
+
+  enableAdHocMode() {
+    this.adHocMode = true;
+  }
+
+  disableAdHocMode() {
+    this.adHocMode = false;
   }
 
   initDOM() {
@@ -212,7 +223,7 @@ export default class DiceView {
       }
 
       // Broadcast ao player view (cada rolagem é um evento separado).
-      if (window.dmCopilot?.combat?.broadcast) {
+      if (!this.adHocMode && window.dmCopilot?.combat?.broadcast) {
         window.dmCopilot.combat.broadcast("dice-roll", {
           notation: ctx.presetNotation,
           themeColor: ctx.themeColor,
@@ -234,6 +245,33 @@ export default class DiceView {
       // Mantém os dados visíveis um pouco antes de limpar o slot.
       setTimeout(() => this.releaseParallelSlot(slot), 2500);
     }
+  }
+
+  /**
+   * Rola múltiplos grupos com presets (ex.: ["1d12@3", "1d20@7"]) em paralelo,
+   * usando um slot do parallelPool por grupo. Retorna um result-shape compatível
+   * com adaptRollResult: { sets: [...todos os sets agregados...] }.
+   * Necessário porque dice-box-threejs v0.0.12 não suporta multigroup com `@`
+   * numa única chamada roll() — o parser quebra no primeiro @.
+   */
+  async rollMultiGroupOnPool(presetGroups) {
+    // Adquire um slot por grupo (em paralelo). Slots ficam busy até liberação.
+    const slots = await Promise.all(
+      presetGroups.map(() => this.acquireParallelSlot())
+    );
+
+    // Rola cada grupo no seu slot, em paralelo. Slots ausentes retornam undefined.
+    const results = await Promise.all(
+      presetGroups.map((g, i) => slots[i]?.diceBox.roll(g))
+    );
+
+    // Libera os slots após o delay padrão (mesmo timing de rollOnParallelSlot)
+    slots.forEach((s) => {
+      if (s) setTimeout(() => this.releaseParallelSlot(s), 2500);
+    });
+
+    // Agrega os sets de todos os results num único objeto
+    return { sets: results.flatMap((r) => (r?.sets || [])) };
   }
 
   bindEvents() {
@@ -398,14 +436,14 @@ export default class DiceView {
 
       // Broadcast immediately so the player view starts rolling at the same
       // time as the master (no awaiting the local 3D animation first).
-      const hasBroadcast = !!window.dmCopilot?.combat?.broadcast;
+      const hasBroadcast = !this.adHocMode && !!window.dmCopilot?.combat?.broadcast;
       if (hasBroadcast) {
         window.dmCopilot.combat.broadcast("dice-roll", {
           notation: presetNotation,
           themeColor: currentRoll.themeColor,
           characterName: broadcastCharacterName,
         });
-      } else {
+      } else if (!this.adHocMode) {
         console.warn(
           "[DM→broadcast] window.dmCopilot.combat.broadcast indisponível — rolagem não sincronizada"
         );
@@ -433,7 +471,19 @@ export default class DiceView {
       this.diceBox.strength = 3 + Math.random() * 4; // 3.0 .. 7.0
 
       // Roll locally with the same predetermined values that were broadcast.
-      const rollResult = await this.diceBox.roll(presetNotation);
+      // dice-box-threejs v0.0.12 não suporta multigroup com `@` numa única
+      // chamada roll() — split("@") interno só captura o primeiro grupo.
+      // Detectamos esse caso e distribuímos pelos slots do parallelPool.
+      const presetGroups = String(presetNotation).split("+").filter(Boolean);
+      const isMultiGroupPreset =
+        presetGroups.length > 1 && presetGroups.every((g) => g.includes("@"));
+
+      let rollResult;
+      if (isMultiGroupPreset) {
+        rollResult = await this.rollMultiGroupOnPool(presetGroups);
+      } else {
+        rollResult = await this.diceBox.roll(presetNotation);
+      }
       const adaptedResults = this.adaptRollResult(rollResult);
 
       if (isBatch) {
@@ -805,13 +855,28 @@ export default class DiceView {
       }
     }
 
-    if (skipPersist) return;
+    const persistDisabled = skipPersist || this.adHocMode;
 
-    // Save to Database
+    // Calcula notação antes do emit — necessário para o evento dice:rolled
     const baseNotation = notationParts.join(" + ");
     const labeledNotation = label ? `${label} ${baseNotation}` : baseNotation;
     const fullNotation = characterName ? `[${characterName}] ${labeledNotation}` : labeledNotation;
 
+    // Emite sempre (independente do modo) — tela ad-hoc escuta quando montada
+    EventBus.emit("dice:rolled", {
+      total: finalTotal,
+      bonus,
+      notation: fullNotation,
+      detailsHTML: fullDetailsHTML,
+      characterName: characterName || null,
+      label: label || null,
+      batchLines: batchLines || null,
+      timestamp: Date.now(),
+    });
+
+    if (persistDisabled) return;
+
+    // Save to Database
     try {
       await window.dmCopilot.db.diceRolls.save({
         notation: fullNotation,
@@ -902,10 +967,17 @@ export default class DiceView {
   }
 
   async clearHistory() {
-    if (confirm("Tem certeza que deseja apagar todo o histórico de rolagens?")) {
-      await window.dmCopilot.db.diceRolls.clear();
-      this.loadHistory(1);
-    }
+    const ok = await showConfirm({
+      title: "Limpar Histórico",
+      message: "Apagar todo o histórico de rolagens? Esta ação não pode ser desfeita.",
+      confirmLabel: "Limpar Histórico",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "trash-2",
+    });
+    if (!ok) return;
+    await window.dmCopilot.db.diceRolls.clear();
+    this.loadHistory(1);
   }
 
   showOverlay() {

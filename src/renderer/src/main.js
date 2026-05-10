@@ -7,6 +7,7 @@ import "./features/encounters/encounters.css";
 import databaseService from "./db/database.js";
 import { registerRoute, navigateTo } from "./core/router.js";
 import { mountIcons } from "./core/icons.js";
+import { mountTooltips } from "./core/tooltip.js";
 import PresentationController from "./core/presentation-controller.js";
 
 import SidebarComponent from "./shared/sidebar/sidebar.js";
@@ -15,6 +16,7 @@ import StatusBarComponent from "./shared/status-bar/status-bar.js";
 import DashboardFeature from "./features/dashboard/dashboard.js";
 import CampaignsFeature from "./features/campaigns/campaigns.js";
 import CharactersFeature from "./features/characters/characters.js";
+import DiceRollerFeature from "./features/dice-roller/dice-roller.js";
 
 import { EncountersView } from "./views/database-views.js";
 import ScenesView from "./views/scenes-view.js";
@@ -36,6 +38,7 @@ function registerRoutes() {
   registerRoute("dashboard", DashboardFeature);
   registerRoute("campaigns", CampaignsFeature);
   registerRoute("characters", CharactersFeature);
+  registerRoute("dice", DiceRollerFeature);
 }
 
 function setupSidebarNavigation() {
@@ -45,15 +48,6 @@ function setupSidebarNavigation() {
     const link = event.target.closest(".sidebar__link[data-view]");
     if (!link) return;
     event.preventDefault();
-    if (link.dataset.view === "dice") {
-      const toolbar = document.getElementById("dice-toolbar");
-      if (toolbar) {
-        toolbar.scrollIntoView({ behavior: "smooth", block: "center" });
-        toolbar.classList.add("dice-toolbar--flash");
-        window.setTimeout(() => toolbar.classList.remove("dice-toolbar--flash"), 600);
-      }
-      return;
-    }
     navigateTo(link.dataset.view);
   });
 }
@@ -82,6 +76,7 @@ async function init() {
   try {
     mountShell();
     mountIcons(document.body);
+    mountTooltips();
     registerRoutes();
 
     try {

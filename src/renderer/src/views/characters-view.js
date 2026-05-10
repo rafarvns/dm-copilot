@@ -4,6 +4,7 @@
 import databaseService from "../db/database.js";
 import { showToast } from "./database-views.js";
 import { icon } from "../core/icons.js";
+import { showConfirm } from "../core/confirm-dialog.js";
 
 class GlobalCharactersView {
   constructor() {
@@ -192,15 +193,23 @@ class GlobalCharactersView {
   }
 
   async handleDelete(id) {
-    if (confirm("Tem certeza que deseja excluir este personagem permanentemente?")) {
-      try {
-        await databaseService.deleteCharacter(id);
-        showToast("Personagem excluído com sucesso");
-        await this.loadCharacters();
-      } catch (error) {
-        console.error("Failed to delete character:", error);
-        showToast("Erro ao excluir personagem", "error");
-      }
+    const ok = await showConfirm({
+      title: "Excluir Personagem",
+      message:
+        "Tem certeza que deseja excluir este personagem permanentemente? Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "trash-2",
+    });
+    if (!ok) return;
+    try {
+      await databaseService.deleteCharacter(id);
+      showToast("Personagem excluído com sucesso");
+      await this.loadCharacters();
+    } catch (error) {
+      console.error("Failed to delete character:", error);
+      showToast("Erro ao excluir personagem", "error");
     }
   }
 
@@ -279,15 +288,22 @@ class GlobalCharactersView {
   }
 
   async handleDelete(id) {
-    // Para simplificar, vamos usar confirm padrão aqui ou reutilizar o confirm modal do app
-    if (confirm("Tem certeza que deseja excluir este personagem?")) {
-      try {
-        await databaseService.deleteCharacter(id);
-        showToast("Personagem excluído");
-        await this.loadCharacters();
-      } catch (error) {
-        showToast("Erro ao excluir", "error");
-      }
+    const ok = await showConfirm({
+      title: "Excluir Personagem",
+      message:
+        "Tem certeza que deseja excluir este personagem permanentemente? Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      cancelLabel: "Cancelar",
+      confirmVariant: "danger",
+      confirmIcon: "trash-2",
+    });
+    if (!ok) return;
+    try {
+      await databaseService.deleteCharacter(id);
+      showToast("Personagem excluído");
+      await this.loadCharacters();
+    } catch (error) {
+      showToast("Erro ao excluir", "error");
     }
   }
 

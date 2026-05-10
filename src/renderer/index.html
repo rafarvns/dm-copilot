@@ -151,6 +151,7 @@
               id="btn-roll-all-ally-initiative"
               type="button"
               aria-label="Rolar iniciativa de aliados"
+              data-tooltip=""
             >
               <span class="combat-action-icon-btn__icon-stack">
                 <i data-icon="dices"></i>
@@ -163,6 +164,7 @@
               id="btn-roll-all-npc-initiative"
               type="button"
               aria-label="Rolar iniciativa de inimigos e neutros"
+              data-tooltip=""
             >
               <span class="combat-action-icon-btn__icon-stack">
                 <i data-icon="dices"></i>
@@ -181,6 +183,7 @@
               id="btn-prev-turn"
               type="button"
               aria-label="Turno anterior"
+              data-tooltip=""
             >
               <i data-icon="chevron-left"></i>
               <span class="combat-action-icon-btn__label">Turno Anterior</span>
@@ -190,6 +193,7 @@
               id="btn-next-turn"
               type="button"
               aria-label="Próximo turno"
+              data-tooltip=""
             >
               <i data-icon="chevron-right"></i>
               <span class="combat-action-icon-btn__label">Próximo Turno</span>
@@ -199,6 +203,7 @@
               id="btn-end-combat"
               type="button"
               aria-label="Finalizar encontro"
+              data-tooltip=""
             >
               <i data-icon="flag"></i>
               <span class="combat-action-icon-btn__label">Finalizar Encontro</span>
@@ -224,6 +229,7 @@
               id="btn-open-player-link"
               type="button"
               aria-label="Abrir link do jogador"
+              data-tooltip=""
               hidden
             >
               <i data-icon="external-link"></i>
@@ -236,6 +242,7 @@
               id="btn-add-participant-main"
               type="button"
               aria-label="Adicionar participante"
+              data-tooltip=""
             >
               <i data-icon="user-plus"></i>
               <span class="combat-action-icon-btn__label">Adicionar Personagem</span>
@@ -247,6 +254,7 @@
               id="btn-start-combat"
               type="button"
               aria-label="Iniciar encontro"
+              data-tooltip=""
             >
               <i data-icon="play"></i>
               <span class="combat-action-icon-btn__label">Iniciar Encontro</span>
@@ -414,26 +422,6 @@
             </button>
           </div>
         </form>
-      </div>
-    </div>
-
-    <!-- Confirm Delete Modal -->
-    <div id="confirm-modal" class="modal hidden">
-      <div class="modal__overlay" id="confirm-modal-overlay"></div>
-      <div class="modal__content modal__content--sm">
-        <div class="modal__header">
-          <h2 class="modal__title">Confirmar Exclusão</h2>
-          <button class="modal__close" id="btn-close-confirm">&times;</button>
-        </div>
-        <p id="confirm-message" class="confirm-message">
-          Tem certeza que deseja excluir? Esta ação não pode ser desfeita.
-        </p>
-        <div class="modal__footer">
-          <button class="btn btn--secondary" id="btn-confirm-cancel">Cancelar</button>
-          <button class="btn btn--danger" id="btn-confirm-ok">
-            <i class="btn__icon" data-icon="trash-2"></i> Excluir
-          </button>
-        </div>
       </div>
     </div>
 
