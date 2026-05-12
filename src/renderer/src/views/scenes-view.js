@@ -56,7 +56,7 @@ class ScenesView {
 
       // Detail view (read mode)
       detailView: document.getElementById("scene-detail-view"),
-      detailHero: document.getElementById("scene-viewer-hero"),
+      detailHero: document.getElementById("view-scene-header"),
       detailName: document.getElementById("view-scene-name"),
       detailDescription: document.getElementById("view-scene-description"),
       detailNotesDisplay: document.getElementById("view-scene-notes-display"),
@@ -64,7 +64,7 @@ class ScenesView {
       detailMusicPill: document.getElementById("view-scene-music-pill"),
       detailLinkedScenes: document.getElementById("view-scene-linked-scenes"),
       detailLinkedEncounters: document.getElementById("view-scene-linked-encounters"),
-      btnCloseDetail: document.getElementById("btn-close-scene-detail"),
+      btnCloseDetail: document.getElementById("btn-back-from-scene"),
       btnEditCurrent: document.getElementById("btn-edit-scene-current"),
       btnPresent: document.getElementById("btn-present-scene"),
       btnEditNotes: document.getElementById("btn-edit-scene-notes"),
@@ -489,10 +489,10 @@ class ScenesView {
       const url = scene.background_image ? this.resolveBackgroundUrl(scene.background_image) : "";
       if (url) {
         this.DOM.detailHero.style.setProperty("--scene-bg-url", `url('${url}')`);
-        this.DOM.detailHero.classList.add("scene-viewer__hero--with-bg");
+        this.DOM.detailHero.classList.add("scene-viewer__header--with-bg");
       } else {
         this.DOM.detailHero.style.removeProperty("--scene-bg-url");
-        this.DOM.detailHero.classList.remove("scene-viewer__hero--with-bg");
+        this.DOM.detailHero.classList.remove("scene-viewer__header--with-bg");
       }
     }
 

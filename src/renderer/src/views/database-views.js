@@ -18,6 +18,7 @@ import {
   normalizeDifficulty,
 } from "../core/format.js";
 import { showConfirm } from "../core/confirm-dialog.js";
+import { modifier, formatModifier, formatCR } from "../core/dnd-stats.js";
 
 // ============================================
 // Toast Notifications
@@ -2261,6 +2262,13 @@ class EncountersView {
             affinity: this.getSelectedAffinity(),
             image: char.image_path ? `local-image://${char.image_path}` : null,
             db_id: char.id,
+            cr: char.cr ?? null,
+            str: char.str ?? null,
+            dex: char.dex ?? null,
+            con: char.con ?? null,
+            int: char.int ?? null,
+            wis: char.wis ?? null,
+            cha: char.cha ?? null,
           });
         });
       });
@@ -2394,30 +2402,13 @@ class EncountersView {
     }
   }
 
-  _modifier(score) {
-    return Math.floor((Number(score) - 10) / 2);
-  }
-
-  _formatModifier(score) {
-    const m = this._modifier(score);
-    return m >= 0 ? `+${m}` : `${m}`;
-  }
-
-  _formatCR(cr) {
-    if (cr === 0.125) return "1/8";
-    if (cr === 0.25) return "1/4";
-    if (cr === 0.5) return "1/2";
-    if (Number.isInteger(cr)) return String(cr);
-    return String(cr);
-  }
-
   _renderMonsterStats(detail) {
     const hp = parseInt(detail.hit_points) || 0;
     const ac = Array.isArray(detail.armor_class)
       ? detail.armor_class[0]?.value ?? 10
       : parseInt(detail.armor_class) || 10;
-    const cr = this._formatCR(detail.challenge_rating);
-    const iniMod = this._formatModifier(detail.dexterity);
+    const cr = formatCR(detail.challenge_rating);
+    const iniMod = formatModifier(detail.dexterity);
 
     return `
       <span class="selection-item__stat">
@@ -2454,7 +2445,7 @@ class EncountersView {
         ([name, score]) => `
           <span class="selection-item__ability">
             <span class="selection-item__ability-label">${name}</span>
-            <span class="selection-item__ability-value">${score} <span class="selection-item__ability-mod">(${this._formatModifier(score)})</span></span>
+            <span class="selection-item__ability-value">${score} <span class="selection-item__ability-mod">(${formatModifier(score)})</span></span>
           </span>`
       )
       .join("");
@@ -2477,10 +2468,17 @@ class EncountersView {
         ac: Array.isArray(monster.armor_class)
           ? monster.armor_class[0]?.value || 10
           : parseInt(monster.armor_class) || 10,
-        ini: this._modifier(monster.dexterity),
+        ini: modifier(monster.dexterity),
         affinity: this.getSelectedAffinity(),
         api_url: monster.url ? `https://www.dnd5eapi.co${monster.url}` : null,
         image: monster.image ? `https://www.dnd5eapi.co${monster.image}` : null,
+        cr: monster.challenge_rating ?? null,
+        str: monster.strength ?? null,
+        dex: monster.dexterity ?? null,
+        con: monster.constitution ?? null,
+        int: monster.intelligence ?? null,
+        wis: monster.wisdom ?? null,
+        cha: monster.charisma ?? null,
       });
     } catch (error) {
       showToast("Erro ao carregar detalhes do monstro", "error");

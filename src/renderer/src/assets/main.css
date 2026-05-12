@@ -2183,132 +2183,152 @@ select:focus {
   }
 }
 
-.scene-viewer__hero {
+/* --- Header (substituiu .scene-viewer__hero) ---
+   Herda o esqueleto de .overlay-view__header (display flex, justify-between,
+   align-center, border-bottom). Adições específicas da Cena: position relative
+   pra ancorar os pseudo-elementos de background quando --with-bg está ativo. */
+.scene-viewer__header {
   position: relative;
-  min-height: 320px;
-  background-color: #0c0c12;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  overflow: hidden;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.scene-viewer__hero--with-bg {
-  background-image: var(--scene-bg-url, none);
-}
-
-.scene-viewer__hero-overlay {
+/* Background image: só quando o JS adiciona a classe --with-bg */
+.scene-viewer__header--with-bg::before {
+  content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at top, rgba(124, 58, 237, 0.22) 0%, rgba(15, 15, 20, 0) 60%),
-    linear-gradient(
-      180deg,
-      rgba(15, 15, 20, 0.45) 0%,
-      rgba(15, 15, 20, 0.78) 70%,
-      var(--color-bg) 100%
-    );
+  background-image: var(--scene-bg-url);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.55;
+  z-index: 0;
   pointer-events: none;
 }
 
-.scene-viewer__hero-content {
+/* Gradient overlay pra preservar contraste do texto sobre a imagem */
+.scene-viewer__header--with-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(124, 58, 237, 0.18), transparent 50%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Todos os filhos diretos do header ficam acima dos overlays */
+.scene-viewer__header > * {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  min-height: 320px;
-  padding: 24px 36px 28px;
-  gap: 20px;
+  z-index: 2;
 }
 
-.scene-viewer__topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
+/* --- Back button ---
+   Mantém a aparência do .overlay-view__back com pequeno override de forma
+   (pill → square) para alinhar com o padrão de Encontros. */
 .scene-viewer__back {
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  width: 40px;
-  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
   color: var(--color-text);
-  font-size: 1.1rem;
   cursor: pointer;
+  flex-shrink: 0;
   transition:
-    background 200ms ease,
-    border-color 200ms ease;
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .scene-viewer__back:hover {
-  background: rgba(124, 58, 237, 0.35);
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface-hover));
   border-color: var(--color-primary);
 }
 
-.scene-viewer__topbar-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.scene-viewer__title-block {
+/* --- Title group --- */
+.scene-viewer__title-group {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-width: 800px;
+  gap: var(--space-1);
 }
 
+/* Eyebrow — subtítulo all-caps acima do título principal */
 .scene-viewer__eyebrow {
   display: inline-block;
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
+  font-family: var(--font-body-brand);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-primary-light);
   font-weight: 600;
 }
 
+/* Title — herda .encounter-manager__title (Nodesto, gold). Sem override
+   desnecessário; a classe compartilhada já define fonte e cor. */
 .scene-viewer__title {
-  font-size: 2.4rem;
-  line-height: 1.1;
+  font-family: var(--font-display-brand);
+  font-size: var(--text-3xl);
+  color: var(--color-accent-gold);
   margin: 0;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
-  letter-spacing: -0.01em;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Meta row abaixo do título */
+.scene-viewer__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  flex-wrap: wrap;
+}
+
+/* Music pill — pílula compacta inline */
 .scene-viewer__music-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 6px 14px;
-  background: rgba(124, 58, 237, 0.18);
-  border: 1px solid rgba(124, 58, 237, 0.45);
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
   border-radius: 999px;
-  width: fit-content;
+  background: rgba(124, 58, 237, 0.18);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
   color: var(--color-primary-light);
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-family: var(--font-body-brand);
+  font-size: var(--text-xs);
 }
 
-.scene-viewer__music-icon {
-  font-size: 0.95rem;
+/* --- Action bar --- */
+.scene-viewer__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
 }
 
+/* Dice toolbar slot — container simples; o #dice-toolbar já é a pílula visual */
+.scene-viewer__dice-row {
+  display: flex;
+  align-items: center;
+}
+
+/* ============================================
+   Scene Viewer — Body / Main / Sidebar
+   ============================================ */
 .scene-viewer__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 32px;
-  padding: 28px 36px 48px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-6) var(--space-12);
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 @media (max-width: 1024px) {
@@ -2320,36 +2340,42 @@ select:focus {
 .scene-viewer__main {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
   min-width: 0;
 }
 
 .scene-viewer__sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
+/* Seção principal (descrição, notas) */
 .scene-viewer__section {
-  background: linear-gradient(180deg, rgba(26, 26, 36, 0.85) 0%, rgba(20, 20, 28, 0.75) 100%);
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  padding: 22px 26px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-md);
 }
 
+/* Título de seção — alinhado com .encounter-section__title */
 .scene-viewer__section-title {
-  font-size: 1.05rem;
-  margin: 0 0 14px 0;
+  font-family: var(--font-display-brand);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--color-text);
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  margin: 0 0 var(--space-4) 0;
 }
 
+/* Descrição e notas em display */
 .scene-viewer__description {
   margin: 0;
+  font-family: var(--font-body-brand);
   color: var(--color-text-secondary);
-  font-size: 1rem;
+  font-size: var(--text-base);
   line-height: 1.65;
   white-space: pre-wrap;
 }
@@ -2358,8 +2384,8 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .scene-viewer__notes-header .scene-viewer__section-title {
@@ -2368,19 +2394,20 @@ select:focus {
 
 .scene-viewer__notes-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .scene-viewer__notes-display {
+  font-family: var(--font-body-brand);
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: var(--text-sm);
+  line-height: 1.65;
   white-space: pre-wrap;
   min-height: 60px;
-  padding: 12px 14px;
-  background: rgba(15, 15, 20, 0.45);
-  border: 1px dashed rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--color-bg) 60%, transparent);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .scene-viewer__notes-empty {
@@ -2392,69 +2419,74 @@ select:focus {
 .scene-viewer__notes-edit {
   width: 100%;
   min-height: 220px;
-  background: rgba(10, 10, 14, 0.85);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  background: var(--color-bg);
   color: var(--color-text);
-  border: 1px solid rgba(124, 58, 237, 0.45);
-  border-radius: 10px;
-  padding: 14px 16px;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  font-family: inherit;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
   resize: vertical;
   outline: none;
   transition:
-    border-color 200ms ease,
-    box-shadow 200ms ease;
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
 .scene-viewer__notes-edit:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
+/* Painel lateral */
 .scene-viewer__panel {
-  background: rgba(26, 26, 36, 0.7);
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
 }
 
+/* Título de painel — uppercase compacto, muted */
 .scene-viewer__panel-title {
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
+  font-family: var(--font-display-brand);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  margin: 0 0 14px 0;
+  margin: 0 0 var(--space-4) 0;
   font-weight: 700;
 }
 
 .scene-viewer__chips {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
+/* Chip — link de cena/encontro vinculado */
 .scene-viewer__chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(124, 58, 237, 0.1);
-  border: 1px solid rgba(124, 58, 237, 0.35);
-  border-radius: 10px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  border-radius: var(--radius-md);
   color: var(--color-text);
-  font-size: 0.92rem;
   text-decoration: none;
   cursor: pointer;
   transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    transform 120ms ease;
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .scene-viewer__chip:hover {
-  background: rgba(124, 58, 237, 0.22);
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
   border-color: var(--color-primary);
   transform: translateY(-1px);
 }
@@ -2467,30 +2499,16 @@ select:focus {
 }
 
 .scene-viewer__chip-meta {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
 .scene-viewer__empty {
+  font-family: var(--font-body-brand);
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-style: italic;
-}
-
-/* Dice toolbar slot in the scene hero. The #dice-toolbar element is moved
-   here by ScenesView.openSceneDetail() and returned to the encounter view
-   on close. */
-.scene-viewer__dice-row {
-  display: flex;
-  justify-content: center;
-  padding: 4px 0;
-}
-
-.scene-viewer__dice-row #dice-toolbar {
-  background: rgba(10, 10, 14, 0.65);
-  backdrop-filter: blur(12px);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ===== Lucide SVG Icons =====

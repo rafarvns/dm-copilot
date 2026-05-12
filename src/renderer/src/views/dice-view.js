@@ -161,8 +161,13 @@ export default class DiceView {
 
   async acquireParallelSlot() {
     // Slot pronto e ocioso? (ignora slots ainda inicializando — sem diceBox)
+    // Marca busy=true ANTES de retornar — operação síncrona pra evitar race
+    // quando acquire é chamado em paralelo via Promise.all.
     const ready = this.parallelPool.find((s) => s && !s.busy && s.diceBox);
-    if (ready) return ready;
+    if (ready) {
+      ready.busy = true;
+      return ready;
+    }
 
     // Pool ainda não lotado? Cria mais um sob demanda.
     const total = this.parallelPool.filter(Boolean).length;
@@ -170,7 +175,10 @@ export default class DiceView {
       const idx = this.parallelPool.findIndex((s) => !s);
       const newIdx = idx >= 0 ? idx : this.parallelPool.length;
       const created = await this.createParallelSlot(newIdx);
-      if (created) return created;
+      if (created) {
+        created.busy = true;
+        return created;
+      }
     }
 
     // Tudo ocupado/inicializando — aguarda o próximo a liberar.
@@ -181,7 +189,10 @@ export default class DiceView {
     return new Promise((resolve) => {
       const tick = () => {
         const free = this.parallelPool.find((s) => s && !s.busy && s.diceBox);
-        if (free) return resolve(free);
+        if (free) {
+          free.busy = true;
+          return resolve(free);
+        }
         setTimeout(tick, 80);
       };
       tick();
@@ -248,30 +259,54 @@ export default class DiceView {
   }
 
   /**
-   * Rola múltiplos grupos com presets (ex.: ["1d12@3", "1d20@7"]) em paralelo,
-   * usando um slot do parallelPool por grupo. Retorna um result-shape compatível
-   * com adaptRollResult: { sets: [...todos os sets agregados...] }.
-   * Necessário porque dice-box-threejs v0.0.12 não suporta multigroup com `@`
-   * numa única chamada roll() — o parser quebra no primeiro @.
+   * Rola UM grupo num slot do parallelPool. Aplica cor, dispara `roll()`,
+   * libera o slot após o delay padrão. Retorna o array `sets` (vazio em falha).
+   * Não chama displayResults nem broadcast — efeitos colaterais ficam no caller.
    */
-  async rollMultiGroupOnPool(presetGroups) {
-    // Adquire um slot por grupo (em paralelo). Slots ficam busy até liberação.
-    const slots = await Promise.all(
-      presetGroups.map(() => this.acquireParallelSlot())
+  async rollGroupOnSlot(presetNotation, themeColor) {
+    const slot = await this.acquireParallelSlot();
+    if (!slot || !slot.diceBox) return [];
+
+    try {
+      if (themeColor && slot.diceBox.updateConfig) {
+        try {
+          await slot.diceBox.updateConfig({
+            theme_customColorset: {
+              background: [themeColor],
+              foreground: "#ffffff",
+              material: "plastic",
+              edges: "#000000",
+              texture: "none",
+            },
+          });
+        } catch (e) {
+          console.warn("Falha ao atualizar cor (slot paralelo):", e);
+        }
+      }
+      slot.diceBox.strength = 3 + Math.random() * 4;
+      const result = await slot.diceBox.roll(presetNotation);
+      return result?.sets || [];
+    } catch (err) {
+      console.error("Group roll on slot failed:", err);
+      return [];
+    } finally {
+      // Mantém os dados visíveis um pouco antes de limpar o slot.
+      setTimeout(() => this.releaseParallelSlot(slot), 2500);
+    }
+  }
+
+  /**
+   * Rola múltiplos grupos com presets (ex.: ["1d12@3", "1d20@7"]) em paralelo,
+   * cada um num slot independente do parallelPool. Necessário porque a lib
+   * dice-box-threejs v0.0.12 não suporta multigroup com `@` numa única chamada
+   * roll() — o parser interno faz split("@") uma vez só e descarta o resto.
+   * Retorna shape compatível com adaptRollResult: { sets: [...agregados...] }.
+   */
+  async rollMultiGroupOnPool(presetGroups, themeColor) {
+    const setsArrays = await Promise.all(
+      presetGroups.map((g) => this.rollGroupOnSlot(g, themeColor))
     );
-
-    // Rola cada grupo no seu slot, em paralelo. Slots ausentes retornam undefined.
-    const results = await Promise.all(
-      presetGroups.map((g, i) => slots[i]?.diceBox.roll(g))
-    );
-
-    // Libera os slots após o delay padrão (mesmo timing de rollOnParallelSlot)
-    slots.forEach((s) => {
-      if (s) setTimeout(() => this.releaseParallelSlot(s), 2500);
-    });
-
-    // Agrega os sets de todos os results num único objeto
-    return { sets: results.flatMap((r) => (r?.sets || [])) };
+    return { sets: setsArrays.flat() };
   }
 
   bindEvents() {
@@ -473,14 +508,14 @@ export default class DiceView {
       // Roll locally with the same predetermined values that were broadcast.
       // dice-box-threejs v0.0.12 não suporta multigroup com `@` numa única
       // chamada roll() — split("@") interno só captura o primeiro grupo.
-      // Detectamos esse caso e distribuímos pelos slots do parallelPool.
+      // Para multi-tipo (ex.: 1d20+1d12), distribuímos pelo parallelPool.
       const presetGroups = String(presetNotation).split("+").filter(Boolean);
       const isMultiGroupPreset =
         presetGroups.length > 1 && presetGroups.every((g) => g.includes("@"));
 
       let rollResult;
       if (isMultiGroupPreset) {
-        rollResult = await this.rollMultiGroupOnPool(presetGroups);
+        rollResult = await this.rollMultiGroupOnPool(presetGroups, currentRoll.themeColor);
       } else {
         rollResult = await this.diceBox.roll(presetNotation);
       }

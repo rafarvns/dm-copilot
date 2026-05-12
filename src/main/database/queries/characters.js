@@ -6,8 +6,12 @@
 // ============================================
 function createCharacter(db, characterData) {
   const stmt = db.prepare(`
-    INSERT INTO characters (name, description, system, hp, ac, ini, image_path, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO characters (
+      name, description, system, hp, ac, ini, image_path,
+      cr, str, dex, con, "int", wis, cha,
+      created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -19,6 +23,13 @@ function createCharacter(db, characterData) {
     characterData.ac || 10,
     characterData.ini || 0,
     characterData.image_path || null,
+    characterData.cr ?? null,
+    characterData.str ?? null,
+    characterData.dex ?? null,
+    characterData.con ?? null,
+    characterData.int ?? null,
+    characterData.wis ?? null,
+    characterData.cha ?? null,
     now,
     now
   );
@@ -69,8 +80,10 @@ function countCharacters(db) {
 // ============================================
 function updateCharacter(db, id, characterData) {
   const stmt = db.prepare(`
-    UPDATE characters 
-    SET name = ?, description = ?, system = ?, hp = ?, ac = ?, ini = ?, image_path = ?, updated_at = ?
+    UPDATE characters
+    SET name = ?, description = ?, system = ?, hp = ?, ac = ?, ini = ?, image_path = ?,
+        cr = ?, str = ?, dex = ?, con = ?, "int" = ?, wis = ?, cha = ?,
+        updated_at = ?
     WHERE id = ?
   `);
 
@@ -83,6 +96,13 @@ function updateCharacter(db, id, characterData) {
     characterData.ac || 10,
     characterData.ini || 0,
     characterData.image_path || null,
+    characterData.cr ?? null,
+    characterData.str ?? null,
+    characterData.dex ?? null,
+    characterData.con ?? null,
+    characterData.int ?? null,
+    characterData.wis ?? null,
+    characterData.cha ?? null,
     now,
     id
   );

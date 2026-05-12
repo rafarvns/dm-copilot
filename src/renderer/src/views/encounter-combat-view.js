@@ -11,6 +11,12 @@ import {
   resolveEffectiveVisibility,
   applyVisibilityToParticipant,
 } from "../core/combat-visibility.js";
+import { formatModifier } from "../core/dnd-stats.js";
+
+function parseIntOr(v, fallback) {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 export default class EncounterCombatView {
   constructor(encountersView) {
@@ -75,6 +81,13 @@ export default class EncounterCombatView {
       quickEditHp: document.getElementById("quick-edit-hp"),
       quickEditCa: document.getElementById("quick-edit-ca"),
       quickEditInitiative: document.getElementById("quick-edit-initiative"),
+
+      // Participant Details Modal
+      participantDetailsModal: document.getElementById("modal-participant-details"),
+      participantDetailsOverlay: document.getElementById("participant-details-modal-overlay"),
+      btnCloseDetails: document.getElementById("btn-close-details"),
+      btnCancelDetails: document.getElementById("btn-cancel-details"),
+      btnSaveDetails: document.getElementById("btn-save-details"),
     };
   }
 
@@ -127,6 +140,33 @@ export default class EncounterCombatView {
     this.DOM.quickEditPickImage?.addEventListener("click", () => this.pickImageForQuickEdit());
     this.DOM.quickEditResetActed?.addEventListener("click", () => this.handleQuickEditResetActed());
     this.DOM.quickEditResetSaves?.addEventListener("click", () => this.handleQuickEditResetSaves());
+
+    // Modal Detalhes do Participante — listeners
+    this.DOM.participantDetailsOverlay?.addEventListener("click", () =>
+      this.closeParticipantDetails()
+    );
+    this.DOM.btnCloseDetails?.addEventListener("click", () => this.closeParticipantDetails());
+    this.DOM.btnCancelDetails?.addEventListener("click", () => this.closeParticipantDetails());
+    this.DOM.btnSaveDetails?.addEventListener("click", () => this.saveParticipantDetails());
+
+    // Esc fecha qualquer modal aberto
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!this.DOM.participantDetailsModal?.classList.contains("hidden")) {
+        this.closeParticipantDetails();
+      } else if (!this.DOM.quickEditModal?.classList.contains("hidden")) {
+        this.closeQuickEditModal();
+      }
+    });
+
+    // Modifier ao vivo para os ability score inputs do modal de detalhes
+    ["str", "dex", "con", "int", "wis", "cha"].forEach((ab) => {
+      const input = document.getElementById(`details-${ab}`);
+      input?.addEventListener("input", () => {
+        const mod = document.getElementById(`details-${ab}-mod`);
+        if (mod) mod.textContent = formatModifier(input.value);
+      });
+    });
   }
 
   _setPlayerLinkUrl(url) {
@@ -477,6 +517,7 @@ export default class EncounterCombatView {
 
         return `
         <div class="combat-banner ${isActive ? "combat-banner--active" : ""} ${hasActed ? "combat-banner--acted" : ""} ${isDead ? "combat-banner--dead" : ""}" data-id="${p.id}">
+          <button class="combat-banner__details" data-id="${p.id}" type="button" title="Detalhes" aria-label="Ver detalhes">${icon("info", { size: 14 })}</button>
           <button class="combat-banner__remove" data-id="${p.id}" title="Remover da luta">${icon("x", { size: 14 })}</button>
           <div class="combat-banner__affinity combat-banner__affinity--${p.affinity}"></div>
           ${
@@ -526,6 +567,14 @@ export default class EncounterCombatView {
             input.value = "";
           }
         }
+      });
+    });
+
+    // Bind details buttons
+    this.DOM.banners.querySelectorAll(".combat-banner__details").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.openParticipantDetails(btn.dataset.id);
       });
     });
 
@@ -1374,5 +1423,70 @@ export default class EncounterCombatView {
     } catch (err) {
       console.error("Erro ao processar imagem para edição rápida:", err);
     }
+  }
+
+  openParticipantDetails(id) {
+    const p = this.participants.find((x) => String(x.id) === String(id));
+    if (!p) return;
+
+    this._detailsTargetId = p.id;
+
+    document.getElementById("details-modal-name").textContent = p.name || "—";
+    document.getElementById("details-cr").value = p.cr ?? "";
+    document.getElementById("details-current-hp").value = p.current_hp ?? p.hp ?? 0;
+    document.getElementById("details-hp").value = p.hp ?? 0;
+    document.getElementById("details-ca").value = p.ca ?? p.ac ?? 10;
+    document.getElementById("details-ini").value = p.initiative ?? p.ini ?? 0;
+
+    const abilities = ["str", "dex", "con", "int", "wis", "cha"];
+    abilities.forEach((ab) => {
+      const input = document.getElementById(`details-${ab}`);
+      const mod = document.getElementById(`details-${ab}-mod`);
+      if (!input || !mod) return;
+      input.value = p[ab] ?? "";
+      mod.textContent = formatModifier(p[ab]);
+    });
+
+    this.DOM.participantDetailsModal?.classList.remove("hidden");
+  }
+
+  closeParticipantDetails() {
+    this._detailsTargetId = null;
+    this.DOM.participantDetailsModal?.classList.add("hidden");
+  }
+
+  saveParticipantDetails() {
+    const id = this._detailsTargetId;
+    if (id == null) return;
+
+    const p = this.participants.find((x) => String(x.id) === String(id));
+    if (!p) {
+      this.closeParticipantDetails();
+      return;
+    }
+
+    // Stats principais
+    const cr = document.getElementById("details-cr").value.trim();
+    p.cr = cr === "" ? null : cr;
+    p.current_hp = parseIntOr(document.getElementById("details-current-hp").value, p.current_hp ?? 0);
+    p.hp = parseIntOr(document.getElementById("details-hp").value, p.hp ?? 0);
+    // CA: o banner usa "ca" como nome do campo. Mantemos consistência.
+    p.ca = parseIntOr(document.getElementById("details-ca").value, p.ca ?? p.ac ?? 10);
+    // Iniciativa: "initiative" durante combate; "ini" fora. Atualiza ambos pra cobrir os dois caminhos.
+    const iniValue = parseIntOr(document.getElementById("details-ini").value, 0);
+    p.initiative = iniValue;
+    p.ini = iniValue;
+
+    // Ability scores
+    ["str", "dex", "con", "int", "wis", "cha"].forEach((ab) => {
+      const v = document.getElementById(`details-${ab}`).value;
+      const n = parseInt(v, 10);
+      p[ab] = Number.isFinite(n) ? n : null;
+    });
+
+    this.closeParticipantDetails();
+    this.renderBanners();
+    // Persiste no DB do encontro (segue padrão de saveQuickEdit)
+    this.updateDB?.();
   }
 }

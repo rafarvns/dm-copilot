@@ -5,6 +5,12 @@ import databaseService from "../db/database.js";
 import { showToast } from "./database-views.js";
 import { icon } from "../core/icons.js";
 import { showConfirm } from "../core/confirm-dialog.js";
+import { formatModifier } from "../core/dnd-stats.js";
+
+function parseIntOrNull(v) {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+}
 
 class GlobalCharactersView {
   constructor() {
@@ -39,6 +45,15 @@ class GlobalCharactersView {
       descInput: document.getElementById("character-description"),
       errorName: document.getElementById("error-char-name"),
       errorSystem: document.getElementById("error-char-system"),
+
+      // Atributos D&D
+      crInput: document.getElementById("char-cr"),
+      strInput: document.getElementById("char-str"),
+      dexInput: document.getElementById("char-dex"),
+      conInput: document.getElementById("char-con"),
+      intInput: document.getElementById("char-int"),
+      wisInput: document.getElementById("char-wis"),
+      chaInput: document.getElementById("char-cha"),
 
       // Image
       imageUpload: document.getElementById("char-image-preview"),
@@ -84,6 +99,16 @@ class GlobalCharactersView {
 
     this.DOM.imageUpload.addEventListener("click", () => this.DOM.imageInput.click());
     this.DOM.imageInput.addEventListener("change", (e) => this.handleImageSelect(e));
+
+    ["str", "dex", "con", "int", "wis", "cha"].forEach((ab) => {
+      const input = this.DOM[`${ab}Input`];
+      input?.addEventListener("input", () => {
+        const mod = document.getElementById(`char-${ab}-mod`);
+        if (mod) {
+          mod.textContent = input.value.trim() === "" ? "+0" : formatModifier(input.value);
+        }
+      });
+    });
   }
 
   async loadCharacters() {
@@ -226,6 +251,15 @@ class GlobalCharactersView {
     this.DOM.iniInput.value = char ? char.ini : "";
     this.DOM.descInput.value = char ? char.description || "" : "";
 
+    this.DOM.crInput.value = char?.cr ?? "";
+    this.DOM.strInput.value = char?.str ?? "";
+    this.DOM.dexInput.value = char?.dex ?? "";
+    this.DOM.conInput.value = char?.con ?? "";
+    this.DOM.intInput.value = char?.int ?? "";
+    this.DOM.wisInput.value = char?.wis ?? "";
+    this.DOM.chaInput.value = char?.cha ?? "";
+    this._refreshAbilityMods();
+
     // Reset image preview
     if (char && char.image_path) {
       this.DOM.imageDisplay.src = `local-image://${char.image_path}`;
@@ -240,6 +274,16 @@ class GlobalCharactersView {
     this.clearAllErrors();
     this.DOM.modal.classList.remove("hidden");
     this.DOM.nameInput.focus();
+  }
+
+  _refreshAbilityMods() {
+    ["str", "dex", "con", "int", "wis", "cha"].forEach((ab) => {
+      const input = this.DOM[`${ab}Input`];
+      const mod = document.getElementById(`char-${ab}-mod`);
+      if (input && mod) {
+        mod.textContent = input.value.trim() === "" ? "+0" : formatModifier(input.value);
+      }
+    });
   }
 
   closeForm() {
@@ -260,6 +304,13 @@ class GlobalCharactersView {
       image_path: this.editingId
         ? this.characters.find((c) => c.id === this.editingId)?.image_path
         : null,
+      cr: this.DOM.crInput.value.trim() || null,
+      str: parseIntOrNull(this.DOM.strInput.value),
+      dex: parseIntOrNull(this.DOM.dexInput.value),
+      con: parseIntOrNull(this.DOM.conInput.value),
+      int: parseIntOrNull(this.DOM.intInput.value),
+      wis: parseIntOrNull(this.DOM.wisInput.value),
+      cha: parseIntOrNull(this.DOM.chaInput.value),
     };
 
     if (!this.validate(data)) return;

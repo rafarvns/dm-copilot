@@ -499,6 +499,53 @@
               placeholder="Descreva o personagem, personalidade, equipamentos..."
             ></textarea>
           </div>
+          <fieldset class="character-form__stats-fieldset">
+            <legend>Atributos</legend>
+
+            <label class="character-form__cr">
+              CR
+              <input
+                type="text"
+                id="char-cr"
+                placeholder="ex: 1/4 ou 5"
+                maxlength="6"
+                autocomplete="off"
+              />
+            </label>
+
+            <div class="character-form__abilities">
+              <label class="character-form__ability">
+                <span class="character-form__ability-label">STR</span>
+                <input type="number" id="char-str" min="1" max="40" autocomplete="off" />
+                <span class="character-form__ability-mod" id="char-str-mod">+0</span>
+              </label>
+              <label class="character-form__ability">
+                <span class="character-form__ability-label">DEX</span>
+                <input type="number" id="char-dex" min="1" max="40" autocomplete="off" />
+                <span class="character-form__ability-mod" id="char-dex-mod">+0</span>
+              </label>
+              <label class="character-form__ability">
+                <span class="character-form__ability-label">CON</span>
+                <input type="number" id="char-con" min="1" max="40" autocomplete="off" />
+                <span class="character-form__ability-mod" id="char-con-mod">+0</span>
+              </label>
+              <label class="character-form__ability">
+                <span class="character-form__ability-label">INT</span>
+                <input type="number" id="char-int" min="1" max="40" autocomplete="off" />
+                <span class="character-form__ability-mod" id="char-int-mod">+0</span>
+              </label>
+              <label class="character-form__ability">
+                <span class="character-form__ability-label">WIS</span>
+                <input type="number" id="char-wis" min="1" max="40" autocomplete="off" />
+                <span class="character-form__ability-mod" id="char-wis-mod">+0</span>
+              </label>
+              <label class="character-form__ability">
+                <span class="character-form__ability-label">CHA</span>
+                <input type="number" id="char-cha" min="1" max="40" autocomplete="off" />
+                <span class="character-form__ability-mod" id="char-cha-mod">+0</span>
+              </label>
+            </div>
+          </fieldset>
           <div class="modal__footer">
             <button type="button" class="btn btn--secondary" id="btn-cancel-char-form">
               Cancelar
@@ -734,100 +781,97 @@
     </div>
 
     <!-- Scene Detail View (Viewer) — usado pela feature Campaigns -->
-    <div id="scene-detail-view" class="overlay-view hidden">
-      <div class="scene-viewer">
-        <div class="scene-viewer__hero" id="scene-viewer-hero">
-          <div class="scene-viewer__hero-overlay"></div>
-          <div class="scene-viewer__hero-content">
-            <div class="scene-viewer__topbar">
-              <button
-                class="btn-icon scene-viewer__back"
-                id="btn-close-scene-detail"
-                title="Voltar"
-              >
-                <i data-icon="arrow-left"></i>
-              </button>
-              <div class="scene-viewer__topbar-actions">
-                <button class="btn btn--secondary" id="btn-edit-scene-current">
-                  <i class="btn__icon" data-icon="pencil"></i> Editar
-                </button>
-                <button
-                  class="btn btn--primary"
-                  id="btn-present-scene"
-                  title="Em breve: enviar cena para a tela dos jogadores"
-                >
-                  <i class="btn__icon" data-icon="monitor-play"></i> Apresentar aos Jogadores
-                </button>
-              </div>
-            </div>
-            <!-- Recebe o #dice-toolbar (movido do encontro) enquanto a cena está aberta -->
-            <div id="scene-dice-row" class="scene-viewer__dice-row"></div>
-            <div class="scene-viewer__title-block">
-              <span class="scene-viewer__eyebrow">Cena</span>
-              <h1 class="scene-viewer__title" id="view-scene-name">Nome da Cena</h1>
-              <div class="scene-viewer__music-pill hidden" id="view-scene-music-pill">
-                <i class="scene-viewer__music-icon" data-icon="music"></i>
-                <span class="scene-viewer__music-label">Trilha sonora pronta</span>
-              </div>
-            </div>
+    <div id="scene-detail-view" class="overlay-view scene-viewer hidden">
+      <header class="overlay-view__header scene-viewer__header" id="view-scene-header">
+        <button
+          class="overlay-view__back scene-viewer__back"
+          id="btn-back-from-scene"
+          type="button"
+          aria-label="Voltar"
+        >
+          <i data-icon="arrow-left"></i>
+        </button>
+
+        <div class="encounter-manager__title-group scene-viewer__title-group">
+          <span class="scene-viewer__eyebrow">Cena</span>
+          <h1 class="encounter-manager__title scene-viewer__title" id="view-scene-name">
+            Nome da Cena
+          </h1>
+          <div class="encounter-manager__meta scene-viewer__meta">
+            <span class="scene-viewer__music-pill hidden" id="view-scene-music-pill">
+              <i data-icon="music"></i>
+              <span>Trilha sonora</span>
+            </span>
           </div>
         </div>
 
-        <div class="scene-viewer__body">
-          <section class="scene-viewer__main">
-            <div class="scene-viewer__section">
-              <h3 class="scene-viewer__section-title">Descrição</h3>
-              <p class="scene-viewer__description" id="view-scene-description"></p>
-            </div>
+        <div class="overlay-view__actions scene-viewer__actions">
+          <!-- O #dice-toolbar é movido pra cá quando a cena monta (mesma posição da tela de Encontros) -->
+          <div id="scene-dice-row" class="scene-viewer__dice-row"></div>
 
-            <div class="scene-viewer__section">
-              <div class="scene-viewer__notes-header">
-                <h3 class="scene-viewer__section-title">
-                  <i data-icon="notebook-pen"></i> Anotações do Mestre
-                </h3>
-                <div class="scene-viewer__notes-actions">
-                  <button class="btn btn--secondary btn--sm" id="btn-edit-scene-notes">
-                    Editar
-                  </button>
-                  <button class="btn btn--primary btn--sm hidden" id="btn-save-scene-notes">
-                    Salvar
-                  </button>
-                  <button class="btn btn--secondary btn--sm hidden" id="btn-cancel-scene-notes">
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-              <div class="scene-viewer__notes-display" id="view-scene-notes-display">
-                <p class="scene-viewer__notes-empty">
-                  Nenhuma anotação ainda. Clique em <strong>Editar</strong> para escrever lembretes,
-                  ganchos da cena, segredos do mestre etc.
-                </p>
-              </div>
-              <textarea
-                id="view-scene-notes-edit"
-                class="scene-viewer__notes-edit hidden"
-                rows="10"
-                placeholder="Escreva suas anotações para esta cena..."
-              ></textarea>
-            </div>
-          </section>
-
-          <aside class="scene-viewer__sidebar">
-            <div class="scene-viewer__panel">
-              <h4 class="scene-viewer__panel-title"><i data-icon="drama"></i> Cenas Conectadas</h4>
-              <div class="scene-viewer__chips" id="view-scene-linked-scenes">
-                <span class="scene-viewer__empty">Nenhuma ligação.</span>
-              </div>
-            </div>
-
-            <div class="scene-viewer__panel">
-              <h4 class="scene-viewer__panel-title"><i data-icon="swords"></i> Encontros</h4>
-              <div class="scene-viewer__chips" id="view-scene-linked-encounters">
-                <span class="scene-viewer__empty">Nenhum encontro vinculado.</span>
-              </div>
-            </div>
-          </aside>
+          <button class="btn btn--secondary" id="btn-edit-scene-current" type="button">
+            <i data-icon="pencil"></i> Editar
+          </button>
+          <button class="btn btn--secondary" id="btn-present-scene" type="button">
+            <i data-icon="monitor-play"></i> Apresentar aos Jogadores
+          </button>
         </div>
+      </header>
+
+      <div class="scene-viewer__body">
+        <main class="scene-viewer__main">
+          <div class="scene-viewer__section">
+            <h3 class="scene-viewer__section-title">Descrição</h3>
+            <p class="scene-viewer__description" id="view-scene-description"></p>
+          </div>
+
+          <div class="scene-viewer__section">
+            <div class="scene-viewer__notes-header">
+              <h3 class="scene-viewer__section-title">
+                <i data-icon="notebook-pen"></i> Anotações do Mestre
+              </h3>
+              <div class="scene-viewer__notes-actions">
+                <button class="btn btn--secondary btn--sm" id="btn-edit-scene-notes">
+                  Editar
+                </button>
+                <button class="btn btn--primary btn--sm hidden" id="btn-save-scene-notes">
+                  Salvar
+                </button>
+                <button class="btn btn--secondary btn--sm hidden" id="btn-cancel-scene-notes">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+            <div class="scene-viewer__notes-display" id="view-scene-notes-display">
+              <p class="scene-viewer__notes-empty">
+                Nenhuma anotação ainda. Clique em <strong>Editar</strong> para escrever lembretes,
+                ganchos da cena, segredos do mestre etc.
+              </p>
+            </div>
+            <textarea
+              id="view-scene-notes-edit"
+              class="scene-viewer__notes-edit hidden"
+              rows="10"
+              placeholder="Escreva suas anotações para esta cena..."
+            ></textarea>
+          </div>
+        </main>
+
+        <aside class="scene-viewer__sidebar">
+          <div class="scene-viewer__panel">
+            <h4 class="scene-viewer__panel-title"><i data-icon="drama"></i> Cenas Conectadas</h4>
+            <div class="scene-viewer__chips" id="view-scene-linked-scenes">
+              <span class="scene-viewer__empty">Nenhuma ligação.</span>
+            </div>
+          </div>
+
+          <div class="scene-viewer__panel">
+            <h4 class="scene-viewer__panel-title"><i data-icon="swords"></i> Encontros</h4>
+            <div class="scene-viewer__chips" id="view-scene-linked-encounters">
+              <span class="scene-viewer__empty">Nenhum encontro vinculado.</span>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
 
@@ -1174,6 +1218,78 @@
         <footer class="modal__footer">
           <button class="btn btn--secondary" id="btn-cancel-quick-edit" type="button">Cancelar</button>
           <button class="btn btn--primary" id="btn-save-quick-edit" type="button">
+            <i class="btn__icon" data-icon="check"></i> <span>Salvar</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Participant Details Modal (CR + Ability Scores) -->
+    <div id="modal-participant-details" class="modal hidden">
+      <div class="modal__overlay" id="participant-details-modal-overlay"></div>
+      <div class="modal__content">
+        <header class="modal__header">
+          <div class="modal__title-group">
+            <span class="modal__title-icon"><i data-icon="scroll-text"></i></span>
+            <div>
+              <span class="modal__eyebrow">Combate</span>
+              <h2 class="modal__title" id="details-modal-name">—</h2>
+            </div>
+          </div>
+          <button class="modal__close" id="btn-close-details" aria-label="Fechar">
+            <i data-icon="x"></i>
+          </button>
+        </header>
+        <div class="participant-details">
+          <section class="participant-details__panel">
+            <h3 class="participant-details__panel-title">Status</h3>
+            <div class="participant-details__grid participant-details__grid--stats">
+              <label>CR<input type="text" id="details-cr" maxlength="6" autocomplete="off" /></label>
+              <label>HP atual<input type="number" id="details-current-hp" min="0" /></label>
+              <label>HP máx<input type="number" id="details-hp" min="0" /></label>
+              <label>CA<input type="number" id="details-ca" min="0" max="40" /></label>
+              <label>INI<input type="number" id="details-ini" /></label>
+            </div>
+          </section>
+          <section class="participant-details__panel">
+            <h3 class="participant-details__panel-title">Habilidades</h3>
+            <div class="participant-details__grid participant-details__grid--abilities">
+              <label class="participant-details__ability">
+                <span class="participant-details__ability-label">STR</span>
+                <input type="number" id="details-str" min="1" max="40" />
+                <span class="participant-details__ability-mod" id="details-str-mod">+0</span>
+              </label>
+              <label class="participant-details__ability">
+                <span class="participant-details__ability-label">DEX</span>
+                <input type="number" id="details-dex" min="1" max="40" />
+                <span class="participant-details__ability-mod" id="details-dex-mod">+0</span>
+              </label>
+              <label class="participant-details__ability">
+                <span class="participant-details__ability-label">CON</span>
+                <input type="number" id="details-con" min="1" max="40" />
+                <span class="participant-details__ability-mod" id="details-con-mod">+0</span>
+              </label>
+              <label class="participant-details__ability">
+                <span class="participant-details__ability-label">INT</span>
+                <input type="number" id="details-int" min="1" max="40" />
+                <span class="participant-details__ability-mod" id="details-int-mod">+0</span>
+              </label>
+              <label class="participant-details__ability">
+                <span class="participant-details__ability-label">WIS</span>
+                <input type="number" id="details-wis" min="1" max="40" />
+                <span class="participant-details__ability-mod" id="details-wis-mod">+0</span>
+              </label>
+              <label class="participant-details__ability">
+                <span class="participant-details__ability-label">CHA</span>
+                <input type="number" id="details-cha" min="1" max="40" />
+                <span class="participant-details__ability-mod" id="details-cha-mod">+0</span>
+              </label>
+            </div>
+          </section>
+        </div>
+        <footer class="modal__footer">
+          <button class="btn btn--secondary" id="btn-cancel-details" type="button">Cancelar</button>
+          <button class="btn btn--primary" id="btn-save-details" type="button">
             <i class="btn__icon" data-icon="check"></i> <span>Salvar</span>
           </button>
         </footer>
