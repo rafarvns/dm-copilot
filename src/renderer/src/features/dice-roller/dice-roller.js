@@ -3,11 +3,15 @@ import "./dice-roller.css";
 import { EventBus } from "../../core/event-bus.js";
 import { mountIcons } from "../../core/icons.js";
 
+// Log de rolagens persistido em memória pela duração da sessão do renderer.
+// Sobrevive a desmontagens da feature (navegação entre telas), mas é descartado
+// quando o app fecha — não vai pro banco.
+const MAX_ENTRIES = 50;
+const sessionHistory = [];
+
 export default class DiceRollerFeature {
   constructor() {
     this.container = null;
-    this.history = [];
-    this.MAX_ENTRIES = 50;
     this.toolbarNode = null;
     this.toolbarOriginalParent = null;
     this.onRoll = this.onRoll.bind(this);
@@ -52,20 +56,19 @@ export default class DiceRollerFeature {
       window.diceView.disableAdHocMode();
     }
 
-    this.history = [];
     this.container = null;
   }
 
   onRoll(data) {
-    this.history.unshift(data);
-    if (this.history.length > this.MAX_ENTRIES) {
-      this.history.length = this.MAX_ENTRIES;
+    sessionHistory.unshift(data);
+    if (sessionHistory.length > MAX_ENTRIES) {
+      sessionHistory.length = MAX_ENTRIES;
     }
     this.render();
   }
 
   clearLog() {
-    this.history = [];
+    sessionHistory.length = 0;
     this.render();
   }
 
@@ -75,7 +78,7 @@ export default class DiceRollerFeature {
 
     list.innerHTML = "";
 
-    if (this.history.length === 0) {
+    if (sessionHistory.length === 0) {
       const emptyItem = document.createElement("li");
       emptyItem.className = "dice-roller__empty";
 
@@ -92,7 +95,7 @@ export default class DiceRollerFeature {
 
       list.appendChild(emptyItem);
     } else {
-      this.history.forEach((data) => {
+      sessionHistory.forEach((data) => {
         const item = document.createElement("li");
         item.className = "dice-roller__entry";
 

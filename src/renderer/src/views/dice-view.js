@@ -531,14 +531,21 @@ export default class DiceView {
         });
 
         for (const spec of currentRoll.specs) {
+          const bonus = spec.bonus || 0;
+          const notationWithBonus =
+            bonus > 0
+              ? `${spec.notation}+${bonus}`
+              : bonus < 0
+                ? `${spec.notation}${bonus}`
+                : spec.notation;
           const fullNotation =
-            `[${spec.characterName}] ${spec.label || ""} ${spec.notation}`.trim();
+            `[${spec.characterName}] ${spec.label || ""} ${notationWithBonus}`.trim();
           try {
             await window.dmCopilot.db.diceRolls.save({
               notation: fullNotation,
-              total: spec.total + (spec.bonus || 0),
+              total: spec.total + bonus,
               details: `<span class="result-die"><span class="result-die__value">${spec.total}</span></span>`,
-              bonus: spec.bonus || 0,
+              bonus,
             });
           } catch (err) {
             console.error("Failed to save batch roll to history:", err);
@@ -546,8 +553,8 @@ export default class DiceView {
           if (window.encountersView?.combatView?.isActive) {
             window.encountersView.combatView.logRoll({
               characterName: spec.characterName,
-              notation: `${spec.label || ""} ${spec.notation}`.trim(),
-              total: spec.total + (spec.bonus || 0),
+              notation: `${spec.label || ""} ${notationWithBonus}`.trim(),
+              total: spec.total + bonus,
               details: `<span class="result-die"><span class="result-die__value">${spec.total}</span></span>`,
             });
           }
@@ -754,10 +761,19 @@ export default class DiceView {
 
   extractPresetTotal(presetNotation) {
     let total = 0;
+    // Soma valores dos dados (preset @vals)
     String(presetNotation).replace(/@([\d,]+)/g, (_, vals) => {
       vals.split(",").forEach((v) => {
         total += parseInt(v, 10) || 0;
       });
+      return _;
+    });
+    // Soma constantes inteiras intercaladas/finais — strip preset @vals primeiro
+    // pra evitar confundir os valores rolados com constantes reais
+    const stripped = String(presetNotation).replace(/@[\d,]+/g, "");
+    stripped.replace(/([+-])\s*(\d+)(?!\s*d)/gi, (_, sign, num) => {
+      const n = parseInt(num, 10) || 0;
+      total += sign === "-" ? -n : n;
       return _;
     });
     return total;

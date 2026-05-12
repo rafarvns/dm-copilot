@@ -5,6 +5,10 @@
 import { showToast } from "../core/toast.js";
 import { icon } from "../core/icons.js";
 import { showConfirm } from "../core/confirm-dialog.js";
+import { showPrompt } from "../core/prompt-dialog.js";
+import EasyMDE from "easymde";
+import "easymde/dist/easymde.min.css";
+import { marked } from "marked";
 
 class ScenesView {
   constructor() {
@@ -13,6 +17,10 @@ class ScenesView {
     this.currentScene = null;
     this.activeScene = null;
     this.presentingSceneId = null;
+    this.notes = [];
+    this.activeNoteId = null;
+    this.noteEditor = null;
+    this.isEditingNote = false;
 
     this.initDOM();
     this.initEvents();
@@ -59,17 +67,24 @@ class ScenesView {
       detailHero: document.getElementById("view-scene-header"),
       detailName: document.getElementById("view-scene-name"),
       detailDescription: document.getElementById("view-scene-description"),
-      detailNotesDisplay: document.getElementById("view-scene-notes-display"),
-      detailNotesEdit: document.getElementById("view-scene-notes-edit"),
       detailMusicPill: document.getElementById("view-scene-music-pill"),
       detailLinkedScenes: document.getElementById("view-scene-linked-scenes"),
       detailLinkedEncounters: document.getElementById("view-scene-linked-encounters"),
       btnCloseDetail: document.getElementById("btn-back-from-scene"),
+      btnOpenPlayerLink: document.getElementById("btn-scene-open-player-link"),
       btnEditCurrent: document.getElementById("btn-edit-scene-current"),
       btnPresent: document.getElementById("btn-present-scene"),
-      btnEditNotes: document.getElementById("btn-edit-scene-notes"),
-      btnSaveNotes: document.getElementById("btn-save-scene-notes"),
-      btnCancelNotes: document.getElementById("btn-cancel-scene-notes"),
+      btnNewNote: document.getElementById("btn-new-scene-note"),
+      notesTabsContainer: document.getElementById("scene-notes-tabs"),
+      notesEmpty: document.getElementById("scene-notes-empty"),
+      notesActive: document.getElementById("scene-notes-active"),
+      noteTitleInput: document.getElementById("scene-note-title-input"),
+      noteDisplay: document.getElementById("scene-note-display"),
+      noteEditorTextarea: document.getElementById("scene-note-editor"),
+      btnEditNote: document.getElementById("btn-edit-scene-note"),
+      btnSaveNote: document.getElementById("btn-save-scene-note"),
+      btnCancelNote: document.getElementById("btn-cancel-scene-note"),
+      btnDeleteNote: document.getElementById("btn-delete-scene-note"),
 
       // Dice toolbar host (same DOM node moved between scene and encounter views)
       diceToolbar: document.getElementById("dice-toolbar"),
@@ -104,10 +119,27 @@ class ScenesView {
     });
     this.DOM.btnPresent?.addEventListener("click", () => this.togglePresentation());
 
-    // Notes inline editor
-    this.DOM.btnEditNotes?.addEventListener("click", () => this.enterNotesEditMode());
-    this.DOM.btnCancelNotes?.addEventListener("click", () => this.cancelNotesEdit());
-    this.DOM.btnSaveNotes?.addEventListener("click", () => this.saveNotes());
+    // Open player link in external browser
+    this.DOM.btnOpenPlayerLink?.addEventListener("click", () => {
+      const url = this.DOM.btnOpenPlayerLink.dataset.url;
+      if (url && window.dmCopilot?.openExternal) {
+        window.dmCopilot.openExternal(url);
+      }
+    });
+
+    // Notes (multi-aba)
+    this.DOM.btnNewNote?.addEventListener("click", () => this.createNote());
+    this.DOM.btnEditNote?.addEventListener("click", () => this.enterNoteEditMode());
+    this.DOM.btnSaveNote?.addEventListener("click", () => this.saveActiveNote());
+    this.DOM.btnCancelNote?.addEventListener("click", () => this.cancelNoteEdit());
+    this.DOM.btnDeleteNote?.addEventListener("click", () => this.deleteActiveNote());
+    this.DOM.noteTitleInput?.addEventListener("change", () => this.saveActiveNoteTitle());
+    this.DOM.notesTabsContainer?.addEventListener("click", (e) => {
+      const tab = e.target.closest("[data-note-id]");
+      if (!tab) return;
+      const id = parseInt(tab.dataset.noteId, 10);
+      if (Number.isInteger(id)) this.selectNote(id);
+    });
 
     // Click on a related-scene chip → navigate to that scene's detail view
     this.DOM.detailLinkedScenes?.addEventListener("click", (e) => {
@@ -446,10 +478,9 @@ class ScenesView {
       }
       this.activeScene = scene;
       this.renderSceneDetail(scene);
+      await this.loadNotes();
       this.attachDiceToolbar();
       this.DOM.detailView?.classList.remove("hidden");
-      // reset notes editor to display mode whenever we (re)open
-      this.exitNotesEditMode();
     } catch (error) {
       console.error("Erro ao abrir cena:", error);
       showToast("Erro ao abrir cena", "error");
@@ -460,7 +491,7 @@ class ScenesView {
     this.detachDiceToolbar();
     this.DOM.detailView?.classList.add("hidden");
     this.activeScene = null;
-    this.exitNotesEditMode();
+    this.exitNoteEditModeUI();
   }
 
   // Move the shared #dice-toolbar DOM node into/out of the scene hero.
@@ -501,9 +532,6 @@ class ScenesView {
       const hasMusic = !!scene.music_file;
       this.DOM.detailMusicPill.classList.toggle("hidden", !hasMusic);
     }
-
-    // Notes display
-    this.renderNotesDisplay(scene.notes || "");
 
     // Linked scenes (chips)
     if (this.DOM.detailLinkedScenes) {
@@ -591,6 +619,7 @@ class ScenesView {
       const info = await window.dmCopilot.combat.startServer();
       window.dmCopilot.combat.broadcast("scene-update", payload);
       this.presentingSceneId = scene.id;
+      this._setPlayerLinkUrl(`http://${info.ip}:${info.port}`);
       this.updatePresentButton();
       showToast(`Cena no ar: http://${info.ip}:${info.port}`);
     } catch (err) {
@@ -620,65 +649,264 @@ class ScenesView {
     return bg;
   }
 
+  _setPlayerLinkUrl(url) {
+    if (!url) return;
+    this._playerLinkUrl = url;
+    if (this.DOM.btnOpenPlayerLink) {
+      this.DOM.btnOpenPlayerLink.dataset.url = url;
+    }
+  }
+
   updatePresentButton() {
     if (!this.DOM.btnPresent || !this.activeScene) return;
     const isPresenting = this.presentingSceneId === this.activeScene.id;
 
     this.DOM.btnPresent.disabled = false;
-    this.DOM.btnPresent.title = "";
-    this.DOM.btnPresent.innerHTML = isPresenting
-      ? `${icon("circle-stop")} Encerrar Apresentação`
-      : `${icon("monitor-play")} Apresentar aos Jogadores`;
-  }
-
-  renderNotesDisplay(notes) {
-    if (!this.DOM.detailNotesDisplay) return;
-    if (notes && notes.trim()) {
-      this.DOM.detailNotesDisplay.textContent = notes;
-      this.DOM.detailNotesDisplay.classList.remove("scene-viewer__notes-display--empty");
+    if (isPresenting) {
+      this.DOM.btnPresent.innerHTML = icon("circle-stop");
+      this.DOM.btnPresent.setAttribute("title", "Encerrar Apresentação");
+      this.DOM.btnPresent.classList.remove("btn--success");
+      this.DOM.btnPresent.classList.add("btn--danger");
     } else {
-      this.DOM.detailNotesDisplay.innerHTML = `<p class="scene-viewer__notes-empty">Nenhuma anotação ainda. Clique em <strong>Editar</strong> para escrever lembretes, ganchos da cena, segredos do mestre etc.</p>`;
+      this.DOM.btnPresent.innerHTML = icon("monitor-play");
+      this.DOM.btnPresent.setAttribute("title", "Apresentar aos Jogadores");
+      this.DOM.btnPresent.classList.remove("btn--danger");
+      this.DOM.btnPresent.classList.add("btn--success");
+    }
+
+    if (this.DOM.btnOpenPlayerLink) {
+      if (isPresenting && this.DOM.btnOpenPlayerLink.dataset.url) {
+        this.DOM.btnOpenPlayerLink.removeAttribute("hidden");
+      } else {
+        this.DOM.btnOpenPlayerLink.setAttribute("hidden", "");
+      }
     }
   }
 
-  enterNotesEditMode() {
-    if (!this.activeScene) return;
-    if (this.DOM.detailNotesEdit) {
-      this.DOM.detailNotesEdit.value = this.activeScene.notes || "";
-      this.DOM.detailNotesEdit.classList.remove("hidden");
-      this.DOM.detailNotesEdit.focus();
+  async loadNotes() {
+    if (!this.activeScene) {
+      this.notes = [];
+      this.activeNoteId = null;
+      this.renderNotesUI();
+      return;
     }
-    this.DOM.detailNotesDisplay?.classList.add("hidden");
-    this.DOM.btnEditNotes?.classList.add("hidden");
-    this.DOM.btnSaveNotes?.classList.remove("hidden");
-    this.DOM.btnCancelNotes?.classList.remove("hidden");
-  }
-
-  exitNotesEditMode() {
-    this.DOM.detailNotesEdit?.classList.add("hidden");
-    this.DOM.detailNotesDisplay?.classList.remove("hidden");
-    this.DOM.btnEditNotes?.classList.remove("hidden");
-    this.DOM.btnSaveNotes?.classList.add("hidden");
-    this.DOM.btnCancelNotes?.classList.add("hidden");
-  }
-
-  cancelNotesEdit() {
-    this.exitNotesEditMode();
-  }
-
-  async saveNotes() {
-    if (!this.activeScene) return;
-    const notes = this.DOM.detailNotesEdit?.value || "";
     try {
-      await window.dmCopilot.db.scenes.update(this.activeScene.id, { notes });
-      this.activeScene.notes = notes;
-      this.renderNotesDisplay(notes);
-      this.exitNotesEditMode();
-      showToast("Anotações salvas.");
-    } catch (error) {
-      console.error("Erro ao salvar anotações:", error);
-      showToast("Erro ao salvar anotações", "error");
+      this.notes = (await window.dmCopilot.db.sceneNotes.list(this.activeScene.id)) || [];
+    } catch (err) {
+      console.error("Erro ao carregar anotações:", err);
+      this.notes = [];
     }
+    if (this.notes.length > 0 && !this.notes.find((n) => n.id === this.activeNoteId)) {
+      this.activeNoteId = this.notes[0].id;
+    } else if (this.notes.length === 0) {
+      this.activeNoteId = null;
+    }
+    this.renderNotesUI();
+  }
+
+  renderNotesUI() {
+    if (!this.DOM.notesTabsContainer) return;
+
+    this.DOM.notesTabsContainer.innerHTML = this.notes
+      .map(
+        (n) => `
+        <button class="scene-notes__tab ${n.id === this.activeNoteId ? "scene-notes__tab--active" : ""}"
+                type="button" role="tab" data-note-id="${n.id}">
+          <span class="scene-notes__tab-label">${this.escapeHtmlNote(n.title)}</span>
+        </button>
+      `
+      )
+      .join("");
+
+    if (this.notes.length === 0) {
+      this.DOM.notesEmpty?.classList.remove("hidden");
+      this.DOM.notesActive?.classList.add("hidden");
+      return;
+    }
+    this.DOM.notesEmpty?.classList.add("hidden");
+    this.DOM.notesActive?.classList.remove("hidden");
+
+    const active = this.notes.find((n) => n.id === this.activeNoteId);
+    if (!active) return;
+
+    if (this.DOM.noteTitleInput) this.DOM.noteTitleInput.value = active.title;
+    this.renderActiveNoteContent(active.content);
+    this.exitNoteEditModeUI();
+  }
+
+  renderActiveNoteContent(content) {
+    if (!this.DOM.noteDisplay) return;
+    this.DOM.noteDisplay.innerHTML = marked.parse(content || "");
+  }
+
+  async createNote() {
+    if (!this.activeScene) return;
+    try {
+      const created = await window.dmCopilot.db.sceneNotes.create(this.activeScene.id, {});
+      this.notes.push(created);
+      this.activeNoteId = created.id;
+      this.renderNotesUI();
+      this.DOM.noteTitleInput?.focus();
+      this.DOM.noteTitleInput?.select();
+    } catch (err) {
+      console.error("Erro ao criar anotação:", err);
+      showToast("Erro ao criar anotação", "error");
+    }
+  }
+
+  selectNote(id) {
+    if (this.isEditingNote) {
+      this.cancelNoteEdit();
+    }
+    this.activeNoteId = id;
+    this.renderNotesUI();
+  }
+
+  enterNoteEditMode() {
+    const active = this.notes.find((n) => n.id === this.activeNoteId);
+    if (!active) return;
+    this.isEditingNote = true;
+    this.DOM.noteDisplay?.classList.add("hidden");
+    this.DOM.noteEditorTextarea?.classList.remove("hidden");
+    this.DOM.btnEditNote?.classList.add("hidden");
+    this.DOM.btnSaveNote?.classList.remove("hidden");
+    this.DOM.btnCancelNote?.classList.remove("hidden");
+
+    if (this.DOM.noteEditorTextarea) this.DOM.noteEditorTextarea.value = active.content || "";
+
+    this.noteEditor = new EasyMDE({
+      element: this.DOM.noteEditorTextarea,
+      spellChecker: false,
+      autofocus: true,
+      status: false,
+      autoDownloadFontAwesome: false,
+      minHeight: "200px",
+      initialValue: active.content || "",
+      toolbar: [
+        "bold",
+        "italic",
+        "strikethrough",
+        "heading",
+        "|",
+        "unordered-list",
+        "ordered-list",
+        "quote",
+        "|",
+        "code",
+        "link",
+        "horizontal-rule",
+        "|",
+        {
+          name: "image-url",
+          action: async (editor) => {
+            const values = await showPrompt({
+              title: "Inserir Imagem",
+              fields: [
+                { name: "url", label: "URL da imagem", placeholder: "https://...", required: true },
+                {
+                  name: "alt",
+                  label: "Texto alternativo",
+                  placeholder: "Descreva a imagem (opcional)",
+                },
+              ],
+              confirmLabel: "Inserir",
+              confirmIcon: "image",
+            });
+            if (!values) return;
+            const cm = editor.codemirror;
+            cm.replaceSelection(`![${values.alt || ""}](${values.url})`);
+            cm.focus();
+          },
+          className: "image-url",
+          title: "Inserir Imagem por URL",
+        },
+      ],
+    });
+  }
+
+  exitNoteEditModeUI() {
+    this.isEditingNote = false;
+    this.DOM.noteDisplay?.classList.remove("hidden");
+    this.DOM.noteEditorTextarea?.classList.add("hidden");
+    this.DOM.btnEditNote?.classList.remove("hidden");
+    this.DOM.btnSaveNote?.classList.add("hidden");
+    this.DOM.btnCancelNote?.classList.add("hidden");
+    if (this.noteEditor) {
+      try {
+        this.noteEditor.toTextArea();
+      } catch (_e) {
+        // ignora erros de desmontagem do editor
+      }
+      this.noteEditor = null;
+    }
+  }
+
+  cancelNoteEdit() {
+    this.exitNoteEditModeUI();
+  }
+
+  async saveActiveNote() {
+    const active = this.notes.find((n) => n.id === this.activeNoteId);
+    if (!active || !this.noteEditor) return;
+    const content = this.noteEditor.value();
+    try {
+      await window.dmCopilot.db.sceneNotes.update(active.id, { content });
+      active.content = content;
+      this.exitNoteEditModeUI();
+      this.renderActiveNoteContent(content);
+      showToast("Anotação salva.");
+    } catch (err) {
+      console.error("Erro ao salvar anotação:", err);
+      showToast("Erro ao salvar anotação", "error");
+    }
+  }
+
+  async saveActiveNoteTitle() {
+    const active = this.notes.find((n) => n.id === this.activeNoteId);
+    if (!active || !this.DOM.noteTitleInput) return;
+    const title = (this.DOM.noteTitleInput.value || "").trim() || active.title;
+    if (title === active.title) return;
+    try {
+      await window.dmCopilot.db.sceneNotes.update(active.id, { title });
+      active.title = title;
+      this.renderNotesUI();
+    } catch (err) {
+      console.error("Erro ao renomear anotação:", err);
+      showToast("Erro ao renomear anotação", "error");
+    }
+  }
+
+  async deleteActiveNote() {
+    const active = this.notes.find((n) => n.id === this.activeNoteId);
+    if (!active) return;
+    const confirmed = await showConfirm({
+      title: "Excluir anotação?",
+      message: `Excluir "${active.title}" permanentemente?`,
+      confirmText: "Excluir",
+      cancelText: "Cancelar",
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await window.dmCopilot.db.sceneNotes.delete(active.id);
+      this.notes = this.notes.filter((n) => n.id !== active.id);
+      this.activeNoteId = this.notes[0]?.id ?? null;
+      this.exitNoteEditModeUI();
+      this.renderNotesUI();
+      showToast("Anotação excluída.");
+    } catch (err) {
+      console.error("Erro ao excluir anotação:", err);
+      showToast("Erro ao excluir anotação", "error");
+    }
+  }
+
+  escapeHtmlNote(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   // ============================================

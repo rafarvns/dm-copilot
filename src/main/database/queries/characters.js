@@ -8,10 +8,10 @@ function createCharacter(db, characterData) {
   const stmt = db.prepare(`
     INSERT INTO characters (
       name, description, system, hp, ac, ini, image_path,
-      cr, str, dex, con, "int", wis, cha,
+      cr, str, dex, con, "int", wis, cha, actions,
       created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -30,6 +30,9 @@ function createCharacter(db, characterData) {
     characterData.int ?? null,
     characterData.wis ?? null,
     characterData.cha ?? null,
+    typeof characterData.actions === "string"
+      ? characterData.actions
+      : JSON.stringify(Array.isArray(characterData.actions) ? characterData.actions : []),
     now,
     now
   );
@@ -82,7 +85,7 @@ function updateCharacter(db, id, characterData) {
   const stmt = db.prepare(`
     UPDATE characters
     SET name = ?, description = ?, system = ?, hp = ?, ac = ?, ini = ?, image_path = ?,
-        cr = ?, str = ?, dex = ?, con = ?, "int" = ?, wis = ?, cha = ?,
+        cr = ?, str = ?, dex = ?, con = ?, "int" = ?, wis = ?, cha = ?, actions = ?,
         updated_at = ?
     WHERE id = ?
   `);
@@ -103,6 +106,9 @@ function updateCharacter(db, id, characterData) {
     characterData.int ?? null,
     characterData.wis ?? null,
     characterData.cha ?? null,
+    typeof characterData.actions === "string"
+      ? characterData.actions
+      : JSON.stringify(Array.isArray(characterData.actions) ? characterData.actions : []),
     now,
     id
   );

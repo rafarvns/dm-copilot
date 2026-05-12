@@ -503,7 +503,7 @@
             <legend>Atributos</legend>
 
             <label class="character-form__cr">
-              CR
+              Level/CR
               <input
                 type="text"
                 id="char-cr"
@@ -784,9 +784,10 @@
     <div id="scene-detail-view" class="overlay-view scene-viewer hidden">
       <header class="overlay-view__header scene-viewer__header" id="view-scene-header">
         <button
-          class="overlay-view__back scene-viewer__back"
+          class="btn-icon overlay-view__back"
           id="btn-back-from-scene"
           type="button"
+          title="Voltar"
           aria-label="Voltar"
         >
           <i data-icon="arrow-left"></i>
@@ -794,9 +795,14 @@
 
         <div class="encounter-manager__title-group scene-viewer__title-group">
           <span class="scene-viewer__eyebrow">Cena</span>
-          <h1 class="encounter-manager__title scene-viewer__title" id="view-scene-name">
-            Nome da Cena
-          </h1>
+          <div class="encounter-manager__title-row scene-viewer__title-row">
+            <h1 class="encounter-manager__title scene-viewer__title" id="view-scene-name">
+              Nome da Cena
+            </h1>
+            <button class="btn-icon" id="btn-edit-scene-current" type="button" title="Editar Cena" aria-label="Editar cena">
+              <i data-icon="pencil"></i>
+            </button>
+          </div>
           <div class="encounter-manager__meta scene-viewer__meta">
             <span class="scene-viewer__music-pill hidden" id="view-scene-music-pill">
               <i data-icon="music"></i>
@@ -809,11 +815,11 @@
           <!-- O #dice-toolbar é movido pra cá quando a cena monta (mesma posição da tela de Encontros) -->
           <div id="scene-dice-row" class="scene-viewer__dice-row"></div>
 
-          <button class="btn btn--secondary" id="btn-edit-scene-current" type="button">
-            <i data-icon="pencil"></i> Editar
+          <button class="btn btn--icon-only btn--accent" id="btn-scene-open-player-link" type="button" title="Abrir Tela dos Jogadores" hidden>
+            <i data-icon="external-link"></i>
           </button>
-          <button class="btn btn--secondary" id="btn-present-scene" type="button">
-            <i data-icon="monitor-play"></i> Apresentar aos Jogadores
+          <button class="btn btn--icon-only btn--success" id="btn-present-scene" type="button" title="Apresentar aos Jogadores">
+            <i data-icon="monitor-play"></i>
           </button>
         </div>
       </header>
@@ -825,35 +831,48 @@
             <p class="scene-viewer__description" id="view-scene-description"></p>
           </div>
 
-          <div class="scene-viewer__section">
-            <div class="scene-viewer__notes-header">
+          <div class="scene-viewer__section scene-notes" id="view-scene-notes-section">
+            <div class="scene-notes__header">
               <h3 class="scene-viewer__section-title">
                 <i data-icon="notebook-pen"></i> Anotações do Mestre
               </h3>
-              <div class="scene-viewer__notes-actions">
-                <button class="btn btn--secondary btn--sm" id="btn-edit-scene-notes">
-                  Editar
-                </button>
-                <button class="btn btn--primary btn--sm hidden" id="btn-save-scene-notes">
-                  Salvar
-                </button>
-                <button class="btn btn--secondary btn--sm hidden" id="btn-cancel-scene-notes">
-                  Cancelar
-                </button>
+              <button class="btn btn--sm btn--icon-only btn--accent" id="btn-new-scene-note" type="button" title="Nova Anotação">
+                <i data-icon="plus"></i>
+              </button>
+            </div>
+
+            <div class="scene-notes__tabs" id="scene-notes-tabs" role="tablist">
+              <!-- tabs renderizadas dinamicamente -->
+            </div>
+
+            <div class="scene-notes__panel" id="scene-notes-panel">
+              <p class="scene-notes__empty" id="scene-notes-empty">
+                Nenhuma anotação ainda. Clique em <strong>+</strong> para criar a primeira.
+              </p>
+
+              <div class="scene-notes__active hidden" id="scene-notes-active">
+                <div class="scene-notes__active-header">
+                  <input type="text" class="scene-notes__title-input" id="scene-note-title-input" placeholder="Nome da anotação" />
+                  <div class="scene-notes__active-actions">
+                    <button class="btn btn--sm btn--icon-only btn--accent" id="btn-edit-scene-note" type="button" title="Editar">
+                      <i data-icon="pencil"></i>
+                    </button>
+                    <button class="btn btn--sm btn--icon-only btn--success hidden" id="btn-save-scene-note" type="button" title="Salvar">
+                      <i data-icon="save"></i>
+                    </button>
+                    <button class="btn btn--sm btn--icon-only btn--secondary hidden" id="btn-cancel-scene-note" type="button" title="Cancelar">
+                      <i data-icon="x"></i>
+                    </button>
+                    <button class="btn btn--sm btn--icon-only btn--danger" id="btn-delete-scene-note" type="button" title="Excluir Anotação">
+                      <i data-icon="trash-2"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="scene-notes__display" id="scene-note-display"></div>
+                <textarea class="scene-notes__editor-textarea hidden" id="scene-note-editor"></textarea>
               </div>
             </div>
-            <div class="scene-viewer__notes-display" id="view-scene-notes-display">
-              <p class="scene-viewer__notes-empty">
-                Nenhuma anotação ainda. Clique em <strong>Editar</strong> para escrever lembretes,
-                ganchos da cena, segredos do mestre etc.
-              </p>
-            </div>
-            <textarea
-              id="view-scene-notes-edit"
-              class="scene-viewer__notes-edit hidden"
-              rows="10"
-              placeholder="Escreva suas anotações para esta cena..."
-            ></textarea>
           </div>
         </main>
 
@@ -1286,6 +1305,15 @@
               </label>
             </div>
           </section>
+          <section class="participant-details__panel">
+              <h3 class="participant-details__panel-title">Ações</h3>
+              <div class="participant-details__actions" id="details-actions-list">
+                <!-- itens renderizados via JS -->
+              </div>
+              <button type="button" class="btn btn--secondary btn--sm" id="btn-details-add-action">
+                <i data-icon="plus"></i> <span>Adicionar Ação</span>
+              </button>
+            </section>
         </div>
         <footer class="modal__footer">
           <button class="btn btn--secondary" id="btn-cancel-details" type="button">Cancelar</button>
@@ -1333,6 +1361,40 @@
 
     <!-- Toast notifications (global) -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- Painel flutuante de atalhos do turno ativo -->
+    <aside id="combat-hotkey-panel" class="combat-hotkey-panel hidden" aria-label="Atalhos de combate">
+      <header class="combat-hotkey-panel__header">
+        <div class="combat-hotkey-panel__header-info">
+          <span class="combat-hotkey-panel__eyebrow">Turno</span>
+          <span class="combat-hotkey-panel__name" id="combat-hotkey-panel-name">—</span>
+        </div>
+        <button type="button" class="combat-hotkey-panel__minimize" id="btn-combat-hotkey-minimize" title="Minimizar" aria-label="Minimizar">
+          <i data-icon="chevron-down"></i>
+        </button>
+      </header>
+      <div class="combat-hotkey-panel__body">
+        <section class="combat-hotkey-panel__section">
+          <h4 class="combat-hotkey-panel__section-title">Habilidades</h4>
+          <div class="combat-hotkey-panel__abilities" id="combat-hotkey-panel-abilities"></div>
+        </section>
+        <section class="combat-hotkey-panel__section hidden" id="combat-hotkey-panel-saves-section">
+          <h4 class="combat-hotkey-panel__section-title">Salvaguardas</h4>
+          <div class="combat-hotkey-panel__abilities" id="combat-hotkey-panel-saves"></div>
+        </section>
+        <section class="combat-hotkey-panel__section">
+          <div class="combat-hotkey-panel__actions" id="combat-hotkey-panel-actions"></div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- Painel de Resumo: dados estáticos do participant do turno -->
+    <aside id="combat-summary-panel" class="combat-summary-panel hidden" aria-label="Resumo do personagem">
+      <header class="combat-summary-panel__header">
+        <span class="combat-summary-panel__eyebrow">Resumo</span>
+      </header>
+      <div class="combat-summary-panel__body" id="combat-summary-panel-body"></div>
+    </aside>
 
     <!-- Presentation Conflict Modal -->
     <div id="modal-presentation-conflict" class="modal hidden">

@@ -113,6 +113,42 @@ src/renderer/src/core/icons.js           ← pipeline Lucide (use SEMPRE este)
 - **Exceção:** as PNGs de dados (d4–d20) em `src/assets/images/dices/` continuam sendo
   raster. Não tente desenhá-los em SVG.
 
+### Botões icon-only
+- **Padrão para ações secundárias em toolbars, headers e linhas:** botão quadrado, só
+  ícone Lucide, tooltip via atributo `title=""` nativo. Implementação canônica está no
+  encounter manager (`.combat-action-icon-btn` na toolbar; `.combat-banner__details`,
+  `.combat-banner__remove`, `.initiative-roll-btn` nos banners).
+- **Use a classe utilitária `.btn--icon-only`** (definida em `src/renderer/src/assets/main.css`)
+  combinada com `.btn` e uma variante de cor. Tamanhos:
+  - **Padrão:** 40×40 px com ícone 18px — para toolbars/headers.
+  - **`.btn--sm`:** 32×32 px com ícone 16px — para linhas internas, cards e blocos secundários
+    (ex: editor de notas).
+  - Não recrie esse estilo em CSS de feature.
+- **Variantes coloridas semânticas** (também em `main.css`, espelhando
+  `.combat-action-icon-btn--*` para alinhar com a toolbar de Encontros):
+  - `.btn--accent` — fundo roxo translúcido + texto `primary-light`. Ação principal/navegação
+    (Editar, Adicionar, Abrir link externo, Próximo turno).
+  - `.btn--success` — fundo emerald sólido + texto branco. Iniciar, Apresentar, Salvar — ações
+    construtivas/que dão start em algo.
+  - `.btn--danger` — fundo rose translúcido + texto rose. Encerrar, Finalizar, Remover sem
+    confirmação posterior.
+  - `.btn--secondary` — base cinza/surface. Cancelar e neutros que precisam contrastar com
+    uma ação primária colorida ao lado.
+- **Sempre** acompanhe o ícone de `title="Ação"` no `<button>` — é a affordance de
+  descoberta e acessibilidade. O label segue Title Case (`title="Editar Cena"`,
+  `title="Apresentar aos Jogadores"`).
+- Quando o estado do botão muda (ex: "Apresentar" ↔ "Encerrar Apresentação"),
+  atualize **o `title`, o ícone, e a variante de cor** (ex: `.btn--success` ↔ `.btn--danger`)
+  via `setAttribute("title", ...)` + `classList.add/remove`. Nunca injete texto no botão.
+- **Botão de "Abrir Tela dos Jogadores"** é padrão em telas que apresentam algo aos jogadores
+  (Encontro, Cena, etc.): variante `.btn--accent`, ícone `external-link`, fica `hidden` até a
+  URL do servidor ser resolvida via `window.dmCopilot.combat.getInfo()`, e abre em navegador
+  externo via `window.dmCopilot.openExternal(url)`. Veja implementação canônica em
+  `src/renderer/src/views/encounter-combat-view.js` (handler + `_setPlayerLinkUrl`).
+- **Quando NÃO usar icon-only:** botões primários de modais (Salvar/Cancelar mantêm texto),
+  CTA principal de uma tela, ação destrutiva sem confirmação imediata, ou qualquer caso
+  em que o ícone sozinho seja ambíguo. Texto explícito reduz acidente.
+
 ### Motion
 - Transições padrão: `--transition-fast` (150ms) para hovers/focos,
   `--transition-base` (250ms) para abertura de modais, `--transition-slow` (350ms) para

@@ -102,4 +102,6 @@ The official design system lives at `design-system/` (bundle exported from `clau
 
 **Forbidden moves:** new colors outside the palette, gradients on surfaces (only the brand emblem and ROLL button get gradients), centred modals (they anchor 60 px from the top), light mode (none exists), new font families (Nodesto Caps Condensed + Scaly Sans + JetBrains Mono is the full set), translating D&D vocabulary (HP/AC/CA/Iniciativa/Encontro stay), centralizar conteúdo de feature dentro da `.main-view` com `margin: 0 auto` + `max-width` (a sidebar já desloca o eixo óptico — conteúdo é full-width com padding lateral via tokens).
 
+**Icon-only buttons:** ações secundárias em toolbars/headers/linhas usam `.btn--icon-only` (definida em `main.css`) + `title="Label"` nativo para tooltip — mesmo padrão do encounter manager. Detalhes na skill `dm-copilot-design-system`.
+
 **Skill:** the `dm-copilot-design-system` skill activates automatically on UI/design keywords. When in doubt, invoke it before touching renderer CSS or HTML.

@@ -1973,27 +1973,52 @@ class EncountersView {
               : ""
           }
           <div class="participant-card__main">
-            <div class="participant-card__header">
-              <div class="participant-card__name" title="${safeName}">${displayName}</div>
-              <div class="participant-card__stats">
-                <div class="stat-control">
-                  <span class="stat-control__label">HP</span>
-                  <input type="number" class="stat-control__input stat-control__input--hp"
-                         value="${(p.current_hp !== undefined ? p.current_hp : p.hp) || 0}"
-                         data-field="current_hp" title="HP Atual" />
-                  <span class="stat-control__sep">/</span>
-                  <span class="stat-control__max">${p.hp || 0}</span>
-                </div>
-                <div class="stat-control">
-                  <span class="stat-control__label">AC</span>
-                  <input type="number" class="stat-control__input stat-control__input--ac"
-                         value="${p.ac || 10}"
-                         data-field="ac" title="CA" />
-                </div>
-                <div class="stat-control">
-                  <span class="stat-control__label">Ini</span>
-                  <span class="stat-control__value">${p.ini || 0}</span>
-                </div>
+            <div class="participant-card__name" title="${safeName}">${displayName}</div>
+            <div class="selection-item__panels">
+              <div class="selection-item__stats">
+                <span class="selection-item__stat">
+                  <span class="selection-item__stat-label">HP</span>
+                  <span class="selection-item__stat-value">
+                    <input type="number" class="participant-card__inline-input"
+                           value="${(p.current_hp !== undefined ? p.current_hp : p.hp) || 0}"
+                           data-field="current_hp" title="HP Atual" />/<span>${p.hp || 0}</span>
+                  </span>
+                </span>
+                <span class="selection-item__stat">
+                  <span class="selection-item__stat-label">CA</span>
+                  <span class="selection-item__stat-value">
+                    <input type="number" class="participant-card__inline-input"
+                           value="${p.ac || 10}"
+                           data-field="ac" title="CA" />
+                  </span>
+                </span>
+                <span class="selection-item__stat">
+                  <span class="selection-item__stat-label">INI</span>
+                  <span class="selection-item__stat-value">${p.ini || 0}</span>
+                </span>
+                <span class="selection-item__stat" title="Challenge Rating">
+                  <span class="selection-item__stat-label">CR</span>
+                  <span class="selection-item__stat-value">${p.cr != null && p.cr !== "" ? formatCR(p.cr) : "—"}</span>
+                </span>
+              </div>
+              <div class="selection-item__abilities">
+                ${[
+                  ["STR", p.str],
+                  ["DEX", p.dex],
+                  ["CON", p.con],
+                  ["INT", p.int],
+                  ["WIS", p.wis],
+                  ["CHA", p.cha],
+                ]
+                  .map(
+                    ([name, score]) => `
+                  <span class="selection-item__ability" title="${name}" data-ability="${name.toLowerCase()}">
+                    <span class="selection-item__ability-label">${name}</span>
+                    <span class="selection-item__ability-value">${score != null ? score : "—"} <span class="selection-item__ability-mod">${score != null ? `(${formatModifier(score)})` : ""}</span></span>
+                  </span>
+                `
+                  )
+                  .join("")}
               </div>
             </div>
             <div class="participant-card__actions">
@@ -2008,6 +2033,41 @@ class EncountersView {
       `;
         })
         .join("");
+
+      if (!listEl._rollListenerAttached) {
+        listEl._rollListenerAttached = true;
+        listEl.addEventListener("click", (e) => {
+          const abilityEl = e.target.closest(".selection-item__ability");
+          if (!abilityEl) return;
+          const card = abilityEl.closest(".participant-card");
+          if (!card) return;
+          const tempId = card.dataset.id;
+          const p = this.participants.find((x) => String(x.tempId ?? x.id) === String(tempId));
+          if (!p) return;
+          const abilityKey = abilityEl.dataset.ability; // str|dex|con|int|wis|cha
+          const score = p[abilityKey];
+          if (score == null) {
+            showToast(`${p.name} não tem ${abilityKey.toUpperCase()} definido.`, "info");
+            return;
+          }
+          const mod = modifier(score);
+          const labelMap = {
+            str: "Teste de Força",
+            dex: "Teste de Destreza",
+            con: "Teste de Constituição",
+            int: "Teste de Inteligência",
+            wis: "Teste de Sabedoria",
+            cha: "Teste de Carisma",
+          };
+          window.diceView?.rollProgrammatic({
+            notation: "1d20",
+            bonus: mod,
+            characterName: p.name,
+            affinity: p.affinity,
+            label: labelMap[abilityKey] || `Teste de ${abilityKey.toUpperCase()}`,
+          });
+        });
+      }
     };
 
     renderList(this.DOM.listAllies, this.DOM.sectionAllies, this.affinityGroups.ally);
@@ -2269,6 +2329,19 @@ class EncountersView {
             int: char.int ?? null,
             wis: char.wis ?? null,
             cha: char.cha ?? null,
+            actions: (() => {
+              const a = char.actions;
+              if (Array.isArray(a)) return a;
+              if (typeof a === "string") {
+                try {
+                  const parsed = JSON.parse(a || "[]");
+                  return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                  return [];
+                }
+              }
+              return [];
+            })(),
           });
         });
       });
@@ -2451,6 +2524,183 @@ class EncountersView {
       .join("");
   }
 
+  /**
+   * Combina múltiplos `damage_dice` da API em uma notation que o dice-box
+   * entende: separa dados (NdM) e constantes, junta tudo com dados primeiro
+   * e a constante somada ao final. Ex: ["2d10+7", "1d10"] → "2d10+1d10+7".
+   */
+  _combineDamageNotation(damageArr) {
+    if (!Array.isArray(damageArr) || damageArr.length === 0) return null;
+    const diceParts = [];
+    let constant = 0;
+    for (const d of damageArr) {
+      const raw = d?.damage_dice;
+      if (!raw) continue;
+      // Captura dados e constante de uma string tipo "2d10+7" ou "1d10" ou "1d10-1"
+      const re = /(\d+d\d+|[+-]?\d+(?!d))/gi;
+      const matches = String(raw).match(re) || [];
+      for (const tok of matches) {
+        if (/d/i.test(tok)) {
+          diceParts.push(tok);
+        } else {
+          constant += parseInt(tok, 10) || 0;
+        }
+      }
+    }
+    if (diceParts.length === 0 && constant === 0) return null;
+    let out = diceParts.join("+");
+    if (constant > 0) out += (out ? "+" : "") + constant;
+    else if (constant < 0) out += `${constant}`;
+    return out || null;
+  }
+
+  _extractSaves(proficiencies) {
+    if (!Array.isArray(proficiencies)) return [];
+    return proficiencies
+      .filter((p) => p?.proficiency?.index?.startsWith("saving-throw-"))
+      .map((p) => ({
+        ability: p.proficiency.index.replace("saving-throw-", ""),
+        modifier: p.value,
+      }));
+  }
+
+  _extractSkills(proficiencies) {
+    if (!Array.isArray(proficiencies)) return [];
+    const SKILL_LABELS = {
+      "skill-acrobatics": "Acrobacia",
+      "skill-animal-handling": "Lidar com Animais",
+      "skill-arcana": "Arcanismo",
+      "skill-athletics": "Atletismo",
+      "skill-deception": "Enganação",
+      "skill-history": "História",
+      "skill-insight": "Intuição",
+      "skill-intimidation": "Intimidação",
+      "skill-investigation": "Investigação",
+      "skill-medicine": "Medicina",
+      "skill-nature": "Natureza",
+      "skill-perception": "Percepção",
+      "skill-performance": "Atuação",
+      "skill-persuasion": "Persuasão",
+      "skill-religion": "Religião",
+      "skill-sleight-of-hand": "Prestidigitação",
+      "skill-stealth": "Furtividade",
+      "skill-survival": "Sobrevivência",
+    };
+    return proficiencies
+      .filter((p) => p?.proficiency?.index?.startsWith("skill-"))
+      .map((p) => ({
+        name:
+          SKILL_LABELS[p.proficiency.index] ||
+          (p.proficiency.name || "").replace(/^Skill:\s*/i, "") ||
+          p.proficiency.index,
+        modifier: p.value,
+        damage: null,
+        desc: null,
+        kind: "skill",
+      }));
+  }
+
+  _extractSummary(monster) {
+    if (!monster || typeof monster !== "object") return null;
+
+    const SIZE_LABELS = {
+      Tiny: "Minúsculo",
+      Small: "Pequeno",
+      Medium: "Médio",
+      Large: "Grande",
+      Huge: "Enorme",
+      Gargantuan: "Gigantesco",
+    };
+    const TYPE_LABELS = {
+      aberration: "Aberração",
+      beast: "Besta",
+      celestial: "Celestial",
+      construct: "Construto",
+      dragon: "Dragão",
+      elemental: "Elemental",
+      fey: "Feérico",
+      fiend: "Demônio",
+      giant: "Gigante",
+      humanoid: "Humanoide",
+      monstrosity: "Monstruosidade",
+      ooze: "Limo",
+      plant: "Planta",
+      undead: "Morto-vivo",
+    };
+    const ALIGNMENT_LABELS = {
+      "lawful good": "Leal e Bom",
+      "lawful neutral": "Leal e Neutro",
+      "lawful evil": "Leal e Mau",
+      "neutral good": "Neutro e Bom",
+      neutral: "Neutro",
+      "true neutral": "Neutro",
+      "neutral evil": "Neutro e Mau",
+      "chaotic good": "Caótico e Bom",
+      "chaotic neutral": "Caótico e Neutro",
+      "chaotic evil": "Caótico e Mau",
+      "any alignment": "Qualquer Alinhamento",
+      unaligned: "Sem Alinhamento",
+    };
+    const SPEED_LABELS = {
+      walk: "Caminhar",
+      fly: "Voar",
+      swim: "Nadar",
+      burrow: "Escavar",
+      climb: "Escalar",
+    };
+    const SENSE_LABELS = {
+      darkvision: "Visão no Escuro",
+      blindsight: "Visão Cega",
+      tremorsense: "Sentido Sísmico",
+      truesight: "Visão Verdadeira",
+      passive_perception: "Percepção Passiva",
+    };
+
+    const tr = (map, key) => map[key] || key || "—";
+
+    const speeds = {};
+    if (monster.speed && typeof monster.speed === "object") {
+      for (const [k, v] of Object.entries(monster.speed)) {
+        if (v == null || v === "") continue;
+        speeds[tr(SPEED_LABELS, k)] = String(v);
+      }
+    }
+
+    const senses = {};
+    if (monster.senses && typeof monster.senses === "object") {
+      for (const [k, v] of Object.entries(monster.senses)) {
+        if (v == null || v === "") continue;
+        senses[tr(SENSE_LABELS, k)] = String(v);
+      }
+    }
+
+    return {
+      type: tr(TYPE_LABELS, monster.type),
+      subtype: monster.subtype || null,
+      size: tr(SIZE_LABELS, monster.size),
+      alignment: tr(ALIGNMENT_LABELS, (monster.alignment || "").toLowerCase()),
+      cr: monster.challenge_rating ?? null,
+      xp: typeof monster.xp === "number" ? monster.xp : null,
+      speeds,
+      senses,
+      languages: monster.languages || "",
+      vulnerabilities: Array.isArray(monster.damage_vulnerabilities)
+        ? monster.damage_vulnerabilities.filter(Boolean)
+        : [],
+      resistances: Array.isArray(monster.damage_resistances)
+        ? monster.damage_resistances.filter(Boolean)
+        : [],
+      damage_immunities: Array.isArray(monster.damage_immunities)
+        ? monster.damage_immunities.filter(Boolean)
+        : [],
+      condition_immunities: Array.isArray(monster.condition_immunities)
+        ? monster.condition_immunities
+            .map((c) => (typeof c === "string" ? c : c?.name))
+            .filter(Boolean)
+        : [],
+    };
+  }
+
   async addApiMonster(index) {
     try {
       let monster = this._monsterDetailCache.get(index);
@@ -2479,6 +2729,43 @@ class EncountersView {
         int: monster.intelligence ?? null,
         wis: monster.wisdom ?? null,
         cha: monster.charisma ?? null,
+        saves: this._extractSaves(monster.proficiencies),
+        summary: this._extractSummary(monster),
+        actions: [
+          ...(Array.isArray(monster.special_abilities) ? monster.special_abilities : []).map(
+            (a) => ({
+              name: a.name,
+              modifier: typeof a.attack_bonus === "number" ? a.attack_bonus : null,
+              damage: this._combineDamageNotation(a.damage),
+              desc: a.desc || null,
+              kind: "special",
+            })
+          ),
+          ...this._extractSkills(monster.proficiencies),
+          ...(Array.isArray(monster.actions) ? monster.actions : []).map((a) => ({
+            name: a.name,
+            modifier: typeof a.attack_bonus === "number" ? a.attack_bonus : null,
+            damage: this._combineDamageNotation(a.damage),
+            desc: a.desc || null,
+            kind: "action",
+          })),
+          ...(Array.isArray(monster.reactions) ? monster.reactions : []).map((a) => ({
+            name: a.name,
+            modifier: typeof a.attack_bonus === "number" ? a.attack_bonus : null,
+            damage: this._combineDamageNotation(a.damage),
+            desc: a.desc || null,
+            kind: "reaction",
+          })),
+          ...(Array.isArray(monster.legendary_actions) ? monster.legendary_actions : []).map(
+            (a) => ({
+              name: a.name,
+              modifier: typeof a.attack_bonus === "number" ? a.attack_bonus : null,
+              damage: this._combineDamageNotation(a.damage),
+              desc: a.desc || null,
+              kind: "legendary",
+            })
+          ),
+        ],
       });
     } catch (error) {
       showToast("Erro ao carregar detalhes do monstro", "error");

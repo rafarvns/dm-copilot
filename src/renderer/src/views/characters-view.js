@@ -162,6 +162,30 @@ class GlobalCharactersView {
       ? `<img src="local-image://${char.image_path}" alt="${char.name}">`
       : `<span class="character-card__avatar-placeholder">${icon("user", { size: 24 })}</span>`;
 
+    const abilityKeys = ["str", "dex", "con", "int", "wis", "cha"];
+    const hasAnyAbility = abilityKeys.some((k) => char[k] != null && char[k] !== "");
+    const abilitiesHTML = hasAnyAbility
+      ? `
+        <div class="character-card__abilities">
+          ${abilityKeys
+            .map(
+              (k) => `
+            <div class="character-card__ability">
+              <span class="character-card__ability-label">${k.toUpperCase()}</span>
+              <span class="character-card__ability-value">${char[k] ?? "—"}</span>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      `
+      : "";
+
+    const levelBadge =
+      char.cr != null && char.cr !== ""
+        ? `<span class="badge badge--gold">Nv ${this.escapeHTML(String(char.cr))}</span>`
+        : "";
+
     return `
       <div class="character-card" data-id="${char.id}">
         <div class="character-card__header">
@@ -170,12 +194,15 @@ class GlobalCharactersView {
           </div>
           <div class="character-card__title-group">
             <h3 class="character-card__title">${this.escapeHTML(char.name)}</h3>
-            <span class="badge badge--primary">${this.escapeHTML(char.system)}</span>
+            <div class="character-card__badges">
+              <span class="badge badge--primary">${this.escapeHTML(char.system)}</span>
+              ${levelBadge}
+            </div>
           </div>
         </div>
-        
+
         <p class="character-card__desc">${this.escapeHTML(char.description || "Sem descrição")}</p>
-        
+
         <div class="character-card__stats">
           <div class="stat-box">
             <span class="stat-box__label">HP</span>
@@ -191,11 +218,13 @@ class GlobalCharactersView {
           </div>
         </div>
 
+        ${abilitiesHTML}
+
         <div class="campaign-card__footer mt-4">
           <span class="campaign-card__date">${this.formatDate(char.updated_at || char.created_at)}</span>
           <div class="campaign-card__actions">
-            <button class="campaign-card__btn" data-action="edit" data-id="${char.id}" title="Editar">${icon("pencil")}</button>
-            <button class="campaign-card__btn campaign-card__btn--delete" data-action="delete" data-id="${char.id}" title="Excluir">${icon("trash-2")}</button>
+            <button class="btn-icon" data-action="edit" data-id="${char.id}" data-tooltip="Editar" data-tooltip-placement="top">${icon("pencil")}</button>
+            <button class="btn-icon btn-icon--danger" data-action="delete" data-id="${char.id}" data-tooltip="Excluir" data-tooltip-placement="top">${icon("trash-2")}</button>
           </div>
         </div>
       </div>

@@ -871,6 +871,37 @@ ipcMain.handle("db-scenes-set-encounters", (_event, sceneId, encounterIds) => {
   return setSceneEncounters(db, sceneId, encounterIds);
 });
 
+// Scene Notes (múltiplas anotações por cena)
+ipcMain.handle("db-scene-notes-list", (_event, sceneId) => {
+  const db = databaseManager.getConnection();
+  const { listSceneNotes } = require("./database/queries/scene-notes");
+  return listSceneNotes(db, sceneId);
+});
+
+ipcMain.handle("db-scene-notes-create", (_event, sceneId, data) => {
+  const db = databaseManager.getConnection();
+  const { createSceneNote } = require("./database/queries/scene-notes");
+  return createSceneNote(db, sceneId, data || {});
+});
+
+ipcMain.handle("db-scene-notes-update", (_event, id, data) => {
+  const db = databaseManager.getConnection();
+  const { updateSceneNote } = require("./database/queries/scene-notes");
+  return updateSceneNote(db, id, data || {});
+});
+
+ipcMain.handle("db-scene-notes-delete", (_event, id) => {
+  const db = databaseManager.getConnection();
+  const { deleteSceneNote } = require("./database/queries/scene-notes");
+  return deleteSceneNote(db, id);
+});
+
+ipcMain.handle("db-scene-notes-reorder", (_event, sceneId, orderedIds) => {
+  const db = databaseManager.getConnection();
+  const { reorderSceneNotes } = require("./database/queries/scene-notes");
+  return reorderSceneNotes(db, sceneId, orderedIds);
+});
+
 // ============================================
 // IPC Handlers - Dice Rolls
 // ============================================

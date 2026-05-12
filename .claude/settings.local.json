@@ -78,7 +78,8 @@
       "Bash(pnpm approve-builds *)",
       "Bash(ls E:\\\\LivreSolucoes\\\\dm-copilot\\\\src\\\\renderer\\\\src\\\\views\\\\\\\\ *)",
       "Bash(ls \"E:\\\\LivreSolucoes\\\\dm-copilot\\\\src\\\\renderer\\\\src\\\\\\\\\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('=== ACTIONS ==='\\); [print\\(json.dumps\\({'name':a['name'],'attack_bonus':a.get\\('attack_bonus'\\),'damage':a.get\\('damage',[]\\)}, indent=2, ensure_ascii=False\\)\\) for a in d.get\\('actions',[]\\)]; print\\(\\); print\\('=== LEGENDARY ==='\\); [print\\(json.dumps\\({'name':a['name'],'attack_bonus':a.get\\('attack_bonus'\\),'damage':a.get\\('damage',[]\\)}, indent=2, ensure_ascii=False\\)\\) for a in d.get\\('legendary_actions',[]\\)]\")"
     ]
   }
 }

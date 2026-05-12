@@ -11,7 +11,7 @@ import {
   resolveEffectiveVisibility,
   applyVisibilityToParticipant,
 } from "../core/combat-visibility.js";
-import { formatModifier } from "../core/dnd-stats.js";
+import { modifier, formatModifier } from "../core/dnd-stats.js";
 
 function parseIntOr(v, fallback) {
   const n = parseInt(v, 10);
@@ -22,6 +22,7 @@ export default class EncounterCombatView {
   constructor(encountersView) {
     this.encountersView = encountersView;
     this.isActive = false;
+    this._hotkeyPanelMinimized = false;
     this.initiativeLocked = false;
     this.currentEncounter = null;
     this.participants = [];
@@ -148,6 +149,9 @@ export default class EncounterCombatView {
     this.DOM.btnCloseDetails?.addEventListener("click", () => this.closeParticipantDetails());
     this.DOM.btnCancelDetails?.addEventListener("click", () => this.closeParticipantDetails());
     this.DOM.btnSaveDetails?.addEventListener("click", () => this.saveParticipantDetails());
+    document.getElementById("btn-details-add-action")?.addEventListener("click", () => {
+      this._addNewAction();
+    });
 
     // Esc fecha qualquer modal aberto
     document.addEventListener("keydown", (e) => {
@@ -167,6 +171,36 @@ export default class EncounterCombatView {
         if (mod) mod.textContent = formatModifier(input.value);
       });
     });
+
+    // Painel flutuante de atalhos — listener idempotente
+    const hotkeyPanel = document.getElementById("combat-hotkey-panel");
+    if (hotkeyPanel && !hotkeyPanel._listenerAttached) {
+      hotkeyPanel._listenerAttached = true;
+      hotkeyPanel.addEventListener("click", (e) => this._onHotkeyPanelClick(e));
+    }
+
+    const minBtn = document.getElementById("btn-combat-hotkey-minimize");
+    if (minBtn && !minBtn._listenerAttached) {
+      minBtn._listenerAttached = true;
+      minBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._hotkeyPanelMinimized = !this._hotkeyPanelMinimized;
+        this._renderCombatHotkeyPanel();
+      });
+    }
+
+    // Click no painel inteiro quando minimizado → expande
+    const panel = document.getElementById("combat-hotkey-panel");
+    if (panel && !panel._minimizeClickListenerAttached) {
+      panel._minimizeClickListenerAttached = true;
+      panel.addEventListener("click", (e) => {
+        if (!this._hotkeyPanelMinimized) return;
+        // Se clicou no botão minimize, deixa o handler dele tratar
+        if (e.target.closest("#btn-combat-hotkey-minimize")) return;
+        this._hotkeyPanelMinimized = false;
+        this._renderCombatHotkeyPanel();
+      });
+    }
   }
 
   _setPlayerLinkUrl(url) {
@@ -298,9 +332,10 @@ export default class EncounterCombatView {
             : maxHp;
 
         participants.push({
+          ...(original || {}),
           id: cardId,
           name: card.querySelector(".participant-card__name").textContent.trim(),
-          image: imgEl ? imgEl.src : null,
+          image: imgEl ? imgEl.src : original?.image ?? null,
           affinity: affinity,
           initiative: null,
           has_acted: 0,
@@ -410,6 +445,7 @@ export default class EncounterCombatView {
     const currentHp = participant.current_hp !== undefined ? Number(participant.current_hp) : maxHp;
     const ca = Number(participant.ac) || 0;
     const combatParticipant = {
+      ...participant,
       id: participant.tempId || participant.id,
       name: participant.name,
       image: participant.image,
@@ -640,6 +676,8 @@ export default class EncounterCombatView {
         this.rollSingleInitiative(btn.dataset.id);
       });
     });
+
+    this._renderCombatHotkeyPanel();
   }
 
   toggleDeathSaveMarker(id, kind, index) {
@@ -877,7 +915,7 @@ export default class EncounterCombatView {
     if (!p) return;
     if (!window.diceView?.rollProgrammatic) {
       // Fallback caso o DiceView não esteja disponível
-      p.initiative = 1 + Math.floor(Math.random() * 20);
+      p.initiative = 1 + Math.floor(Math.random() * 20) + (Number(p.ini) || 0);
       this.renderBanners();
       this.updateInitiativePhaseUI();
       this.broadcastState();
@@ -886,13 +924,16 @@ export default class EncounterCombatView {
     }
     // total já vem pré-rolado, sincronamente. A animação 3D fica enfileirada
     // em background — o mestre pode clicar no próximo dado imediatamente.
+    // total = dado bruto (sem bônus); somamos p.ini manualmente.
+    const bonus = Number(p.ini) || 0;
     const { total } = window.diceView.rollProgrammatic({
       notation: "1d20",
       characterName: p.name,
       affinity: p.affinity,
+      bonus,
       label: "Iniciativa",
     });
-    p.initiative = total;
+    p.initiative = total + bonus;
     this.renderBanners();
     this.updateInitiativePhaseUI();
     this.broadcastState();
@@ -958,11 +999,13 @@ export default class EncounterCombatView {
       notation: "1d20",
       characterName: p.name,
       affinity,
+      bonus: Number(p.ini) || 0,
       label: "Iniciativa",
     }));
     const totals = await window.diceView.rollBatch(specs);
+    // totals = dado bruto (sem bônus); somamos p.ini manualmente.
     group.forEach((p, i) => {
-      p.initiative = totals[i];
+      p.initiative = totals[i] + (Number(p.ini) || 0);
     });
   }
 
@@ -1156,6 +1199,8 @@ export default class EncounterCombatView {
     } catch (err) {
       console.error("Error ending combat:", err);
     }
+
+    this._renderCombatHotkeyPanel();
   }
 
   /**
@@ -1239,6 +1284,327 @@ export default class EncounterCombatView {
   getActiveParticipant() {
     if (!this.isActive) return null;
     return this.participants[this.currentTurnIndex];
+  }
+
+  _renderCombatHotkeyPanel() {
+    const panel = document.getElementById("combat-hotkey-panel");
+    if (!panel) return;
+    const p = this.getActiveParticipant();
+    if (!p || !this.isActive) {
+      panel.classList.add("hidden");
+      return;
+    }
+    panel.classList.remove("hidden");
+    panel.classList.toggle("combat-hotkey-panel--minimized", !!this._hotkeyPanelMinimized);
+
+    const minBtn = document.getElementById("btn-combat-hotkey-minimize");
+    if (minBtn) {
+      minBtn.innerHTML = icon(this._hotkeyPanelMinimized ? "plus" : "minus", { size: 16 });
+      minBtn.title = this._hotkeyPanelMinimized ? "Expandir" : "Minimizar";
+      minBtn.setAttribute("aria-label", this._hotkeyPanelMinimized ? "Expandir" : "Minimizar");
+    }
+
+    document.getElementById("combat-hotkey-panel-name").textContent = p.name || "—";
+
+    // Abilities
+    const abilitiesEl = document.getElementById("combat-hotkey-panel-abilities");
+    if (abilitiesEl) {
+      const abilities = [
+        ["STR", "str"],
+        ["DEX", "dex"],
+        ["CON", "con"],
+        ["INT", "int"],
+        ["WIS", "wis"],
+        ["CHA", "cha"],
+      ];
+      abilitiesEl.innerHTML = abilities
+        .map(([label, key]) => {
+          const score = p[key];
+          const mod = score != null ? formatModifier(score) : "—";
+          return `<button type="button" class="combat-hotkey-panel__btn-ability" data-ability="${key}" title="Teste de ${label}">
+            <span class="combat-hotkey-panel__btn-ability-label">${label}</span>
+            <span class="combat-hotkey-panel__btn-ability-mod">${mod}</span>
+          </button>`;
+        })
+        .join("");
+    }
+
+    // Saves (only proficiency saves; sem proficiência seria igual a clicar no ability)
+    const savesSection = document.getElementById("combat-hotkey-panel-saves-section");
+    const savesEl = document.getElementById("combat-hotkey-panel-saves");
+    const saves = Array.isArray(p.saves) ? p.saves : [];
+    if (savesSection && savesEl) {
+      if (saves.length === 0) {
+        savesSection.classList.add("hidden");
+      } else {
+        savesSection.classList.remove("hidden");
+        const ABILITY_LABELS = {
+          str: "STR",
+          dex: "DEX",
+          con: "CON",
+          int: "INT",
+          wis: "WIS",
+          cha: "CHA",
+        };
+        savesEl.innerHTML = saves
+          .map((s) => {
+            const m = s.modifier >= 0 ? `+${s.modifier}` : `${s.modifier}`;
+            const label = ABILITY_LABELS[s.ability] || (s.ability || "").toUpperCase();
+            return `<button type="button" class="combat-hotkey-panel__btn-ability" data-save="${s.ability}" data-save-modifier="${s.modifier}" title="Salvaguarda de ${label}">
+              <span class="combat-hotkey-panel__btn-ability-label">${label}</span>
+              <span class="combat-hotkey-panel__btn-ability-mod">${m}</span>
+            </button>`;
+          })
+          .join("");
+      }
+    }
+
+    // Actions
+    const actionsEl = document.getElementById("combat-hotkey-panel-actions");
+    if (actionsEl) {
+      const actions = Array.isArray(p.actions) ? p.actions : [];
+      if (actions.length === 0) {
+        actionsEl.innerHTML = `<div class="combat-hotkey-panel__empty">Nenhuma ação cadastrada.</div>`;
+      } else {
+        const kindLabels = {
+          special: "Habilidades especiais",
+          skill: "Perícias",
+          action: "Ações",
+          reaction: "Reações",
+          legendary: "Ações lendárias",
+        };
+        let lastKind = null;
+        actionsEl.innerHTML = actions
+          .map((a, i) => {
+            const curKind = a.kind || "action";
+            let dividerHtml = "";
+            if (curKind !== lastKind) {
+              dividerHtml = `<div class="combat-hotkey-panel__action-divider combat-hotkey-panel__action-divider--${curKind}">${kindLabels[curKind] || ""}</div>`;
+              lastKind = curKind;
+            }
+            const hasAttack = typeof a.modifier === "number";
+            const hasDamage = !!a.damage;
+            const kindClass =
+              a.kind === "special" || a.kind === "skill"
+                ? " combat-hotkey-panel__action-attack--special"
+                : a.kind === "legendary"
+                  ? " combat-hotkey-panel__action-attack--legendary"
+                  : a.kind === "reaction"
+                    ? " combat-hotkey-panel__action-attack--reaction"
+                    : "";
+            const dmgBtn = hasDamage
+              ? `<button type="button" class="combat-hotkey-panel__action-damage" data-action-index="${i}" data-roll="damage" title="Rolar dano">${a.damage}</button>`
+              : "";
+            if (hasAttack) {
+              const mod = a.modifier >= 0 ? `+${a.modifier}` : `${a.modifier}`;
+              return dividerHtml + `<div class="combat-hotkey-panel__action-row">
+                <button type="button" class="combat-hotkey-panel__action-attack${kindClass}" data-action-index="${i}" data-roll="attack" title="Rolar ataque">
+                  <span class="combat-hotkey-panel__action-name">${a.name}</span>
+                  <span class="combat-hotkey-panel__action-mod">${mod}</span>
+                </button>
+                ${dmgBtn}
+              </div>`;
+            }
+            return dividerHtml + `<div class="combat-hotkey-panel__action-row">
+              <button type="button" class="combat-hotkey-panel__action-attack combat-hotkey-panel__action-attack--info${kindClass}" data-action-index="${i}" data-roll="info" title="Logar descrição">
+                <span class="combat-hotkey-panel__action-name">${a.name}</span>
+              </button>
+              ${dmgBtn}
+            </div>`;
+          })
+          .join("");
+      }
+    }
+    this._renderCombatSummaryPanel();
+  }
+
+  _renderCombatSummaryPanel() {
+    const panel = document.getElementById("combat-summary-panel");
+    if (!panel) return;
+    const p = this.getActiveParticipant();
+    // Esconde quando: sem combate, sem turno, ou hotkey minimizado
+    if (!p || !this.isActive || this._hotkeyPanelMinimized) {
+      panel.classList.add("hidden");
+      return;
+    }
+    const s = p.summary;
+    if (!s) {
+      panel.classList.add("hidden");
+      return;
+    }
+    panel.classList.remove("hidden");
+
+    const body = document.getElementById("combat-summary-panel-body");
+    if (!body) return;
+
+    const groups = [];
+
+    // Grupo 1: Tipo / Tamanho / Alinhamento
+    const baseRows = [];
+    if (s.type)
+      baseRows.push({
+        label: "Tipo",
+        value: s.subtype ? `${s.type} (${s.subtype})` : s.type,
+      });
+    if (s.size) baseRows.push({ label: "Tamanho", value: s.size });
+    if (s.alignment) baseRows.push({ label: "Alinhamento", value: s.alignment });
+    if (baseRows.length) groups.push(baseRows);
+
+    // Grupo 2: Desafio
+    if (s.cr != null) {
+      const crFormatted =
+        s.cr === 0.125
+          ? "1/8"
+          : s.cr === 0.25
+            ? "1/4"
+            : s.cr === 0.5
+              ? "1/2"
+              : String(s.cr);
+      const xpFormatted = s.xp != null ? s.xp.toLocaleString("pt-BR") : null;
+      const value = xpFormatted ? `${crFormatted} (${xpFormatted} XP)` : crFormatted;
+      groups.push([{ label: "Desafio", value }]);
+    }
+
+    // Grupo 3: Velocidades
+    if (s.speeds && Object.keys(s.speeds).length > 0) {
+      const lines = Object.entries(s.speeds)
+        .map(([k, v]) => `${k} ${v}`)
+        .join("<br>");
+      groups.push([{ label: "Velocidade", valueBlock: lines }]);
+    }
+
+    // Grupo 4: Sentidos
+    if (s.senses && Object.keys(s.senses).length > 0) {
+      const lines = Object.entries(s.senses)
+        .map(([k, v]) => `${k} ${v}`)
+        .join("<br>");
+      groups.push([{ label: "Sentidos", valueBlock: lines }]);
+    }
+
+    // Grupo 5: Idiomas
+    if (s.languages) {
+      groups.push([{ label: "Idiomas", valueBlock: s.languages }]);
+    }
+
+    // Grupo 6: Vulnerabilidades / Resistências / Imunidades
+    const defRows = [];
+    if (Array.isArray(s.vulnerabilities) && s.vulnerabilities.length) {
+      defRows.push({ label: "Vulnerabilidades", valueBlock: s.vulnerabilities.join(", ") });
+    }
+    if (Array.isArray(s.resistances) && s.resistances.length) {
+      defRows.push({ label: "Resistências", valueBlock: s.resistances.join("; ") });
+    }
+    const dmgImm = Array.isArray(s.damage_immunities) ? s.damage_immunities : [];
+    const condImm = Array.isArray(s.condition_immunities) ? s.condition_immunities : [];
+    if (dmgImm.length || condImm.length) {
+      const parts = [];
+      if (dmgImm.length) parts.push(`Dano: ${dmgImm.join(", ")}`);
+      if (condImm.length) parts.push(`Condições: ${condImm.join(", ")}`);
+      defRows.push({ label: "Imunidades", valueBlock: parts.join("<br>") });
+    }
+    if (defRows.length) groups.push(defRows);
+
+    body.innerHTML = groups
+      .map((rows) => {
+        const inner = rows
+          .map((r) => {
+            if (r.valueBlock) {
+              return `<div class="combat-summary-panel__row" style="flex-direction:column; align-items:flex-start; gap:2px">
+                <span class="combat-summary-panel__label">${r.label}</span>
+                <span class="combat-summary-panel__value-block">${r.valueBlock}</span>
+              </div>`;
+            }
+            return `<div class="combat-summary-panel__row">
+              <span class="combat-summary-panel__label">${r.label}</span>
+              <span class="combat-summary-panel__value">${r.value}</span>
+            </div>`;
+          })
+          .join("");
+        return `<div class="combat-summary-panel__group">${inner}</div>`;
+      })
+      .join("");
+  }
+
+  _onHotkeyPanelClick(e) {
+    const p = this.getActiveParticipant();
+    if (!p) return;
+
+    const saveBtn = e.target.closest("[data-save]");
+    if (saveBtn) {
+      const ability = saveBtn.dataset.save;
+      const mod = parseInt(saveBtn.dataset.saveModifier, 10) || 0;
+      const labelMap = {
+        str: "Salvaguarda de Força",
+        dex: "Salvaguarda de Destreza",
+        con: "Salvaguarda de Constituição",
+        int: "Salvaguarda de Inteligência",
+        wis: "Salvaguarda de Sabedoria",
+        cha: "Salvaguarda de Carisma",
+      };
+      window.diceView?.rollProgrammatic({
+        notation: "1d20",
+        bonus: mod,
+        characterName: p.name,
+        affinity: p.affinity,
+        label: labelMap[ability] || `Salvaguarda de ${(ability || "").toUpperCase()}`,
+      });
+      return;
+    }
+
+    const abilityBtn = e.target.closest(".combat-hotkey-panel__btn-ability");
+    if (abilityBtn) {
+      const key = abilityBtn.dataset.ability;
+      const score = p[key];
+      if (score == null) return;
+      const labelMap = {
+        str: "Teste de Força",
+        dex: "Teste de Destreza",
+        con: "Teste de Constituição",
+        int: "Teste de Inteligência",
+        wis: "Teste de Sabedoria",
+        cha: "Teste de Carisma",
+      };
+      window.diceView?.rollProgrammatic({
+        notation: "1d20",
+        bonus: modifier(score),
+        characterName: p.name,
+        affinity: p.affinity,
+        label: labelMap[key] || `Teste de ${key.toUpperCase()}`,
+      });
+      return;
+    }
+
+    const actionBtn = e.target.closest("[data-roll]");
+    if (!actionBtn) return;
+    const index = parseInt(actionBtn.dataset.actionIndex, 10);
+    const action = Array.isArray(p.actions) ? p.actions[index] : null;
+    if (!action) return;
+
+    const rollType = actionBtn.dataset.roll;
+    if (rollType === "attack") {
+      window.diceView?.rollProgrammatic({
+        notation: "1d20",
+        bonus: action.modifier ?? 0,
+        characterName: p.name,
+        affinity: p.affinity,
+        label: `${action.name} — Ataque`,
+      });
+    } else if (rollType === "info") {
+      this.logRoll({
+        characterName: p.name,
+        notation: action.name,
+        total: "—",
+        details: action.desc || "",
+      });
+    } else if (rollType === "damage" && action.damage) {
+      window.diceView?.rollProgrammatic({
+        notation: action.damage,
+        bonus: 0,
+        characterName: p.name,
+        affinity: p.affinity,
+        label: `${action.name} — Dano`,
+      });
+    }
   }
 
   logRoll(data) {
@@ -1447,6 +1813,7 @@ export default class EncounterCombatView {
       mod.textContent = formatModifier(p[ab]);
     });
 
+    this._renderDetailsActions(p.actions || []);
     this.DOM.participantDetailsModal?.classList.remove("hidden");
   }
 
@@ -1484,9 +1851,79 @@ export default class EncounterCombatView {
       p[ab] = Number.isFinite(n) ? n : null;
     });
 
+    // Coletar ações
+    const list = document.getElementById("details-actions-list");
+    const actions = [];
+    list?.querySelectorAll(".participant-details__action").forEach((row) => {
+      const name = row.querySelector(".participant-details__action-name")?.value.trim() || "";
+      if (!name) return; // skip rows sem nome
+      const modRaw = row.querySelector(".participant-details__action-mod")?.value;
+      const dmg = row.querySelector(".participant-details__action-damage")?.value.trim() || "";
+      const mod = parseInt(modRaw, 10);
+      actions.push({
+        name,
+        modifier: Number.isFinite(mod) ? mod : 0,
+        damage: dmg || null,
+      });
+    });
+    p.actions = actions;
+
+    this._renderCombatHotkeyPanel();
     this.closeParticipantDetails();
     this.renderBanners();
     // Persiste no DB do encontro (segue padrão de saveQuickEdit)
     this.updateDB?.();
+  }
+
+  _renderDetailsActions(actions) {
+    const list = document.getElementById("details-actions-list");
+    if (!list) return;
+    list.innerHTML = "";
+    actions.forEach((a, i) => list.appendChild(this._makeActionRow(a, i)));
+  }
+
+  _makeActionRow(action = {}, index = 0) {
+    const row = document.createElement("div");
+    row.className = "participant-details__action";
+    row.dataset.actionIndex = String(index);
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "participant-details__action-name";
+    nameInput.placeholder = "Nome da ação";
+    nameInput.maxLength = 40;
+    nameInput.value = action.name || "";
+
+    const modInput = document.createElement("input");
+    modInput.type = "number";
+    modInput.className = "participant-details__action-mod";
+    modInput.placeholder = "0";
+    modInput.value = action.modifier ?? "";
+
+    const dmgInput = document.createElement("input");
+    dmgInput.type = "text";
+    dmgInput.className = "participant-details__action-damage";
+    dmgInput.placeholder = "2d6+1 ou 1d6+1d8+1";
+    dmgInput.value = action.damage || "";
+
+    const rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "participant-details__action-remove";
+    rm.setAttribute("aria-label", "Remover ação");
+    rm.innerHTML = icon("x", { size: 14 });
+    rm.addEventListener("click", () => row.remove());
+
+    row.appendChild(nameInput);
+    row.appendChild(modInput);
+    row.appendChild(dmgInput);
+    row.appendChild(rm);
+    return row;
+  }
+
+  _addNewAction() {
+    const list = document.getElementById("details-actions-list");
+    if (!list) return;
+    const index = list.children.length;
+    list.appendChild(this._makeActionRow({}, index));
   }
 }

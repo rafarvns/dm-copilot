@@ -83,6 +83,15 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       deleteMusic: (fileName) => ipcRenderer.invoke("app-delete-scene-music", fileName),
     },
 
+    sceneNotes: {
+      list: (sceneId) => ipcRenderer.invoke("db-scene-notes-list", sceneId),
+      create: (sceneId, data) => ipcRenderer.invoke("db-scene-notes-create", sceneId, data),
+      update: (id, data) => ipcRenderer.invoke("db-scene-notes-update", id, data),
+      delete: (id) => ipcRenderer.invoke("db-scene-notes-delete", id),
+      reorder: (sceneId, orderedIds) =>
+        ipcRenderer.invoke("db-scene-notes-reorder", sceneId, orderedIds),
+    },
+
     // Notes
     notes: {
       create: (data) => ipcRenderer.invoke("db-notes-create", data),

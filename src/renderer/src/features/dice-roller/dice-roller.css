@@ -36,8 +36,31 @@
 /* ---- Header ------------------------------------------------- */
 .dice-roller__header {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.dice-roller__header-text {
+  display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.dice-roller__header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .dice-roller__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .dice-roller__title {
@@ -58,16 +81,6 @@
   margin: 0;
 }
 
-/* ---- Slot do #dice-toolbar emprestado --------------------- */
-/*
-  O nó #dice-toolbar é movido para cá via appendChild quando a
-  feature monta. Os estilos do toolbar vivem em main.css; o slot
-  só dá um respiro vertical e centraliza horizontalmente.
-*/
-.dice-roller__toolbar-slot {
-  display: flex;
-  justify-content: center;
-}
 
 /* ---- Log header bar ---------------------------------------- */
 .dice-roller__log-header {
