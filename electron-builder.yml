@@ -22,6 +22,11 @@ win:
   target:
     - nsis
   icon: src/assets/icons/logo_ico.ico
+# Nome do artefato SEM espaços: o electron-updater gera o latest.yml com hífens,
+# mas a API de upload do GitHub Release substitui espaços por pontos. Forçar
+# hífens no build evita o mismatch que quebra o download da atualização.
+nsis:
+  artifactName: DM-Copilot-Setup-${version}.${ext}
 linux:
   target:
     - AppImage
