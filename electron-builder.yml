@@ -9,7 +9,11 @@ npmRebuild: false
 files:
   - out/**/*
   - src/assets/**/*
-  - node_modules/better-sqlite3/**/*
+  # node_modules completo: o main process roda com externalizeDepsPlugin do
+  # electron-vite, então express/socket.io/youtube-dl-exec e suas transitivas
+  # (body-parser etc.) precisam estar no asar. devDependencies são filtradas
+  # automaticamente pelo electron-builder.
+  - node_modules/**/*
 win:
   target:
     - nsis
