@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    name: Check version bump
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.gate.outputs.should_release }}
+      version: ${{ steps.gate.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare package.json version with latest release
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pkg_version=$(node -p "require('./package.json').version")
+          echo "package.json version: $pkg_version"
+
+          latest_tag=$(gh release view --json tagName -q .tagName 2>/dev/null || true)
+          echo "latest release tag: ${latest_tag:-<none>}"
+
+          if [ -z "$latest_tag" ]; then
+            echo "No previous release — releasing $pkg_version."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "version=$pkg_version" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          latest_version="${latest_tag#v}"
+
+          # Comparação semver numérica componente a componente
+          is_greater=$(node -e "
+            const a = process.argv[1].split('.').map(Number);
+            const b = process.argv[2].split('.').map(Number);
+            const len = Math.max(a.length, b.length);
+            for (let i = 0; i < len; i++) {
+              const x = a[i] || 0;
+              const y = b[i] || 0;
+              if (x > y) { console.log('true'); process.exit(0); }
+              if (x < y) { console.log('false'); process.exit(0); }
+            }
+            console.log('false');
+          " "$pkg_version" "$latest_version")
+
+          if [ "$is_greater" = "true" ]; then
+            echo "Version bumped ($latest_version -> $pkg_version) — releasing."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "version=$pkg_version" >> "$GITHUB_OUTPUT"
+          else
+            echo "No version bump ($pkg_version <= $latest_version) — skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build ${{ matrix.os }}
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: build:win
+            artifact_name: dist-windows
+            artifact_glob: |
+              dist/*.exe
+          - os: ubuntu-latest
+            script: build:linux
+            artifact_name: dist-linux
+            artifact_glob: |
+              dist/*.AppImage
+              dist/*.deb
+          - os: macos-latest
+            script: build:mac
+            artifact_name: dist-macos
+            artifact_glob: |
+              dist/*.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build ${{ matrix.os }} package
+        run: pnpm ${{ matrix.script }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish release
+    needs: [check-version, build]
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ needs.check-version.outputs.version }}"
+          tag="v${version}"
+          gh release create "$tag" \
+            --title "$tag" \
+            --generate-notes \
+            --target "${{ github.sha }}" \
+            artifacts/*/*

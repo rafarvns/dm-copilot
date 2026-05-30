@@ -859,6 +859,17 @@ export default class EncounterCombatView {
     this.updateDB();
   }
 
+  resortByInitiative() {
+    if (!this.initiativeLocked) return;
+    // Rastreia pelo id para manter currentTurnIndex correto após a reordenação
+    const activeId = this.participants[this.currentTurnIndex]?.id;
+    this.participants.sort((a, b) => (b.initiative ?? -Infinity) - (a.initiative ?? -Infinity));
+    if (activeId != null) {
+      const idx = this.participants.findIndex((p) => p.id === activeId);
+      if (idx >= 0) this.currentTurnIndex = idx;
+    }
+  }
+
   async maybeLockAfterRoll() {
     if (this.initiativeLocked) return;
     if (this.allInitiativesSet()) {
@@ -1699,6 +1710,7 @@ export default class EncounterCombatView {
       p.image = this.editingImageBuffer;
     }
 
+    this.resortByInitiative();
     this.renderBanners();
     this.broadcastState();
     this.updateDB();
@@ -1870,6 +1882,7 @@ export default class EncounterCombatView {
 
     this._renderCombatHotkeyPanel();
     this.closeParticipantDetails();
+    this.resortByInitiative();
     this.renderBanners();
     // Persiste no DB do encontro (segue padrão de saveQuickEdit)
     this.updateDB?.();

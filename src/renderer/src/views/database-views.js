@@ -1946,6 +1946,15 @@ class EncountersView {
   }
 
   renderParticipants() {
+    if (this.combatView?.isActive) {
+      // Durante combate ativo, a UI é a arena de banners — manter o painel de
+      // listagem oculto evita que adicionar participante no meio da luta o reabra.
+      this.DOM.sectionAllies?.classList.add("hidden");
+      this.DOM.sectionNeutrals?.classList.add("hidden");
+      this.DOM.sectionEnemies?.classList.add("hidden");
+      return;
+    }
+
     const renderList = (listEl, sectionEl, group) => {
       if (!listEl || !sectionEl) return;
 
@@ -2245,11 +2254,9 @@ class EncountersView {
       await databaseService.updateEncounter(this.currentEncounter.id, updateData);
 
       if (this.combatView && this.combatView.isActive) {
-        this.combatView.participants = this.participants.map((p) => ({
-          ...p,
-          id: p.tempId,
-          image: p.image,
-        }));
+        // Não sobrescrever combatView.participants: apagaria initiative, has_acted,
+        // deathSaves e current_hp ajustado de todos, e duplicaria novos entrantes
+        // (que já são inseridos por combatView.handleNewParticipant).
         this.combatView.broadcastState();
       }
 
