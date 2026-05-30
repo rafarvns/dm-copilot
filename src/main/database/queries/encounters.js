@@ -145,6 +145,11 @@ function countEncountersByCampaign(db, campaignId) {
   return row.count;
 }
 
+function countEncounters(db) {
+  const row = db.prepare(`SELECT COUNT(*) as count FROM encounters`).get();
+  return row.count;
+}
+
 module.exports = {
   createEncounter,
   getEncounterById,
@@ -153,4 +158,5 @@ module.exports = {
   updateEncounter,
   deleteEncounter,
   countEncountersByCampaign,
+  countEncounters,
 };

@@ -1,6 +1,21 @@
 // DM Copilot - Database Service (Renderer)
 // Helper para acessar o banco de dados do main process
 
+import { EventBus } from "../core/event-bus.js";
+
+function handleQuotaAwareResult(res) {
+  if (res && res.ok === false) {
+    if (res.code === "QUOTA_EXCEEDED") {
+      EventBus.emit("quota:exceeded", res);
+    }
+    const err = new Error(res.code || res.error || "OPERATION_FAILED");
+    err.code = res.code;
+    err.payload = res;
+    throw err;
+  }
+  return res && res.ok ? res.data : res;
+}
+
 class DatabaseService {
   constructor() {
     this.db = null;
@@ -45,7 +60,8 @@ class DatabaseService {
   // ============================================
   async createCampaign(data) {
     if (!this.isReady()) throw new Error("Database not initialized");
-    return await window.dmCopilot.db.campaigns.create(data);
+    const res = await window.dmCopilot.db.campaigns.create(data);
+    return handleQuotaAwareResult(res);
   }
 
   async getAllCampaigns() {
@@ -88,7 +104,8 @@ class DatabaseService {
   // ============================================
   async createCharacter(data) {
     if (!this.isReady()) throw new Error("Database not initialized");
-    return await window.dmCopilot.db.characters.create(data);
+    const res = await window.dmCopilot.db.characters.create(data);
+    return handleQuotaAwareResult(res);
   }
 
   async getAllCharacters() {
@@ -156,7 +173,8 @@ class DatabaseService {
   // ============================================
   async createEncounter(data) {
     if (!this.isReady()) throw new Error("Database not initialized");
-    return await window.dmCopilot.db.encounters.create(data);
+    const res = await window.dmCopilot.db.encounters.create(data);
+    return handleQuotaAwareResult(res);
   }
 
   async getEncountersByCampaign(campaignId) {
@@ -171,7 +189,8 @@ class DatabaseService {
 
   async updateEncounter(id, data) {
     if (!this.isReady()) throw new Error("Database not initialized");
-    return await window.dmCopilot.db.encounters.update(id, data);
+    const res = await window.dmCopilot.db.encounters.update(id, data);
+    return handleQuotaAwareResult(res);
   }
 
   async deleteEncounter(id) {
@@ -213,6 +232,15 @@ class DatabaseService {
   async deleteNote(id) {
     if (!this.isReady()) throw new Error("Database not initialized");
     return await window.dmCopilot.db.notes.delete(id);
+  }
+
+  // ============================================
+  // Scenes
+  // ============================================
+  async createScene(data) {
+    if (!this.isReady()) throw new Error("Database not initialized");
+    const res = await window.dmCopilot.db.scenes.create(data);
+    return handleQuotaAwareResult(res);
   }
 
   // ============================================

@@ -1,0 +1,75 @@
+<div class="main-view license-view">
+  <header class="main-view__header">
+    <h1 class="main-view__title">
+      <i data-icon="key-round"></i>
+      Licença
+    </h1>
+    <p class="main-view__subtitle">Gerencie sua licença do DM Copilot.</p>
+  </header>
+
+  <div class="license-cards">
+    <section class="card license-card" aria-label="Status da licença">
+      <h2 class="card__title">Status</h2>
+      <div class="license-status">
+        <span class="license-status__badge" id="license-status-badge"></span>
+        <div class="license-status__body" id="license-status-body"></div>
+      </div>
+    </section>
+
+    <section class="card license-card" id="license-activate-card" hidden aria-label="Ativar licença">
+      <h2 class="card__title">Ativar licença</h2>
+      <div class="license-machine-id">
+        <label class="license-machine-id__label">ID desta máquina</label>
+        <div class="license-machine-id__row">
+          <code class="license-machine-id__code" id="license-machine-id"></code>
+          <button
+            type="button"
+            class="btn btn--ghost btn--sm btn--icon-only"
+            id="btn-license-copy-machine-id"
+            title="Copiar ID"
+          >
+            <i data-icon="copy-plus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="license-activate-form">
+        <label class="license-activate-form__label" for="input-license-key">Chave de licença</label>
+        <input
+          type="text"
+          id="input-license-key"
+          class="license-activate-form__input"
+          placeholder="DMC-XXXX-XXXX-XXXX"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div id="license-error" class="license-error" hidden></div>
+        <button type="button" class="btn btn--primary" id="btn-license-activate">
+          <i class="btn__icon" data-icon="key-round"></i>
+          Ativar
+        </button>
+      </div>
+    </section>
+
+    <section class="card license-card" id="license-buy-card" hidden aria-label="Comprar licença">
+      <h2 class="card__title">Comprar licença</h2>
+      <p class="license-buy__text">
+        Adquira uma licença completa e remova todos os limites do trial.
+      </p>
+      <button type="button" class="btn btn--ghost" id="btn-license-buy">
+        <i class="btn__icon" data-icon="external-link"></i>
+        Comprar
+      </button>
+    </section>
+
+    <section class="card license-card" id="license-deactivate-card" hidden aria-label="Desativar licença">
+      <h2 class="card__title">Desativar licença</h2>
+      <p class="license-deactivate__text">
+        Remove a ativação desta máquina. O app voltará ao modo trial.
+      </p>
+      <button type="button" class="btn btn--ghost" id="btn-license-deactivate">
+        <i class="btn__icon" data-icon="x"></i>
+        Desativar nesta máquina
+      </button>
+    </section>
+  </div>
+</div>

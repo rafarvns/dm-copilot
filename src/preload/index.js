@@ -154,4 +154,11 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       ipcRenderer.on("updater:event", (event, payload) => callback(payload));
     },
   },
+
+  // --- License ---
+  license: {
+    getStatus: () => ipcRenderer.invoke("license-get-status"),
+    activate: (key) => ipcRenderer.invoke("license-activate", key),
+    deactivate: () => ipcRenderer.invoke("license-deactivate"),
+  },
 });

@@ -7,6 +7,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const { autoUpdater } = require("electron-updater");
+const licenseManager = require("./services/license-manager");
 
 // ============================================
 // Environment
@@ -646,9 +647,12 @@ ipcMain.handle("db-is-ready", () => {
 // IPC Handlers - Campaigns
 // ============================================
 ipcMain.handle("db-campaigns-create", (_event, campaignData) => {
+  const gate = licenseManager.canCreate("campaign");
+  if (!gate.ok) return gate;
   const db = databaseManager.getConnection();
   const { createCampaign } = require("./database/queries/campaigns");
-  return createCampaign(db, campaignData);
+  const data = createCampaign(db, campaignData);
+  return { ok: true, data };
 });
 
 ipcMain.handle("db-campaigns-read-all", () => {
@@ -713,9 +717,12 @@ ipcMain.handle("db-campaigns-stats", (_event, id) => {
 // IPC Handlers - Characters
 // ============================================
 ipcMain.handle("db-characters-create", (_event, characterData) => {
+  const gate = licenseManager.canCreate("character");
+  if (!gate.ok) return gate;
   const db = databaseManager.getConnection();
   const { createCharacter } = require("./database/queries/characters");
-  return createCharacter(db, characterData);
+  const data = createCharacter(db, characterData);
+  return { ok: true, data };
 });
 
 ipcMain.handle("db-characters-read-all", () => {
@@ -786,9 +793,12 @@ ipcMain.handle("db-characters-count", () => {
 // IPC Handlers - Encounters
 // ============================================
 ipcMain.handle("db-encounters-create", (_event, encounterData) => {
+  const gate = licenseManager.canCreate("encounter");
+  if (!gate.ok) return gate;
   const db = databaseManager.getConnection();
   const { createEncounter } = require("./database/queries/encounters");
-  return createEncounter(db, encounterData);
+  const data = createEncounter(db, encounterData);
+  return { ok: true, data };
 });
 
 ipcMain.handle("db-encounters-read-all", (_event, campaignId) => {
@@ -804,9 +814,13 @@ ipcMain.handle("db-encounters-read-id", (_event, id) => {
 });
 
 ipcMain.handle("db-encounters-update", (_event, id, encounterData) => {
+  const monstersLength = Array.isArray(encounterData?.monsters) ? encounterData.monsters.length : 0;
+  const gate = licenseManager.canCreate("encounter_participants", { monstersLength });
+  if (!gate.ok) return gate;
   const db = databaseManager.getConnection();
   const { updateEncounter } = require("./database/queries/encounters");
-  return updateEncounter(db, id, encounterData);
+  const data = updateEncounter(db, id, encounterData);
+  return { ok: true, data };
 });
 
 ipcMain.handle("db-encounters-delete", (_event, id) => {
@@ -825,9 +839,12 @@ ipcMain.handle("db-encounters-delete", (_event, id) => {
 // IPC Handlers - Scenes
 // ============================================
 ipcMain.handle("db-scenes-create", (_event, sceneData) => {
+  const gate = licenseManager.canCreate("scene");
+  if (!gate.ok) return gate;
   const db = databaseManager.getConnection();
   const { createScene } = require("./database/queries/scenes");
-  return createScene(db, sceneData);
+  const data = createScene(db, sceneData);
+  return { ok: true, data };
 });
 
 ipcMain.handle("db-scenes-read-all", (_event, campaignId) => {
@@ -1109,6 +1126,13 @@ ipcMain.handle("updater:install", () => {
 });
 
 // ============================================
+// IPC Handlers - License
+// ============================================
+ipcMain.handle("license-get-status", () => licenseManager.getStatus());
+ipcMain.handle("license-activate", (_e, key) => licenseManager.activate(key));
+ipcMain.handle("license-deactivate", () => licenseManager.deactivate());
+
+// ============================================
 // IPC Handlers - Window Controls
 // ============================================
 ipcMain.on("window-minimize", () => {
@@ -1158,6 +1182,8 @@ app.whenReady().then(() => {
     console.error("Failed to initialize database:", error);
     // Continue anyway for graceful degradation
   }
+
+  licenseManager.init({ app, db: databaseManager.getConnection() });
 
   createWindow();
   combatServer.start();

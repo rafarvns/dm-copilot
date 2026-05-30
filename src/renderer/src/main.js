@@ -9,6 +9,7 @@ import { registerRoute, navigateTo } from "./core/router.js";
 import { mountIcons } from "./core/icons.js";
 import { mountTooltips } from "./core/tooltip.js";
 import { mountUpdateBanner } from "./core/update-banner.js";
+import { mountQuotaModal } from "./core/quota-modal.js";
 import PresentationController from "./core/presentation-controller.js";
 
 import SidebarComponent from "./shared/sidebar/sidebar.js";
@@ -18,6 +19,7 @@ import DashboardFeature from "./features/dashboard/dashboard.js";
 import CampaignsFeature from "./features/campaigns/campaigns.js";
 import CharactersFeature from "./features/characters/characters.js";
 import DiceRollerFeature from "./features/dice-roller/dice-roller.js";
+import LicenseFeature from "./features/license/license.js";
 
 import { EncountersView } from "./views/database-views.js";
 import ScenesView from "./views/scenes-view.js";
@@ -40,6 +42,7 @@ function registerRoutes() {
   registerRoute("campaigns", CampaignsFeature);
   registerRoute("characters", CharactersFeature);
   registerRoute("dice", DiceRollerFeature);
+  registerRoute("license", LicenseFeature);
 }
 
 function setupSidebarNavigation() {
@@ -79,6 +82,7 @@ async function init() {
     mountIcons(document.body);
     mountTooltips();
     mountUpdateBanner();
+    mountQuotaModal();
     registerRoutes();
 
     try {
@@ -91,6 +95,11 @@ async function init() {
     if (window.dmCopilot?.getAppVersion) {
       const version = await window.dmCopilot.getAppVersion();
       statusBar.setVersion(version);
+    }
+
+    if (window.dmCopilot?.license?.getStatus) {
+      const lic = await window.dmCopilot.license.getStatus();
+      statusBar.setLicense(lic.status, lic.info);
     }
 
     // Globais usados pelas views (encounter manager, modais de overlay)

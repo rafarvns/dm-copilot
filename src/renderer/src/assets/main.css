@@ -7,6 +7,7 @@
    fonts) live in tokens.css and are available everywhere. */
 @import "./tokens.css";
 @import "./update-banner.css";
+@import "./quota-modal.css";
 
 /* --- CSS Custom Properties (Theme) --- */
 :root {
