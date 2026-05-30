@@ -92,7 +92,11 @@
       "Bash(electron-vite build *)",
       "Bash(npx electron-builder *)",
       "Bash(\"./dist-test/win-unpacked/DM Copilot.exe\")",
-      "Bash(rm -rf dist-test)"
+      "Bash(rm -rf dist-test)",
+      "Bash(git fetch *)",
+      "Bash(gh run *)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh\" run list --branch main --limit 3)",
+      "Bash(where.exe gh *)"
     ]
   }
 }
