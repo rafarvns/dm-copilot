@@ -81,17 +81,6 @@ jobs:
             artifact_name: dist-windows
             artifact_glob: |
               dist/*.exe
-          - os: ubuntu-latest
-            script: build:linux
-            artifact_name: dist-linux
-            artifact_glob: |
-              dist/*.AppImage
-              dist/*.deb
-          - os: macos-latest
-            script: build:mac
-            artifact_name: dist-macos
-            artifact_glob: |
-              dist/*.dmg
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout

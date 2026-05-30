@@ -13,9 +13,9 @@
     "preview": "electron-vite preview",
     "lint": "eslint src/",
     "format": "prettier --write src/",
-    "build:win": "node scripts/copy-database.js && electron-vite build && electron-builder --win",
-    "build:linux": "node scripts/copy-database.js && electron-vite build && electron-builder --linux",
-    "build:mac": "node scripts/copy-database.js && electron-vite build && electron-builder --mac",
+    "build:win": "node scripts/copy-database.js && electron-vite build && electron-builder --win --publish never",
+    "build:linux": "node scripts/copy-database.js && electron-vite build && electron-builder --linux --publish never",
+    "build:mac": "node scripts/copy-database.js && electron-vite build && electron-builder --mac --publish never",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "devDependencies": {
