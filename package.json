@@ -1,10 +1,14 @@
 {
   "name": "dm-copilot",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Assistente desktop para mestres de RPG de mesa - Crie e gerencie suas campanhas com facilidade",
   "main": "out/main/index.js",
   "author": "DM Copilot Team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rafarvns/dm-copilot.git"
+  },
   "icon": "./src/assets/icons/logo_ico.ico",
   "packageManager": "pnpm@10.14.0",
   "scripts": {
@@ -33,6 +37,7 @@
     "@3d-dice/dice-box-threejs": "^0.0.12",
     "better-sqlite3": "^12.9.0",
     "easymde": "^2.21.0",
+    "electron-updater": "^6.3.9",
     "express": "^5.2.1",
     "lucide": "^0.460.0",
     "marked": "^18.0.3",

@@ -2,6 +2,10 @@ appId: com.dmcopilot.app
 productName: DM Copilot
 directories:
   output: dist
+publish:
+  provider: github
+  owner: rafarvns
+  repo: dm-copilot
 # better-sqlite3 já é rebuildado pelo postinstall (electron-rebuild) no runner
 # correto. Sem isso, o electron-builder tenta rebuildar de novo e quebra no
 # Windows ao invocar pnpm.cjs direto via fork/exec.

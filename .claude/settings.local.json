@@ -87,7 +87,12 @@
       "Bash(cmd //c 'taskkill /F /IM \"DM Copilot.exe\"')",
       "Bash(powershell *)",
       "Bash(npx asar *)",
-      "Bash(\"./dist/win-unpacked/DM Copilot.exe\")"
+      "Bash(\"./dist/win-unpacked/DM Copilot.exe\")",
+      "Bash(tasklist /v)",
+      "Bash(electron-vite build *)",
+      "Bash(npx electron-builder *)",
+      "Bash(\"./dist-test/win-unpacked/DM Copilot.exe\")",
+      "Bash(rm -rf dist-test)"
     ]
   }
 }

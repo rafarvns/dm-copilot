@@ -1,0 +1,133 @@
+/* ============================================================
+   DM Copilot — Update banner
+   Posicionado fixed bottom-right: flutua acima dos toasts
+   (z-index 2000) mas abaixo do canvas de dados (9999) e modais
+   (1000 com overlay). Nunca bloqueia a UI principal.
+   ============================================================ */
+
+/* --- Posicionamento e superfície --- */
+.update-banner {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: 3000;
+  width: 360px;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background-color: var(--color-surface-active);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  animation: fadeIn 200ms ease-out both;
+}
+
+/* --- Estado oculto — sem animação pra evitar flicker --- */
+.update-banner--hidden {
+  display: none;
+}
+
+/* --- Cabeçalho: ícone + grupo de texto --- */
+.update-banner__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* Ícone download-cloud em destaque arcano */
+.update-banner__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-light);
+}
+
+.update-banner__icon svg,
+.update-banner__icon .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Título e subtítulo empilhados */
+.update-banner__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.update-banner__title {
+  font-family: var(--font-display-brand);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.update-banner__subtitle {
+  font-family: var(--font-body-brand);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* --- Barra de progresso --- */
+.update-banner__progress {
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  overflow: hidden;
+}
+
+.update-banner__progress-bar {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  transition: width 200ms ease;
+}
+
+/* --- Ações (botões herdados do sistema de botões global) --- */
+.update-banner__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Tamanho compacto para botões dentro do banner */
+.update-banner__actions .btn--sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+}
+
+/* --- Estados controlados pelo JS --- */
+
+/* Downloading: esconde ações, exibe progresso */
+.update-banner--downloading .update-banner__actions {
+  display: none;
+}
+
+.update-banner--downloading .update-banner__progress {
+  display: block;
+}
+
+/* Ready: esconde ações e progresso */
+.update-banner--ready .update-banner__actions {
+  display: none;
+}
+
+.update-banner--ready .update-banner__progress {
+  display: none;
+}
+
+/* --- Responsividade básica em viewports estreitos --- */
+@media (max-width: 479px) {
+  .update-banner {
+    width: calc(100vw - var(--space-4));
+    right: var(--space-2);
+    bottom: var(--space-2);
+  }
+}

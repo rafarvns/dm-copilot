@@ -6,6 +6,7 @@ const os = require("os");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const { autoUpdater } = require("electron-updater");
 
 // ============================================
 // Environment
@@ -1064,6 +1065,50 @@ ipcMain.on("combat-server-broadcast", (_event, { event, data }) => {
 });
 
 // ============================================
+// Auto Updater
+// ============================================
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
+function sendUpdaterEvent(type, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("updater:event", { type, payload });
+  }
+}
+
+autoUpdater.on("checking-for-update", () => sendUpdaterEvent("checking-for-update"));
+autoUpdater.on("update-available", (info) =>
+  sendUpdaterEvent("update-available", {
+    version: info?.version,
+    releaseNotes: info?.releaseNotes,
+    releaseName: info?.releaseName,
+  })
+);
+autoUpdater.on("update-not-available", (info) =>
+  sendUpdaterEvent("update-not-available", { version: info?.version })
+);
+autoUpdater.on("download-progress", (p) =>
+  sendUpdaterEvent("download-progress", {
+    percent: p?.percent,
+    transferred: p?.transferred,
+    total: p?.total,
+    bytesPerSecond: p?.bytesPerSecond,
+  })
+);
+autoUpdater.on("update-downloaded", (info) =>
+  sendUpdaterEvent("update-downloaded", { version: info?.version })
+);
+autoUpdater.on("error", (err) => {
+  console.error("[updater]", err);
+  sendUpdaterEvent("error", { message: err?.message || String(err) });
+});
+
+ipcMain.handle("updater:download", () => autoUpdater.downloadUpdate());
+ipcMain.handle("updater:install", () => {
+  autoUpdater.quitAndInstall();
+});
+
+// ============================================
 // IPC Handlers - Window Controls
 // ============================================
 ipcMain.on("window-minimize", () => {
@@ -1116,6 +1161,13 @@ app.whenReady().then(() => {
 
   createWindow();
   combatServer.start();
+
+  // Só verifica atualizações em build empacotado — em dev não há release GitHub para consultar.
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error("[updater] checkForUpdates falhou:", err);
+    });
+  }
 
   // macOS: re-create window when dock icon is clicked and no windows are open
   app.on("activate", () => {

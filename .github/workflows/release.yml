@@ -81,6 +81,8 @@ jobs:
             artifact_name: dist-windows
             artifact_glob: |
               dist/*.exe
+              dist/*.exe.blockmap
+              dist/latest.yml
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout

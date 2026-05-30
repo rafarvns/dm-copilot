@@ -145,4 +145,13 @@ contextBridge.exposeInMainWorld("dmCopilot", {
     onPlayerConnected: (callback) =>
       ipcRenderer.on("player-connected", (event, socketId) => callback(socketId)),
   },
+
+  // --- Auto Updater ---
+  updater: {
+    download: () => ipcRenderer.invoke("updater:download"),
+    install: () => ipcRenderer.invoke("updater:install"),
+    onEvent: (callback) => {
+      ipcRenderer.on("updater:event", (event, payload) => callback(payload));
+    },
+  },
 });

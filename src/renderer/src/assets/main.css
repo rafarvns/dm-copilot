@@ -6,6 +6,7 @@
    migrate. New tokens (affinity colors, --color-primary-deep, brand
    fonts) live in tokens.css and are available everywhere. */
 @import "./tokens.css";
+@import "./update-banner.css";
 
 /* --- CSS Custom Properties (Theme) --- */
 :root {

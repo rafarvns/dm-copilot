@@ -8,6 +8,7 @@ import databaseService from "./db/database.js";
 import { registerRoute, navigateTo } from "./core/router.js";
 import { mountIcons } from "./core/icons.js";
 import { mountTooltips } from "./core/tooltip.js";
+import { mountUpdateBanner } from "./core/update-banner.js";
 import PresentationController from "./core/presentation-controller.js";
 
 import SidebarComponent from "./shared/sidebar/sidebar.js";
@@ -77,6 +78,7 @@ async function init() {
     mountShell();
     mountIcons(document.body);
     mountTooltips();
+    mountUpdateBanner();
     registerRoutes();
 
     try {
