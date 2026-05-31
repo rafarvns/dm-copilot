@@ -1068,6 +1068,26 @@
         </div>
         <div class="tab-content hidden" id="tab-quick-add">
           <form id="quick-add-form" class="mt-3">
+            <div class="form-group quick-add__image-group">
+              <label class="form-label">Imagem</label>
+              <div class="quick-add__image-row">
+                <div class="quick-add__image-preview" id="quick-image-preview">
+                  <i data-icon="image" class="quick-add__image-placeholder"></i>
+                  <img id="quick-image-preview-img" alt="" hidden />
+                </div>
+                <div class="quick-add__image-actions">
+                  <input type="file" id="quick-image-input" accept="image/*" hidden />
+                  <button type="button" class="btn btn--ghost btn--sm" id="btn-quick-image-pick">
+                    <i data-icon="upload"></i>
+                    <span>Escolher</span>
+                  </button>
+                  <button type="button" class="btn btn--ghost btn--sm" id="btn-quick-image-clear" hidden>
+                    <i data-icon="x"></i>
+                    <span>Remover</span>
+                  </button>
+                </div>
+              </div>
+            </div>
             <div class="form-group">
               <label class="form-label">Nome <span class="form-required">*</span></label>
               <input

@@ -4,6 +4,12 @@ const path = require("path");
 const fs = require("fs");
 const { machineIdSync } = require("node-machine-id");
 
+// Chaves de QA/homologação — sempre válidas, ignoram qualquer validação online.
+// Mantenha esta lista mesmo após trocar _validateKeyStub por uma chamada à API:
+// o early-return abaixo precisa rodar ANTES do fetch para garantir que QA
+// funcione offline.
+const QA_KEYS = new Set(["DMC-QA-MASTER-FOREVER-2026"]);
+
 // ============================================
 // Limites do plano trial
 // ============================================
@@ -52,9 +58,12 @@ function _loadState() {
   }
 }
 
-// TODO: trocar por POST /activate quando a API estiver pronta. Mantenha
-// o mesmo retorno (true/false) pra não quebrar o caller.
+// TODO: trocar por POST /activate quando a API estiver pronta. O early-return
+// de QA_KEYS deve permanecer ACIMA do fetch — assim chaves de homologação
+// continuam funcionando offline e sem precisar registrar no servidor.
+// Mantenha o mesmo retorno (true/false) pra não quebrar o caller.
 function _validateKeyStub(key) {
+  if (QA_KEYS.has(key)) return true; // QA: bypass total
   return /^DMC-[A-Z0-9-]{8,}$/i.test(key);
 }
 

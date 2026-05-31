@@ -1332,6 +1332,12 @@ class EncountersView {
       dbPartList: document.getElementById("db-participant-list"),
       apiPartList: document.getElementById("api-monster-list"),
       quickAddForm: document.getElementById("quick-add-form"),
+      quickImageInput: document.getElementById("quick-image-input"),
+      quickImagePreview: document.getElementById("quick-image-preview"),
+      quickImagePreviewImg: document.getElementById("quick-image-preview-img"),
+      quickImagePlaceholder: document.querySelector("#quick-image-preview .quick-add__image-placeholder"),
+      btnQuickImagePick: document.getElementById("btn-quick-image-pick"),
+      btnQuickImageClear: document.getElementById("btn-quick-image-clear"),
       dbCharSearch: document.getElementById("db-char-search"),
       apiMonsterSearch: document.getElementById("api-monster-search"),
       tabs: document.querySelectorAll(".tab-btn"),
@@ -1403,6 +1409,9 @@ class EncountersView {
       e.preventDefault();
       this.addQuickParticipant();
     });
+    this.DOM.btnQuickImagePick?.addEventListener("click", () => this.DOM.quickImageInput?.click());
+    this.DOM.quickImageInput?.addEventListener("change", (e) => this.handleQuickImageChange(e));
+    this.DOM.btnQuickImageClear?.addEventListener("click", () => this.clearQuickImage());
 
     // Main Add Participant Button
     this.DOM.btnAddPartMain?.addEventListener("click", () => this.openParticipantModal());
@@ -2357,9 +2366,49 @@ class EncountersView {
     }
   }
 
+  async handleQuickImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const relativePath = await window.dmCopilot.db.encounters.saveImage(buffer);
+      this._quickImagePath = relativePath;
+      this._showQuickImagePreview(`local-image://${relativePath}`);
+    } catch (err) {
+      console.error("Falha ao salvar imagem do quick-add:", err);
+      showToast("Erro ao carregar imagem", "error");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  clearQuickImage() {
+    this._quickImagePath = null;
+    this._showQuickImagePreview(null);
+  }
+
+  _showQuickImagePreview(url) {
+    const img = this.DOM.quickImagePreviewImg;
+    const placeholder = this.DOM.quickImagePlaceholder;
+    const clearBtn = this.DOM.btnQuickImageClear;
+    if (url) {
+      img.src = url;
+      img.removeAttribute("hidden");
+      placeholder?.setAttribute("hidden", "");
+      clearBtn?.removeAttribute("hidden");
+    } else {
+      img.removeAttribute("src");
+      img.setAttribute("hidden", "");
+      placeholder?.removeAttribute("hidden");
+      clearBtn?.setAttribute("hidden", "");
+    }
+  }
+
   addQuickParticipant() {
     const name = document.getElementById("quick-name").value.trim();
     if (!name) return;
+
+    const imagePath = this._quickImagePath || null;
 
     this.addParticipantToList({
       id: Date.now(),
@@ -2368,9 +2417,11 @@ class EncountersView {
       ac: parseInt(document.getElementById("quick-ac").value) || 10,
       ini: parseInt(document.getElementById("quick-ini").value) || 0,
       affinity: this.getSelectedAffinity(),
+      image: imagePath ? `local-image://${imagePath}` : null,
     });
 
     this.DOM.quickAddForm.reset();
+    this.clearQuickImage();
   }
 
   async searchApiMonsters(query) {
