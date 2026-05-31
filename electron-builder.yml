@@ -18,6 +18,14 @@ files:
   # (body-parser etc.) precisam estar no asar. devDependencies são filtradas
   # automaticamente pelo electron-builder.
   - node_modules/**/*
+# Binários nativos não podem ser executados de dentro do app.asar — precisam
+# estar em app.asar.unpacked/. yt-dlp.exe é o caso atual; better-sqlite3.node
+# também precisa ficar fora do asar para o Electron carregar o binding.
+asarUnpack:
+  - node_modules/youtube-dl-exec/bin/**
+  - node_modules/**/youtube-dl-exec/bin/**
+  - node_modules/better-sqlite3/**
+  - node_modules/**/better-sqlite3/**
 win:
   target:
     - nsis
