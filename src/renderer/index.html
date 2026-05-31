@@ -1263,6 +1263,67 @@
       </div>
     </div>
 
+    <!-- Pre-Combat Edit Participant Modal -->
+    <div id="modal-participant-edit" class="modal hidden">
+      <div class="modal__overlay" id="participant-edit-modal-overlay"></div>
+      <div class="modal__content">
+        <div class="modal__header">
+          <h2 class="modal__title">Editar Participante</h2>
+          <button class="modal__close" id="btn-close-participant-edit" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="participant-edit-form">
+          <div class="participant-edit-form__row">
+            <div class="participant-edit-form__image">
+              <div class="participant-edit-form__image-preview" id="participant-edit-image-preview-wrap">
+                <i data-icon="image" id="participant-edit-image-placeholder" class="participant-edit-form__image-placeholder"></i>
+                <img id="participant-edit-image-preview-img" alt="" hidden />
+              </div>
+              <input type="file" id="participant-edit-image-input" accept="image/*" hidden />
+              <button type="button" class="btn btn--ghost btn--sm" id="btn-participant-edit-pick-image">
+                <i data-icon="upload"></i><span>Trocar imagem</span>
+              </button>
+            </div>
+            <div class="participant-edit-form__fields">
+              <div class="form-group">
+                <label class="form-label">Nome <span class="form-required">*</span></label>
+                <input type="text" id="participant-edit-name" class="form-input" />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">HP Atual</label>
+                  <input type="number" id="participant-edit-current-hp" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">HP Máx</label>
+                  <input type="number" id="participant-edit-hp" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">CA</label>
+                  <input type="number" id="participant-edit-ac" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ini</label>
+                  <input type="number" id="participant-edit-ini" class="form-input" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Afinidade</label>
+                <div class="affinity-options">
+                  <label><input type="radio" name="participant-edit-affinity" value="ally" /> Aliado</label>
+                  <label><input type="radio" name="participant-edit-affinity" value="neutral" /> Neutro</label>
+                  <label><input type="radio" name="participant-edit-affinity" value="enemy" /> Inimigo</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal__actions">
+            <button type="button" class="btn btn--ghost" id="btn-cancel-participant-edit">Cancelar</button>
+            <button type="button" class="btn btn--primary" id="btn-save-participant-edit">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Participant Details Modal (CR + Ability Scores) -->
     <div id="modal-participant-details" class="modal hidden">
       <div class="modal__overlay" id="participant-details-modal-overlay"></div>

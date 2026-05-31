@@ -1200,6 +1200,30 @@ export default class EncounterCombatView {
 
     this.resetCombatUI();
 
+    // Propaga edições do combate (HP, name, image, CA, etc) de volta pro
+    // encountersView, garantindo que a tela pós-combate mostre o estado atual.
+    // O DB já está correto via updateDB durante o combate — isto sincroniza só
+    // a memória do encountersView pro re-render abaixo.
+    if (Array.isArray(this.participants) && this.encountersView?.participants?.length) {
+      this.encountersView.participants = this.encountersView.participants.map((ep) => {
+        const id = ep.tempId || ep.id;
+        const cp = this.participants.find((p) => p.id === id);
+        if (!cp) return ep;
+        return {
+          ...ep,
+          ...cp,
+          id: ep.id,
+          tempId: ep.tempId,
+          originalIndex: ep.originalIndex,
+          // O combate usa "ca"; o card pré-combate lê "ac". Manter os dois em sincronia.
+          ac: cp.ca ?? cp.ac ?? ep.ac,
+        };
+      });
+      if (this.encountersView.currentEncounter) {
+        this.encountersView.currentEncounter.monsters = [...this.encountersView.participants];
+      }
+    }
+
     this.encountersView.organizeParticipants();
     this.encountersView.renderParticipants();
 

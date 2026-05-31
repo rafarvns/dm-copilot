@@ -1491,6 +1491,26 @@ class EncountersView {
       list.addEventListener("dragleave", (e) => this.handleDragLeave(e));
       list.addEventListener("drop", (e) => this.handleDrop(e));
     });
+
+    // Participant Edit Modal (pré-combate)
+    document
+      .getElementById("btn-close-participant-edit")
+      ?.addEventListener("click", () => this.closeParticipantEdit());
+    document
+      .getElementById("btn-cancel-participant-edit")
+      ?.addEventListener("click", () => this.closeParticipantEdit());
+    document
+      .getElementById("participant-edit-modal-overlay")
+      ?.addEventListener("click", () => this.closeParticipantEdit());
+    document
+      .getElementById("btn-save-participant-edit")
+      ?.addEventListener("click", () => this.saveParticipantEdit());
+    document
+      .getElementById("btn-participant-edit-pick-image")
+      ?.addEventListener("click", () => this._pickParticipantEditImage());
+    document
+      .getElementById("participant-edit-image-input")
+      ?.addEventListener("change", (e) => this._onParticipantEditImageChange(e));
   }
 
   handleStatChange(e) {
@@ -2040,6 +2060,7 @@ class EncountersView {
               </div>
             </div>
             <div class="participant-card__actions">
+              <button class="btn-icon btn-icon--sm" data-action="edit" title="Editar">${icon("pencil")}</button>
               <button class="btn-icon btn-icon--sm" data-action="duplicate" title="Duplicar">${icon("copy-plus")}</button>
               <button class="btn-icon btn-icon--sm" data-action="move" data-target="ally" title="Para Aliado">${icon("circle", { className: "status-icon--ally" })}</button>
               <button class="btn-icon btn-icon--sm" data-action="move" data-target="neutral" title="Para Neutro">${icon("circle", { className: "status-icon--neutral" })}</button>
@@ -2114,7 +2135,10 @@ class EncountersView {
     const index = parseInt(card.dataset.index, 10);
     const action = btn.dataset.action;
 
-    if (action === "remove") {
+    if (action === "edit") {
+      this.openParticipantEdit(index);
+      return;
+    } else if (action === "remove") {
       this.participants.splice(index, 1);
     } else if (action === "duplicate") {
       const original = this.participants[index];
@@ -2140,6 +2164,107 @@ class EncountersView {
     // Force update of originalIndex for next render
     this.organizeParticipants();
     await this.saveParticipants();
+  }
+
+  openParticipantEdit(index) {
+    const p = this.participants[index];
+    if (!p) return;
+    this._editingParticipantIndex = index;
+    this._editingImageBuffer = undefined;
+
+    document.getElementById("participant-edit-name").value = p.name ?? "";
+    document.getElementById("participant-edit-current-hp").value = p.current_hp ?? p.hp ?? 0;
+    document.getElementById("participant-edit-hp").value = p.hp ?? 0;
+    document.getElementById("participant-edit-ac").value = p.ac ?? 10;
+    document.getElementById("participant-edit-ini").value = p.ini ?? 0;
+
+    const aff = p.affinity || "enemy";
+    document.querySelectorAll('input[name="participant-edit-affinity"]').forEach((r) => {
+      r.checked = r.value === aff;
+    });
+
+    const img = document.getElementById("participant-edit-image-preview-img");
+    const placeholder = document.getElementById("participant-edit-image-placeholder");
+    if (p.image) {
+      img.src = p.image.startsWith("local-image://") ? p.image : `local-image://${p.image}`;
+      img.removeAttribute("hidden");
+      placeholder?.setAttribute("hidden", "");
+    } else {
+      img.removeAttribute("src");
+      img.setAttribute("hidden", "");
+      placeholder?.removeAttribute("hidden");
+    }
+
+    document.getElementById("modal-participant-edit").classList.remove("hidden");
+  }
+
+  closeParticipantEdit() {
+    document.getElementById("modal-participant-edit").classList.add("hidden");
+    this._editingParticipantIndex = null;
+    this._editingImageBuffer = undefined;
+  }
+
+  async _pickParticipantEditImage() {
+    const inputEl = document.getElementById("participant-edit-image-input");
+    inputEl?.click();
+  }
+
+  async _onParticipantEditImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const relativePath = await window.dmCopilot.db.encounters.saveImage(buffer);
+      this._editingImageBuffer = `local-image://${relativePath}`;
+      const img = document.getElementById("participant-edit-image-preview-img");
+      const placeholder = document.getElementById("participant-edit-image-placeholder");
+      img.src = this._editingImageBuffer;
+      img.removeAttribute("hidden");
+      placeholder?.setAttribute("hidden", "");
+    } catch (err) {
+      console.error("Falha ao salvar imagem:", err);
+      showToast("Erro ao salvar imagem", "error");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  async saveParticipantEdit() {
+    const idx = this._editingParticipantIndex;
+    if (idx == null || !this.participants[idx]) return this.closeParticipantEdit();
+
+    const p = this.participants[idx];
+    const name = document.getElementById("participant-edit-name").value.trim();
+    if (!name) {
+      showToast("Nome é obrigatório", "error");
+      return;
+    }
+    p.name = name;
+
+    const hp = parseInt(document.getElementById("participant-edit-hp").value, 10);
+    const currentHp = parseInt(document.getElementById("participant-edit-current-hp").value, 10);
+    const ac = parseInt(document.getElementById("participant-edit-ac").value, 10);
+    const ini = parseInt(document.getElementById("participant-edit-ini").value, 10);
+
+    if (Number.isFinite(hp) && hp >= 0) p.hp = hp;
+    if (Number.isFinite(currentHp) && currentHp >= 0) {
+      p.current_hp = p.hp != null ? Math.min(currentHp, p.hp) : currentHp;
+    }
+    if (Number.isFinite(ac) && ac >= 0) p.ac = ac;
+    if (Number.isFinite(ini)) p.ini = ini;
+
+    const affRadio = document.querySelector('input[name="participant-edit-affinity"]:checked');
+    if (affRadio && ["ally", "neutral", "enemy"].includes(affRadio.value)) {
+      p.affinity = affRadio.value;
+    }
+
+    if (this._editingImageBuffer !== undefined) {
+      p.image = this._editingImageBuffer;
+    }
+
+    await this.saveParticipants();
+    this.closeParticipantEdit();
+    showToast("Participante atualizado");
   }
 
   handleDragOver(e) {
