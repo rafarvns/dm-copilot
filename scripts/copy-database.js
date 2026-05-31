@@ -8,6 +8,8 @@ const srcDir = resolve(projectRoot, "src/main/database");
 const outDir = resolve(projectRoot, "out/main/database");
 const servicesSrcDir = resolve(projectRoot, "src/main/services");
 const servicesOutDir = resolve(projectRoot, "out/main/services");
+const serverSrcDir = resolve(projectRoot, "src/main/server");
+const serverOutDir = resolve(projectRoot, "out/main/server");
 
 console.log("Copying database files...");
 console.log(`  Source: ${srcDir}`);
@@ -49,6 +51,13 @@ try {
     console.log(`  Output: ${servicesOutDir}`);
     copyDirectory(servicesSrcDir, servicesOutDir);
     console.log("Service files copied successfully!");
+  }
+  if (existsSync(serverSrcDir)) {
+    console.log("Copying server files...");
+    console.log(`  Source: ${serverSrcDir}`);
+    console.log(`  Output: ${serverOutDir}`);
+    copyDirectory(serverSrcDir, serverOutDir);
+    console.log("Server files copied successfully!");
   }
 } catch (error) {
   console.error("Failed to copy files:", error.message);
