@@ -100,7 +100,14 @@
       "Bash(git commit -m ' *)",
       "Bash(rm -rf /tmp/dm-test-userdata)",
       "Bash(mkdir -p /tmp/dm-test-userdata)",
-      "Bash(\"./dist-test/win-unpacked/DM Copilot.exe\" --user-data-dir=/tmp/dm-test-userdata)"
+      "Bash(\"./dist-test/win-unpacked/DM Copilot.exe\" --user-data-dir=/tmp/dm-test-userdata)",
+      "Bash(git checkout *)",
+      "Bash(gh auth *)",
+      "PowerShell(gh auth *)",
+      "Bash(git remote *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(winget install *)",
+      "PowerShell(gh *)"
     ]
   }
 }
