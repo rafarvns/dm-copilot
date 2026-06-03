@@ -108,7 +108,9 @@
       "PowerShell(Get-Command *)",
       "PowerShell(winget install *)",
       "PowerShell(gh *)",
-      "Bash(go version *)"
+      "Bash(go version *)",
+      "Bash(grep \"\\\\.js$\")",
+      "Bash(pnpm eslint *)"
     ]
   }
 }

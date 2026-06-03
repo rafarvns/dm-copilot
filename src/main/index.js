@@ -713,6 +713,51 @@ ipcMain.handle("db-campaigns-stats", (_event, id) => {
   return { characters, encounters, scenes };
 });
 
+ipcMain.handle("db-campaigns-export", async (_e, { campaignId, outputPath }) => {
+  try {
+    const db = databaseManager.getConnection();
+    const { exportCampaign } = require("./services/campaign-export");
+    const result = await exportCampaign(db, campaignId, outputPath, {
+      userDataDir: app.getPath("userData"),
+      appVersion: app.getVersion(),
+    });
+    return { ok: true, data: result };
+  } catch (err) {
+    console.error("Falha ao exportar campanha:", err);
+    return { ok: false, error: err.message || "Erro desconhecido" };
+  }
+});
+
+ipcMain.handle("db-campaigns-import-inspect", async (_e, filePath) => {
+  try {
+    const db = databaseManager.getConnection();
+    const { inspectImport } = require("./services/campaign-import");
+    return inspectImport(filePath, db);
+  } catch (err) {
+    console.error("Falha ao inspecionar import:", err);
+    return { ok: false, error: err.message || "Arquivo inválido" };
+  }
+});
+
+ipcMain.handle("db-campaigns-import-apply", async (_e, { filePath, mode }) => {
+  try {
+    if (mode === "new") {
+      const gate = licenseManager.canCreate("campaign");
+      if (!gate.ok) return gate;
+    }
+    const db = databaseManager.getConnection();
+    const { importCampaign } = require("./services/campaign-import");
+    const result = await importCampaign(db, filePath, {
+      mode,
+      userDataDir: app.getPath("userData"),
+    });
+    return result;
+  } catch (err) {
+    console.error("Falha ao importar campanha:", err);
+    return { ok: false, error: err.message || "Erro desconhecido" };
+  }
+});
+
 // ============================================
 // IPC Handlers - Characters
 // ============================================

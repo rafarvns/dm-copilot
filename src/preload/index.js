@@ -28,6 +28,11 @@ contextBridge.exposeInMainWorld("dmCopilot", {
       getRecent: (limit) => ipcRenderer.invoke("db-campaigns-recent", limit),
       saveImage: (buffer) => ipcRenderer.invoke("app-save-campaign-image", buffer),
       getStats: (id) => ipcRenderer.invoke("db-campaigns-stats", id),
+      exportToFile: (campaignId, outputPath) =>
+        ipcRenderer.invoke("db-campaigns-export", { campaignId, outputPath }),
+      importInspect: (filePath) => ipcRenderer.invoke("db-campaigns-import-inspect", filePath),
+      importApply: (filePath, mode) =>
+        ipcRenderer.invoke("db-campaigns-import-apply", { filePath, mode }),
     },
 
     // Characters

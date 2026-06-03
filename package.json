@@ -35,6 +35,7 @@
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
     "@3d-dice/dice-box-threejs": "^0.0.12",
+    "adm-zip": "^0.5.16",
     "better-sqlite3": "^12.9.0",
     "easymde": "^2.21.0",
     "electron-updater": "^6.3.9",

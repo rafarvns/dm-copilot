@@ -18,6 +18,7 @@ import {
   normalizeDifficulty,
 } from "../core/format.js";
 import { showConfirm } from "../core/confirm-dialog.js";
+import { showImportConflict } from "../core/import-conflict-dialog.js";
 import { modifier, formatModifier, formatCR } from "../core/dnd-stats.js";
 
 // ============================================
@@ -209,6 +210,12 @@ class CampaignsView {
     });
     this._on(document.getElementById("btn-delete-campaign"), "click", () => {
       if (this.selectedCampaign) this.confirmDelete(this.selectedCampaign.id);
+    });
+    this._on(document.getElementById("btn-export-campaign"), "click", () => {
+      this.handleExportCampaign();
+    });
+    this._on(document.getElementById("btn-import-campaign"), "click", () => {
+      this.handleImportCampaign();
     });
 
     // Character linking
@@ -1200,6 +1207,91 @@ class CampaignsView {
       img.onerror = () => reject(new Error("Erro ao carregar imagem"));
       img.src = URL.createObjectURL(file);
     });
+  }
+
+  // ============================================
+  // Export / Import
+  // ============================================
+  async handleExportCampaign() {
+    const campaign = this.selectedCampaign;
+    if (!campaign) return;
+
+    const slug = campaign.name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    const defaultPath = `${slug || "campanha"}.dmcopilot`;
+
+    const outputPath = await window.dmCopilot.dialogs.saveFile({
+      defaultPath,
+      filters: [{ name: "DM Copilot Export", extensions: ["dmcopilot"] }],
+    });
+    if (!outputPath) return;
+
+    showToast("Exportando campanha…", "info");
+
+    const result = await window.dmCopilot.db.campaigns.exportToFile(campaign.id, outputPath);
+    if (!result.ok) {
+      showToast(`Erro ao exportar: ${result.error}`, "error");
+      return;
+    }
+
+    const { counts } = result.data;
+    showToast(
+      `Campanha exportada — ${counts.characters} personagens, ${counts.encounters} encontros, ${counts.scenes} cenas, ${counts.images} imagens`,
+      "success"
+    );
+  }
+
+  async handleImportCampaign() {
+    const files = await window.dmCopilot.dialogs.openFile({
+      filters: [{ name: "DM Copilot Export", extensions: ["dmcopilot"] }],
+    });
+    if (!files || files.length === 0) return;
+
+    const filePath = files[0];
+
+    const inspect = await window.dmCopilot.db.campaigns.importInspect(filePath);
+    if (!inspect.ok) {
+      showToast(`Erro ao inspecionar arquivo: ${inspect.error}`, "error");
+      return;
+    }
+
+    let mode;
+    if (inspect.existsLocally) {
+      const choice = await showImportConflict({ campaignName: inspect.manifest.name });
+      if (!choice) return;
+      mode = choice;
+    } else {
+      mode = "new";
+    }
+
+    showToast("Importando campanha…", "info");
+
+    const result = await window.dmCopilot.db.campaigns.importApply(filePath, mode);
+    if (!result.ok) {
+      showToast(`Erro ao importar: ${result.error}`, "error");
+      return;
+    }
+
+    const { counts, mediaWarnings } = result;
+    showToast(
+      `Campanha importada: ${counts.characters} personagens, ${counts.encounters} encontros, ${counts.scenes} cenas`,
+      "success"
+    );
+
+    if (mediaWarnings && mediaWarnings.length > 0) {
+      showToast(
+        `${mediaWarnings.length} áudio(s) não foram baixados — a campanha foi importada sem eles.`,
+        "info"
+      );
+    }
+
+    await this.loadCampaigns();
+
+    if (result.newCampaignId) {
+      await this.openCampaign(result.newCampaignId);
+    }
   }
 
   // ============================================
