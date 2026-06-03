@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dmc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dmc}
+      POSTGRES_DB: ${POSTGRES_DB:-dmc_licenses}
+    ports:
+      - "5432:5432"
+    volumes:
+      - dmc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-dmc}:${POSTGRES_PASSWORD:-dmc}@db:5432/${POSTGRES_DB:-dmc_licenses}?sslmode=disable
+      ADMIN_API_KEY: ${ADMIN_API_KEY:?ADMIN_API_KEY is required}
+      PORT: "8080"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    # Distroless has no shell, so the healthcheck uses an HTTP probe via wget
+    # from a sidecar — disabled here. Compose v2 supports `start_interval` and
+    # readiness via the api responding to traffic. For prod, define readiness
+    # probes in your orchestrator (k8s) hitting GET /health directly.
+
+volumes:
+  dmc_pgdata:

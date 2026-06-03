@@ -107,7 +107,8 @@
       "Bash(git remote *)",
       "PowerShell(Get-Command *)",
       "PowerShell(winget install *)",
-      "PowerShell(gh *)"
+      "PowerShell(gh *)",
+      "Bash(go version *)"
     ]
   }
 }
